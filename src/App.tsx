@@ -1,5 +1,5 @@
 import React, {
-  createContext, useContext, useMemo,
+  createContext, useContext, useMemo, useState,
 } from 'react';
 import {
   BrowserRouter, Routes, Route, NavLink, useNavigate, Navigate,
@@ -43,6 +43,7 @@ export interface Goals {
 export interface AppCtx {
   userId:             string;
   today:              string;
+  setToday:           (date: string) => void;
   accent:             string;
   accentGlow:         string;
   profile:            Profile | null;
@@ -76,20 +77,21 @@ function todayISO() {
 // Authenticated shell
 // ──────────────────────────────────────────────────────────
 interface AuthShellProps {
-  userId:  string;
+  userId:    string;
   onSignOut: () => Promise<void>;
 }
 
 function AuthShell({ userId, onSignOut }: AuthShellProps) {
-  const today = useMemo(() => todayISO(), []);
+  // Mutable – user can switch to any date
+  const [today, setToday] = useState(() => todayISO());
 
   const { profile,     save: saveProfile    } = useProfile(userId);
   const { trainingDay, upsert              } = useTrainingDay(userId, today);
   const { entries, totals, addEntry, removeEntry } = useFoodEntries(userId, today);
 
-  const trainingType  = trainingDay?.training_type ?? 'rest';
-  const rideHours     = trainingDay?.ride_hours    ?? 0;
-  const training      = TRAINING_TYPES.find(t => t.id === trainingType)!;
+  const trainingType = trainingDay?.training_type ?? 'rest';
+  const rideHours    = trainingDay?.ride_hours    ?? 0;
+  const training     = TRAINING_TYPES.find(t => t.id === trainingType)!;
 
   const goals = useMemo<Goals>(() => {
     if (!profile) return DEFAULT_GOALS;
@@ -107,6 +109,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   const ctx: AppCtx = {
     userId,
     today,
+    setToday,
     accent:            training.color,
     accentGlow:        training.glow,
     profile,
@@ -123,7 +126,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 
   return (
     <AppContext.Provider value={ctx}>
-      <AppLayout accent={training.color} />
+      <AppLayout accent={training.color} today={today} setToday={setToday} />
     </AppContext.Provider>
   );
 }
@@ -139,33 +142,77 @@ const NAV_ITEMS = [
   { to: '/profile', icon: '👤', label: 'Profil'  },
 ] as const;
 
-function AppLayout({ accent }: { accent: string }) {
-  // Czech date display
-  const today     = useMemo(() => todayISO(), []);
-  const dateLabel = useMemo(() => {
+interface AppLayoutProps {
+  accent:   string;
+  today:    string;
+  setToday: (date: string) => void;
+}
+
+function AppLayout({ accent, today, setToday }: AppLayoutProps) {
+  const realToday = todayISO();
+
+  // Human-friendly date label
+  const dateLabel = (() => {
+    const d         = new Date(today + 'T00:00:00');
+    const dateShort = d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' });
+
+    if (today === realToday) return `Dnes · ${dateShort}`;
+
+    const yest = new Date();
+    yest.setDate(yest.getDate() - 1);
+    if (today === yest.toISOString().split('T')[0]) return `Včera · ${dateShort}`;
+
+    const tom = new Date();
+    tom.setDate(tom.getDate() + 1);
+    if (today === tom.toISOString().split('T')[0]) return `Zítra · ${dateShort}`;
+
+    const dayShort = d.toLocaleDateString('cs-CZ', { weekday: 'short' });
+    return `${dayShort} ${dateShort}`;
+  })();
+
+  const prevDay = () => {
     const d = new Date(today + 'T00:00:00');
-    return d.toLocaleDateString('cs-CZ', {
-      weekday: 'short', day: 'numeric', month: 'numeric',
-    });
-  }, [today]);
+    d.setDate(d.getDate() - 1);
+    setToday(d.toISOString().split('T')[0]);
+  };
+
+  const nextDay = () => {
+    const d = new Date(today + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    setToday(d.toISOString().split('T')[0]);
+  };
+
+  const isToday = today === realToday;
+
+  const navBtnStyle: React.CSSProperties = {
+    background:  'none',
+    border:      'none',
+    color:       T.muted,
+    fontSize:    18,
+    lineHeight:  1,
+    cursor:      'pointer',
+    padding:     '4px 6px',
+    borderRadius: 6,
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', background: T.bg }}>
 
       {/* Sticky Header */}
       <header style={{
-        position:   'sticky',
-        top:        0,
-        zIndex:     50,
-        background: T.bg + 'f0',
+        position:       'sticky',
+        top:            0,
+        zIndex:         50,
+        background:     T.bg + 'f0',
         backdropFilter: 'blur(12px)',
-        borderBottom: `1px solid ${T.border}`,
-        padding:    '10px 16px',
-        display:    'flex',
+        borderBottom:   `1px solid ${T.border}`,
+        padding:        '10px 16px',
+        display:        'flex',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        flexShrink: 0,
+        alignItems:     'center',
+        flexShrink:     0,
       }}>
+        {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 20 }}>🚴</span>
           <span style={{
@@ -178,7 +225,44 @@ function AppLayout({ accent }: { accent: string }) {
             CycloFuel
           </span>
         </div>
-        <div style={{ fontSize: 12, color: T.muted }}>{dateLabel}</div>
+
+        {/* Date navigation */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+          <button onClick={prevDay} style={navBtnStyle} aria-label="Předchozí den">‹</button>
+
+          {/* Clicking the label opens native date picker */}
+          <label style={{ cursor: 'pointer', position: 'relative', margin: '0 2px' }}>
+            <span style={{
+              fontSize:   12,
+              color:      isToday ? accent : T.muted,
+              fontWeight: isToday ? 700 : 400,
+              whiteSpace: 'nowrap',
+              display:    'block',
+              padding:    '4px 4px',
+              borderRadius: 6,
+              transition: 'color 0.2s',
+            }}>
+              {dateLabel}
+            </span>
+            {/* Hidden native date picker */}
+            <input
+              type="date"
+              value={today}
+              onChange={e => e.target.value && setToday(e.target.value)}
+              style={{
+                position: 'absolute', top: 0, left: 0,
+                width: '100%', height: '100%',
+                opacity: 0, cursor: 'pointer',
+              }}
+            />
+          </label>
+
+          <button
+            onClick={nextDay}
+            style={navBtnStyle}
+            aria-label="Následující den"
+          >›</button>
+        </div>
       </header>
 
       {/* Page content */}
@@ -195,19 +279,19 @@ function AppLayout({ accent }: { accent: string }) {
 
       {/* Fixed Bottom Nav */}
       <nav style={{
-        position:   'fixed',
-        bottom:     0,
-        left:       '50%',
-        transform:  'translateX(-50%)',
-        width:      '100%',
-        maxWidth:   500,
-        background: T.card + 'f8',
+        position:       'fixed',
+        bottom:         0,
+        left:           '50%',
+        transform:      'translateX(-50%)',
+        width:          '100%',
+        maxWidth:       500,
+        background:     T.card + 'f8',
         backdropFilter: 'blur(16px)',
-        borderTop:  `1px solid ${T.border}`,
-        display:    'flex',
+        borderTop:      `1px solid ${T.border}`,
+        display:        'flex',
         justifyContent: 'space-around',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        zIndex:     50,
+        paddingBottom:  'env(safe-area-inset-bottom, 0px)',
+        zIndex:         50,
       }}>
         {NAV_ITEMS.map(item => (
           <NavLink
