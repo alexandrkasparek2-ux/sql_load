@@ -32,6 +32,7 @@ export const FOOD_CATEGORIES = [
   '🍚 Sacharidy',
   '🍞 Pečivo',
   '🍯 Pomazánky',
+  '🍰 Sladkosti',
   '🍲 Hotová jídla',
   '🍌 Ovoce',
   '🥩 Bílkoviny',
@@ -589,6 +590,133 @@ export const FOODS: Food[] = [
     name: 'Rybí pomazánka',
     kcal: 195, carbs: 2.0, protein: 14.0, fat: 14.5, per: 50,
     micros: { na: 450, k: 180, mg: 20, ca: 50, fe: 0.8, vit_c: 0, vit_d: 3.0, b12: 2.0, omega3: 600, zn: 0.8 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🍰 Sladkosti – čokolády
+  // ──────────────────────────────────────────
+  {
+    id: 'cokolada_horca',
+    cat: '🍰 Sladkosti',
+    name: 'Čokoláda hořká (70 %)',
+    kcal: 598, carbs: 32.0, protein: 7.8, fat: 42.6, per: 30,
+    micros: { na: 10, k: 559, mg: 146, ca: 56, fe: 5.9, vit_c: 0, vit_d: 0, b12: 0, omega3: 50, zn: 2.8 },
+  },
+  {
+    id: 'cokolada_mlecna',
+    cat: '🍰 Sladkosti',
+    name: 'Čokoláda mléčná',
+    kcal: 535, carbs: 59.4, protein: 7.7, fat: 29.7, per: 30,
+    micros: { na: 79, k: 372, mg: 63, ca: 189, fe: 1.5, vit_c: 0.4, vit_d: 0.1, b12: 0.5, omega3: 100, zn: 1.4 },
+  },
+  {
+    id: 'cokolada_bila',
+    cat: '🍰 Sladkosti',
+    name: 'Čokoláda bílá',
+    kcal: 539, carbs: 59.2, protein: 5.9, fat: 32.1, per: 30,
+    micros: { na: 90, k: 286, mg: 26, ca: 199, fe: 0.2, vit_c: 0.6, vit_d: 0.1, b12: 0.4, omega3: 80, zn: 0.8 },
+  },
+  {
+    id: 'cokolada_s_orizky',
+    cat: '🍰 Sladkosti',
+    name: 'Čokoláda s oříšky',
+    kcal: 554, carbs: 49.0, protein: 9.5, fat: 35.0, per: 30,
+    micros: { na: 45, k: 430, mg: 90, ca: 95, fe: 2.5, vit_c: 0, vit_d: 0, b12: 0.1, omega3: 60, zn: 1.8 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🍰 Sladkosti – buchty, koláče, dorty
+  // ──────────────────────────────────────────
+  {
+    id: 'buchta_makova',
+    cat: '🍰 Sladkosti',
+    name: 'Buchta s mákem',
+    kcal: 308, carbs: 50.0, protein: 6.0, fat: 9.0, per: 80,
+    micros: { na: 180, k: 130, mg: 40, ca: 80, fe: 2.0, vit_c: 0, vit_d: 0.1, b12: 0.1, omega3: 30, zn: 0.9 },
+  },
+  {
+    id: 'kolac_tvarohovy',
+    cat: '🍰 Sladkosti',
+    name: 'Koláč tvarohový',
+    kcal: 272, carbs: 38.0, protein: 8.5, fat: 9.5, per: 100,
+    micros: { na: 160, k: 120, mg: 12, ca: 85, fe: 0.8, vit_c: 0, vit_d: 0.2, b12: 0.3, omega3: 50, zn: 0.7 },
+  },
+  {
+    id: 'kolac_svestkovy',
+    cat: '🍰 Sladkosti',
+    name: 'Koláč švestkový',
+    kcal: 255, carbs: 42.0, protein: 4.5, fat: 8.0, per: 100,
+    micros: { na: 150, k: 160, mg: 10, ca: 25, fe: 0.9, vit_c: 3, vit_d: 0.1, b12: 0.1, omega3: 20, zn: 0.4 },
+  },
+  {
+    id: 'dort_cokoladovy',
+    cat: '🍰 Sladkosti',
+    name: 'Dort čokoládový',
+    kcal: 385, carbs: 48.0, protein: 5.0, fat: 19.5, per: 100,
+    micros: { na: 200, k: 200, mg: 30, ca: 60, fe: 1.8, vit_c: 0, vit_d: 0.2, b12: 0.2, omega3: 60, zn: 0.9 },
+  },
+  {
+    id: 'dort_ovocny',
+    cat: '🍰 Sladkosti',
+    name: 'Dort ovocný',
+    kcal: 290, carbs: 44.0, protein: 4.0, fat: 11.0, per: 100,
+    micros: { na: 120, k: 130, mg: 8, ca: 50, fe: 0.6, vit_c: 8, vit_d: 0.1, b12: 0.1, omega3: 30, zn: 0.4 },
+  },
+  {
+    id: 'strudl_jablecny',
+    cat: '🍰 Sladkosti',
+    name: 'Štrúdl jablečný',
+    kcal: 262, carbs: 38.0, protein: 4.0, fat: 10.5, per: 120,
+    micros: { na: 140, k: 100, mg: 8, ca: 20, fe: 0.8, vit_c: 4, vit_d: 0.1, b12: 0, omega3: 20, zn: 0.3 },
+  },
+  {
+    id: 'medovnik',
+    cat: '🍰 Sladkosti',
+    name: 'Medovník',
+    kcal: 402, carbs: 57.0, protein: 5.5, fat: 17.0, per: 100,
+    micros: { na: 200, k: 150, mg: 12, ca: 55, fe: 1.2, vit_c: 0, vit_d: 0.1, b12: 0.2, omega3: 40, zn: 0.6 },
+  },
+  {
+    id: 'pernik',
+    cat: '🍰 Sladkosti',
+    name: 'Perník',
+    kcal: 350, carbs: 74.0, protein: 5.0, fat: 4.0, per: 50,
+    micros: { na: 220, k: 200, mg: 25, ca: 40, fe: 2.5, vit_c: 0, vit_d: 0, b12: 0, omega3: 10, zn: 0.5 },
+  },
+  {
+    id: 'susnenky_maslove',
+    cat: '🍰 Sladkosti',
+    name: 'Sušenky máslové',
+    kcal: 502, carbs: 65.0, protein: 5.5, fat: 24.0, per: 30,
+    micros: { na: 300, k: 80, mg: 10, ca: 20, fe: 1.0, vit_c: 0, vit_d: 0.2, b12: 0.1, omega3: 60, zn: 0.4 },
+  },
+  {
+    id: 'donut',
+    cat: '🍰 Sladkosti',
+    name: 'Donut',
+    kcal: 390, carbs: 46.0, protein: 5.0, fat: 21.0, per: 80,
+    micros: { na: 310, k: 90, mg: 10, ca: 25, fe: 1.2, vit_c: 0, vit_d: 0.1, b12: 0.1, omega3: 50, zn: 0.4 },
+  },
+  {
+    id: 'muffin_cokoladovy',
+    cat: '🍰 Sladkosti',
+    name: 'Muffin čokoládový',
+    kcal: 362, carbs: 50.0, protein: 5.0, fat: 16.0, per: 100,
+    micros: { na: 280, k: 180, mg: 22, ca: 50, fe: 1.5, vit_c: 0, vit_d: 0.1, b12: 0.1, omega3: 40, zn: 0.7 },
+  },
+  {
+    id: 'venecek',
+    cat: '🍰 Sladkosti',
+    name: 'Věneček (éclair)',
+    kcal: 318, carbs: 28.0, protein: 7.5, fat: 19.5, per: 80,
+    micros: { na: 200, k: 100, mg: 10, ca: 50, fe: 0.8, vit_c: 0, vit_d: 0.3, b12: 0.2, omega3: 80, zn: 0.6 },
+  },
+  {
+    id: 'tiramisu',
+    cat: '🍰 Sladkosti',
+    name: 'Tiramisu',
+    kcal: 295, carbs: 27.0, protein: 5.5, fat: 18.0, per: 120,
+    micros: { na: 85, k: 120, mg: 12, ca: 65, fe: 0.5, vit_c: 0, vit_d: 0.3, b12: 0.4, omega3: 60, zn: 0.5 },
   },
 
   // ──────────────────────────────────────────
