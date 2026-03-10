@@ -31,6 +31,7 @@ export interface Food {
 export const FOOD_CATEGORIES = [
   '🍚 Sacharidy',
   '🍞 Pečivo',
+  '🍯 Pomazánky',
   '🍲 Hotová jídla',
   '🍌 Ovoce',
   '🥩 Bílkoviny',
@@ -482,6 +483,112 @@ export const FOODS: Food[] = [
     name: 'Kváskový chléb',
     kcal: 230, carbs: 44.0, protein: 8.0, fat: 1.5, per: 70,
     micros: { na: 350, k: 150, mg: 30, ca: 20, fe: 1.8, vit_c: 0, vit_d: 0, b12: 0, omega3: 30, zn: 1.0 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🍯 Pomazánky – sladké
+  // ──────────────────────────────────────────
+  {
+    id: 'med',
+    cat: '🍯 Pomazánky',
+    name: 'Med',
+    kcal: 304, carbs: 82.4, protein: 0.3, fat: 0.0, per: 20,
+    micros: { na: 4, k: 52, mg: 2, ca: 6, fe: 0.4, vit_c: 0.5, vit_d: 0, b12: 0, omega3: 0, zn: 0.2 },
+  },
+  {
+    id: 'marmelada_jahodova',
+    cat: '🍯 Pomazánky',
+    name: 'Marmeláda jahodová',
+    kcal: 250, carbs: 65.0, protein: 0.4, fat: 0.1, per: 20,
+    micros: { na: 10, k: 75, mg: 4, ca: 10, fe: 0.3, vit_c: 8, vit_d: 0, b12: 0, omega3: 0, zn: 0.1 },
+  },
+  {
+    id: 'marmelada_malinova',
+    cat: '🍯 Pomazánky',
+    name: 'Marmeláda malinová',
+    kcal: 248, carbs: 64.0, protein: 0.6, fat: 0.1, per: 20,
+    micros: { na: 10, k: 90, mg: 5, ca: 12, fe: 0.4, vit_c: 10, vit_d: 0, b12: 0, omega3: 0, zn: 0.1 },
+  },
+  {
+    id: 'povidla_svestkova',
+    cat: '🍯 Pomazánky',
+    name: 'Povidla švestková',
+    kcal: 220, carbs: 56.0, protein: 1.0, fat: 0.2, per: 25,
+    micros: { na: 5, k: 220, mg: 8, ca: 15, fe: 0.8, vit_c: 3, vit_d: 0, b12: 0, omega3: 10, zn: 0.2 },
+  },
+  {
+    id: 'nutella',
+    cat: '🍯 Pomazánky',
+    name: 'Nutella',
+    kcal: 539, carbs: 57.5, protein: 6.0, fat: 30.9, per: 20,
+    micros: { na: 41, k: 280, mg: 40, ca: 120, fe: 2.0, vit_c: 0, vit_d: 1, b12: 0.2, omega3: 30, zn: 0.8 },
+  },
+  {
+    id: 'jablecne_pyre',
+    cat: '🍯 Pomazánky',
+    name: 'Jablečné pyré',
+    kcal: 68, carbs: 17.7, protein: 0.2, fat: 0.1, per: 100,
+    micros: { na: 2, k: 90, mg: 3, ca: 4, fe: 0.1, vit_c: 2, vit_d: 0, b12: 0, omega3: 5, zn: 0.05 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🍯 Pomazánky – slané
+  // ──────────────────────────────────────────
+  {
+    id: 'hummus',
+    cat: '🍯 Pomazánky',
+    name: 'Hummus',
+    kcal: 166, carbs: 14.3, protein: 7.9, fat: 9.6, per: 50,
+    micros: { na: 300, k: 228, mg: 36, ca: 49, fe: 2.4, vit_c: 3, vit_d: 0, b12: 0, omega3: 80, zn: 1.4 },
+  },
+  {
+    id: 'tvarohova_pomazanka',
+    cat: '🍯 Pomazánky',
+    name: 'Tvarohová pomazánka',
+    kcal: 130, carbs: 3.0, protein: 11.0, fat: 8.0, per: 50,
+    micros: { na: 250, k: 90, mg: 8, ca: 80, fe: 0.1, vit_c: 0, vit_d: 0, b12: 0.4, omega3: 30, zn: 0.4 },
+  },
+  {
+    id: 'vejcova_pomazanka',
+    cat: '🍯 Pomazánky',
+    name: 'Vejcová pomazánka',
+    kcal: 185, carbs: 1.5, protein: 9.0, fat: 15.5, per: 50,
+    micros: { na: 280, k: 100, mg: 10, ca: 40, fe: 1.2, vit_c: 0, vit_d: 1.5, b12: 0.6, omega3: 120, zn: 0.8 },
+  },
+  {
+    id: 'jaterni_pomazanka',
+    cat: '🍯 Pomazánky',
+    name: 'Játrová pomazánka',
+    kcal: 280, carbs: 3.0, protein: 13.0, fat: 24.0, per: 50,
+    micros: { na: 600, k: 180, mg: 12, ca: 15, fe: 4.5, vit_c: 3, vit_d: 0.5, b12: 10.0, omega3: 100, zn: 2.5 },
+  },
+  {
+    id: 'lucina',
+    cat: '🍯 Pomazánky',
+    name: 'Lučina (smetanový sýr)',
+    kcal: 257, carbs: 4.2, protein: 8.5, fat: 22.8, per: 30,
+    micros: { na: 380, k: 95, mg: 9, ca: 90, fe: 0.1, vit_c: 0, vit_d: 0.1, b12: 0.3, omega3: 80, zn: 0.5 },
+  },
+  {
+    id: 'majoneza',
+    cat: '🍯 Pomazánky',
+    name: 'Majonéza',
+    kcal: 680, carbs: 0.6, protein: 1.0, fat: 74.9, per: 15,
+    micros: { na: 490, k: 20, mg: 1, ca: 5, fe: 0.1, vit_c: 0, vit_d: 0.5, b12: 0, omega3: 400, zn: 0.1 },
+  },
+  {
+    id: 'tatarka',
+    cat: '🍯 Pomazánky',
+    name: 'Tatarská omáčka',
+    kcal: 300, carbs: 8.0, protein: 1.0, fat: 29.0, per: 30,
+    micros: { na: 500, k: 40, mg: 3, ca: 15, fe: 0.2, vit_c: 2, vit_d: 0.2, b12: 0, omega3: 300, zn: 0.1 },
+  },
+  {
+    id: 'rybi_pomazanka',
+    cat: '🍯 Pomazánky',
+    name: 'Rybí pomazánka',
+    kcal: 195, carbs: 2.0, protein: 14.0, fat: 14.5, per: 50,
+    micros: { na: 450, k: 180, mg: 20, ca: 50, fe: 0.8, vit_c: 0, vit_d: 3.0, b12: 2.0, omega3: 600, zn: 0.8 },
   },
 
   // ──────────────────────────────────────────
