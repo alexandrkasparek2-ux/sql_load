@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { AppContext }   from '../App';
 import { T, Card, SectionTitle, Btn } from '../components/UI';
 import {
@@ -24,7 +24,7 @@ const DISTRIBUTIONS: Record<string, Record<string, number>> = {
 
 export default function Plan() {
   const ctx = useContext(AppContext);
-  const { accent, trainingDay, upsertTrainingDay, profile, goals } = ctx;
+  const { accent, trainingDay, upsertTrainingDay, profile } = ctx;
 
   const currentType  = trainingDay?.training_type ?? 'rest';
   const currentHours = trainingDay?.ride_hours    ?? 0;

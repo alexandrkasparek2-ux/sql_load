@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext }  from '../App';
 import { T, MacroCard, ProgressBar, SectionTitle, Card, Btn } from '../components/UI';

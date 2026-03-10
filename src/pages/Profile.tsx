@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useCallback } from 'react';
+import { useContext, useState, useEffect, useCallback } from 'react';
 import { AppContext } from '../App';
 import { T, Card, SectionTitle, StatRow, Btn, Spinner } from '../components/UI';
 import { calcBMR, calcCalories, calcMacros, calcWater } from '../constants/training';

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { T, Btn, Spinner } from '../components/UI';
+import { T, Spinner } from '../components/UI';
 
 interface LoginProps {
   onSignIn:  (email: string, password: string) => Promise<void>;

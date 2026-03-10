@@ -1,4 +1,4 @@
-import React, { useState, useContext, useMemo } from 'react';
+import { useState, useContext, useMemo } from 'react';
 import { AppContext }    from '../App';
 import { T, Card, SectionTitle, ProgressBar, Btn } from '../components/UI';
 import { FOODS, FOOD_CATEGORIES, type Food } from '../constants/foods';

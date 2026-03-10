@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import { useContext } from 'react';
 import { AppContext }       from '../App';
 import { T, Card, SectionTitle, ProgressBar } from '../components/UI';
 import { MICRO_META, TRAINING_TYPES }           from '../constants/training';
