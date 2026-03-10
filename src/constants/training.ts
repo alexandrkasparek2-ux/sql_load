@@ -198,14 +198,21 @@ export function calcCalories(p: CalcProfile, type: TrainingType, activeHours: nu
   return Math.round(bmr * 1.4 + activeHours * p.weight * cfg.calBurnRate);
 }
 
-export function calcCaloriesMulti(p: CalcProfile, types: TrainingType[], totalHours: number): number {
+export const INTENSITY_MUL: Record<string, number> = { low: 0.7, medium: 1.0, high: 1.3 };
+
+export function calcCaloriesMulti(
+  p: CalcProfile,
+  types: TrainingType[],
+  hoursMap: Record<string, number>,
+  intensityMap: Record<string, string> = {},
+): number {
   const bmr = calcBMR(p);
   const active = types.filter(t => t !== 'rest');
   if (active.length === 0) return Math.round(bmr * 1.2);
-  const hoursEach = totalHours / active.length;
   const burn = active.reduce((sum, t) => {
     const cfg = TRAINING_TYPES.find(x => x.id === t)!;
-    return sum + hoursEach * p.weight * cfg.calBurnRate;
+    const mul = INTENSITY_MUL[intensityMap[t] ?? 'medium'] ?? 1.0;
+    return sum + (hoursMap[t] ?? 0) * p.weight * cfg.calBurnRate * mul;
   }, 0);
   return Math.round(bmr * 1.4 + burn);
 }
