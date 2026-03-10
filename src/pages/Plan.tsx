@@ -1,8 +1,8 @@
-import React, { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { AppContext }   from '../App';
 import { T, Card, SectionTitle, Btn } from '../components/UI';
 import {
-  TRAINING_TYPES, MEAL_SLOTS, calcCalories, calcMacros, calcWater,
+  TRAINING_TYPES, MEAL_SLOTS, calcCaloriesMulti, calcMacros, calcWater, primaryType,
   type TrainingType,
 } from '../constants/training';
 
@@ -28,67 +28,155 @@ const DISTRIBUTIONS: Record<string, Record<string, number>> = {
   boxing:         { snidane: 20, obed: 25, pred_tren: 15, po_tren: 20, vecere: 20 },
 };
 
+// Initialize selectedTypes from saved trainingDay data
+function initSelected(trainingType: TrainingType, extraTypes: TrainingType[]): Set<TrainingType> {
+  if (extraTypes.length > 0) return new Set(extraTypes);
+  return new Set([trainingType]);
+}
+
 export default function Plan() {
   const ctx = useContext(AppContext);
-  const { accent, trainingDay, upsertTrainingDay, profile, goals } = ctx;
+  const { accent, trainingDay, upsertTrainingDay, profile } = ctx;
 
-  const currentType  = trainingDay?.training_type ?? 'rest';
-  const currentHours = trainingDay?.ride_hours    ?? 0;
+  const savedPrimary = trainingDay?.training_type ?? 'rest';
+  const savedExtra   = trainingDay?.extra_types   ?? [];
 
-  const [hours,  setHours]  = useState(currentHours);
-  const [saving, setSaving] = useState(false);
+  const [selected, setSelected] = useState<Set<TrainingType>>(() => initSelected(savedPrimary, savedExtra));
+  const [hours,    setHours]    = useState(trainingDay?.ride_hours ?? 0);
+  const [saving,   setSaving]   = useState(false);
 
+  // Sync state when trainingDay loads from DB
   useEffect(() => {
+    setSelected(initSelected(
+      trainingDay?.training_type ?? 'rest',
+      trainingDay?.extra_types   ?? [],
+    ));
     setHours(trainingDay?.ride_hours ?? 0);
-  }, [trainingDay?.ride_hours]);
+  }, [trainingDay?.training_type, trainingDay?.extra_types, trainingDay?.ride_hours]);
 
-  const handleTypeSelect = async (id: TrainingType) => {
+  const toggle = (id: TrainingType) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (id === 'rest') return new Set(['rest']);
+      next.delete('rest');
+      if (next.has(id)) {
+        next.delete(id);
+        if (next.size === 0) next.add('rest');
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const saveSelection = async () => {
+    const types = Array.from(selected) as TrainingType[];
+    const prime = primaryType(types);
     setSaving(true);
-    await upsertTrainingDay({ training_type: id, ride_hours: hours });
+    await upsertTrainingDay({ training_type: prime, extra_types: types, ride_hours: hours });
     setSaving(false);
   };
 
   const handleHoursSave = async () => {
+    const types = Array.from(selected) as TrainingType[];
+    const prime = primaryType(types);
     setSaving(true);
-    await upsertTrainingDay({ ride_hours: hours });
+    await upsertTrainingDay({ training_type: prime, extra_types: types, ride_hours: hours });
     setSaving(false);
   };
 
-  const selectedTraining   = TRAINING_TYPES.find(t => t.id === currentType)!;
-  const mealDistribution   = DISTRIBUTIONS[currentType] ?? {};
+  const selectedTypes   = Array.from(selected) as TrainingType[];
+  const prime           = primaryType(selectedTypes);
+  const primeCfg        = TRAINING_TYPES.find(t => t.id === prime)!;
+  const mealDistribution = DISTRIBUTIONS[prime] ?? {};
 
   const demoProfile = profile ?? { weight: 70, height: 175, age: 30, gender: 'male' as const };
-  const kcalGoal    = calcCalories(demoProfile, currentType, hours);
-  const macros      = calcMacros(demoProfile, currentType);
+  const kcalGoal    = calcCaloriesMulti(demoProfile, selectedTypes, hours);
+  const macros      = calcMacros(demoProfile, prime);
   const water       = calcWater(demoProfile, hours);
 
   const cyclingTypes = TRAINING_TYPES.filter(t => t.category === 'cycling');
   const sportTypes   = TRAINING_TYPES.filter(t => t.category === 'sport');
 
-  const showHoursSlider = selectedTraining.calBurnRate > 0;
+  const hasActive   = !selected.has('rest') || selected.size > 1;
+  const multiSelect = selected.size > 1 || (selected.size === 1 && !selected.has('rest'));
+
+  // Determine whether selection has changed from saved state (to show Save button)
+  const savedKey   = [savedPrimary, ...savedExtra].sort().join(',');
+  const currentKey = selectedTypes.sort().join(',');
+  const isDirty    = savedKey !== currentKey;
 
   return (
     <div style={{ padding: '16px 16px 0' }}>
 
+      {/* ── Multi-select hint ─────────────────────────── */}
+      <div style={{ fontSize: 12, color: T.muted, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ fontSize: 14 }}>💡</span>
+        Můžeš vybrat více aktivit najednou — kalorie se sečtou
+      </div>
+
       {/* ── Cycling types ────────────────────────────── */}
       <SectionTitle accent={accent}>🚴 Cyklistika</SectionTitle>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-        {cyclingTypes.map(t => <TrainingCard key={t.id} t={t} currentType={currentType} onSelect={handleTypeSelect} />)}
+        {cyclingTypes.map(t => (
+          <TrainingCard
+            key={t.id}
+            t={t}
+            selected={selected}
+            onToggle={toggle}
+          />
+        ))}
       </div>
 
       {/* ── Other sports ─────────────────────────────── */}
       <SectionTitle accent={accent}>🏅 Ostatní sporty</SectionTitle>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-        {sportTypes.map(t => <TrainingCard key={t.id} t={t} currentType={currentType} onSelect={handleTypeSelect} />)}
+        {sportTypes.map(t => (
+          <TrainingCard
+            key={t.id}
+            t={t}
+            selected={selected}
+            onToggle={toggle}
+          />
+        ))}
       </div>
 
-      {/* ── Duration slider (only for activities with burn rate) ── */}
-      {showHoursSlider && (
+      {/* ── Selected summary + Save ───────────────────── */}
+      {multiSelect && (
+        <Card style={{ marginBottom: 20, background: primeCfg.color + '10', border: `1px solid ${primeCfg.color}40` }}>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 8 }}>Vybrané aktivity</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: isDirty ? 12 : 0 }}>
+            {selectedTypes.map(id => {
+              const cfg = TRAINING_TYPES.find(t => t.id === id)!;
+              return (
+                <span key={id} style={{
+                  fontSize: 12, fontWeight: 600,
+                  background: cfg.color + '22', color: cfg.color,
+                  borderRadius: 10, padding: '3px 10px',
+                  border: `1px solid ${cfg.color}44`,
+                }}>
+                  {cfg.icon} {cfg.label}
+                </span>
+              );
+            })}
+          </div>
+          {isDirty && (
+            <Btn accent={primeCfg.color} size="md" full onClick={saveSelection} disabled={saving}>
+              {saving ? 'Ukládám…' : 'Uložit výběr'}
+            </Btn>
+          )}
+        </Card>
+      )}
+
+      {/* ── Duration slider (only when something active) ── */}
+      {hasActive && (
         <div style={{ marginBottom: 20 }}>
-          <SectionTitle accent={accent}>Délka aktivity</SectionTitle>
+          <SectionTitle accent={accent}>Celková délka aktivity</SectionTitle>
           <Card>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 14, color: T.muted }}>Hodiny aktivity</span>
+              <span style={{ fontSize: 14, color: T.muted }}>
+                {selected.size > 1 ? `Celkem (${selected.size} aktivity)` : 'Hodiny aktivity'}
+              </span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <button
                   onClick={() => setHours(h => Math.max(0, parseFloat((h - 0.5).toFixed(1))))}
@@ -98,22 +186,27 @@ export default function Plan() {
                   {hours.toFixed(1)} h
                 </span>
                 <button
-                  onClick={() => setHours(h => Math.min(8, parseFloat((h + 0.5).toFixed(1))))}
+                  onClick={() => setHours(h => Math.min(12, parseFloat((h + 0.5).toFixed(1))))}
                   style={{ width: 28, height: 28, borderRadius: 7, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 16 }}
                 >+</button>
               </div>
             </div>
             <input
               type="range"
-              min={0} max={8} step={0.5}
+              min={0} max={12} step={0.5}
               value={hours}
               onChange={e => setHours(Number(e.target.value))}
-              style={{ background: `linear-gradient(to right, ${accent} ${(hours / 8) * 100}%, ${T.border} 0%)` }}
+              style={{ background: `linear-gradient(to right, ${accent} ${(hours / 12) * 100}%, ${T.border} 0%)` }}
             />
             <style>{`input[type=range]::-webkit-slider-thumb { background: ${accent}; } input[type=range]::-moz-range-thumb { background: ${accent}; }`}</style>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: T.muted, marginTop: 4 }}>
-              <span>0 h</span><span>4 h</span><span>8 h</span>
+              <span>0 h</span><span>6 h</span><span>12 h</span>
             </div>
+            {selected.size > 1 && (
+              <div style={{ marginTop: 8, fontSize: 11, color: T.muted, textAlign: 'center' }}>
+                ≈ {(hours / selected.size).toFixed(1)} h / aktivitu
+              </div>
+            )}
             <div style={{ marginTop: 12 }}>
               <Btn accent={accent} size="md" full onClick={handleHoursSave} disabled={saving}>
                 {saving ? 'Ukládám…' : 'Uložit délku aktivity'}
@@ -164,15 +257,15 @@ export default function Plan() {
       </Card>
 
       {/* ── Tips ───────────────────────────────────── */}
-      <SectionTitle accent={accent}>Tipy pro {selectedTraining.label}</SectionTitle>
+      <SectionTitle accent={accent}>Tipy pro {primeCfg.label}</SectionTitle>
       <Card style={{ marginBottom: 16 }}>
-        {selectedTraining.tips.map((tip, i) => (
+        {primeCfg.tips.map((tip, i) => (
           <div key={i} style={{
             display:       'flex',
             gap:           10,
-            paddingBottom: i < selectedTraining.tips.length - 1 ? 10 : 0,
-            marginBottom:  i < selectedTraining.tips.length - 1 ? 10 : 0,
-            borderBottom:  i < selectedTraining.tips.length - 1 ? `1px solid ${T.border}` : 'none',
+            paddingBottom: i < primeCfg.tips.length - 1 ? 10 : 0,
+            marginBottom:  i < primeCfg.tips.length - 1 ? 10 : 0,
+            borderBottom:  i < primeCfg.tips.length - 1 ? `1px solid ${T.border}` : 'none',
           }}>
             <span style={{ color: accent, fontSize: 16, flexShrink: 0 }}>💡</span>
             <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.5 }}>{tip}</span>
@@ -188,16 +281,16 @@ export default function Plan() {
 type TConfig = typeof TRAINING_TYPES[number];
 
 function TrainingCard({
-  t, currentType, onSelect,
+  t, selected, onToggle,
 }: {
-  t:           TConfig;
-  currentType: string;
-  onSelect:    (id: TrainingType) => void;
+  t:        TConfig;
+  selected: Set<TrainingType>;
+  onToggle: (id: TrainingType) => void;
 }) {
-  const isActive = t.id === currentType;
+  const isActive = selected.has(t.id);
   return (
     <button
-      onClick={() => onSelect(t.id)}
+      onClick={() => onToggle(t.id)}
       style={{
         background:   isActive ? t.color + '18' : T.card,
         border:       `1px solid ${isActive ? t.color : T.border}`,
@@ -219,7 +312,7 @@ function TrainingCard({
             </span>
             {isActive && (
               <span style={{ fontSize: 10, background: t.color + '22', color: t.color, borderRadius: 10, padding: '1px 8px', fontWeight: 600 }}>
-                Aktivní
+                ✓ Vybráno
               </span>
             )}
           </div>

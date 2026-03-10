@@ -7,6 +7,7 @@ export interface TrainingDay {
   user_id:       string;
   date:          string;
   training_type: TrainingType;
+  extra_types:   TrainingType[];
   ride_hours:    number;
   water_glasses: number;
   coffee_cups:   number;
@@ -16,6 +17,7 @@ const defaultDay = (userId: string, date: string): TrainingDay => ({
   user_id:       userId,
   date,
   training_type: 'rest',
+  extra_types:   [],
   ride_hours:    0,
   water_glasses: 0,
   coffee_cups:   0,
@@ -47,6 +49,7 @@ export function useTrainingDay(userId: string | undefined, date: string) {
       user_id:       userId,
       date,
       training_type: current.training_type,
+      extra_types:   current.extra_types,
       ride_hours:    current.ride_hours,
       water_glasses: current.water_glasses,
       coffee_cups:   current.coffee_cups,

@@ -198,6 +198,28 @@ export function calcCalories(p: CalcProfile, type: TrainingType, activeHours: nu
   return Math.round(bmr * 1.4 + activeHours * p.weight * cfg.calBurnRate);
 }
 
+export function calcCaloriesMulti(p: CalcProfile, types: TrainingType[], totalHours: number): number {
+  const bmr = calcBMR(p);
+  const active = types.filter(t => t !== 'rest');
+  if (active.length === 0) return Math.round(bmr * 1.2);
+  const hoursEach = totalHours / active.length;
+  const burn = active.reduce((sum, t) => {
+    const cfg = TRAINING_TYPES.find(x => x.id === t)!;
+    return sum + hoursEach * p.weight * cfg.calBurnRate;
+  }, 0);
+  return Math.round(bmr * 1.4 + burn);
+}
+
+export function primaryType(types: TrainingType[]): TrainingType {
+  const active = types.filter(t => t !== 'rest');
+  if (active.length === 0) return 'rest';
+  return active.reduce((best, t) => {
+    const cfg = TRAINING_TYPES.find(x => x.id === t)!;
+    const bestCfg = TRAINING_TYPES.find(x => x.id === best)!;
+    return cfg.calBurnRate > bestCfg.calBurnRate ? t : best;
+  });
+}
+
 export function calcMacros(p: CalcProfile, type: TrainingType): { carbs: number; protein: number; fat: number } {
   const cfg = TRAINING_TYPES.find(t => t.id === type)!;
   return {
