@@ -15,11 +15,17 @@ const DISTRIBUTIONS: Record<string, Record<string, number>> = {
   hard:       { snidane: 20, dop_svacina: 10, obed: 15, odp_svacina: 10, pred_tren: 10, behem_tren: 15, po_tren: 10, vecere: 10 },
   race:       { snidane: 20, dop_svacina: 10, obed: 10, odp_svacina:  5, pred_tren: 10, behem_tren: 20, po_tren: 15, vecere: 10 },
   // Other sports
-  strength:   { snidane: 25, obed: 30, pred_tren: 15, po_tren: 20, vecere: 10 },
-  running:    { snidane: 20, obed: 25, pred_tren: 15, po_tren: 20, vecere: 20 },
-  swimming:   { snidane: 20, obed: 25, pred_tren: 15, po_tren: 20, vecere: 20 },
-  team_sport: { snidane: 25, obed: 25, pred_tren: 15, po_tren: 15, vecere: 20 },
-  yoga:       { snidane: 25, dop_svacina: 10, obed: 30, odp_svacina: 10, vecere: 25 },
+  strength:       { snidane: 25, obed: 30, pred_tren: 15, po_tren: 20, vecere: 10 },
+  running:        { snidane: 20, obed: 25, pred_tren: 15, po_tren: 20, vecere: 20 },
+  swimming:       { snidane: 20, obed: 25, pred_tren: 15, po_tren: 20, vecere: 20 },
+  team_sport:     { snidane: 25, obed: 25, pred_tren: 15, po_tren: 15, vecere: 20 },
+  yoga:           { snidane: 25, dop_svacina: 10, obed: 30, odp_svacina: 10, vecere: 25 },
+  walking:        { snidane: 25, dop_svacina: 10, obed: 30, odp_svacina: 10, vecere: 25 },
+  hiking:         { snidane: 25, dop_svacina: 15, obed: 30, odp_svacina: 15, vecere: 15 },
+  cycling_indoor: { snidane: 20, obed: 25, pred_tren: 15, po_tren: 20, vecere: 20 },
+  dancing:        { snidane: 20, dop_svacina: 10, obed: 30, odp_svacina: 10, vecere: 30 },
+  skiing:         { snidane: 25, dop_svacina: 15, obed: 30, odp_svacina: 15, vecere: 15 },
+  boxing:         { snidane: 20, obed: 25, pred_tren: 15, po_tren: 20, vecere: 20 },
 };
 
 export default function Plan() {

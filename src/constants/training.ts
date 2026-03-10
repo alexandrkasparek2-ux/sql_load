@@ -4,7 +4,8 @@
 
 export type TrainingType =
   | 'rest' | 'light' | 'medium' | 'hard' | 'race'
-  | 'strength' | 'running' | 'swimming' | 'team_sport' | 'yoga';
+  | 'strength' | 'running' | 'swimming' | 'team_sport' | 'yoga'
+  | 'walking' | 'hiking' | 'cycling_indoor' | 'dancing' | 'skiing' | 'boxing';
 
 export interface TrainingConfig {
   id:          TrainingType;
@@ -102,6 +103,54 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     macros: { carbs: 3.5, protein: 1.8, fat: 1.0 },
     microMul: 1.05, calBurnRate: 3.0,
     tips: ['Lehké jídlo 1–2 hod před cvičením','Hydratace během i po cvičení','Hořčík večer podporuje svalovou relaxaci'],
+  },
+  {
+    id: 'walking', label: 'Chůze', icon: '🚶', category: 'sport',
+    color: '#10b981', glow: 'rgba(16,185,129,0.25)',
+    desc: 'Procházka, nordic walking, vycházka',
+    macros: { carbs: 3.5, protein: 1.7, fat: 1.1 },
+    microMul: 1.05, calBurnRate: 3.5,
+    tips: ['Ideální pro aktivní regeneraci a spalování tuků','Nordic walking zapojuje i horní polovinu těla','Dostatek tekutin i při nízké intenzitě'],
+  },
+  {
+    id: 'hiking', label: 'Turistika / Trek', icon: '🥾', category: 'sport',
+    color: '#78716c', glow: 'rgba(120,113,108,0.25)',
+    desc: 'Horská turistika, trekking, výlety',
+    macros: { carbs: 6.0, protein: 1.9, fat: 1.0 },
+    microMul: 1.2, calBurnRate: 6.0,
+    tips: ['Energetické tyčinky a ořechy jsou ideální na trail','Pij minimálně 0,5 l vody za hodinu chůze','Elektrolyty při celodenní turistice jsou nezbytné'],
+  },
+  {
+    id: 'cycling_indoor', label: 'Spinning / Indoor', icon: '🚵', category: 'sport',
+    color: '#f43f5e', glow: 'rgba(244,63,94,0.25)',
+    desc: 'Spinning, indoor cycling, stacionární kolo',
+    macros: { carbs: 7.0, protein: 2.0, fat: 0.9 },
+    microMul: 1.3, calBurnRate: 9.0,
+    tips: ['Intenzivní hodina spinningu = 500–800 kcal','Pij izotonický nápoj během cvičení','Sacharidy + protein do 30 min po spinningu'],
+  },
+  {
+    id: 'dancing', label: 'Tanec', icon: '💃', category: 'sport',
+    color: '#ec4899', glow: 'rgba(236,72,153,0.25)',
+    desc: 'Tanec, Zumba, aerobik, salsa',
+    macros: { carbs: 5.0, protein: 1.8, fat: 1.0 },
+    microMul: 1.1, calBurnRate: 5.0,
+    tips: ['Lehká svačina 1 hod před tancem','Hydratace je klíčová při dlouhých tanečních blocích','Protažení po tanci předchází svalovým křečím'],
+  },
+  {
+    id: 'skiing', label: 'Lyžování / Snowboard', icon: '⛷️', category: 'sport',
+    color: '#38bdf8', glow: 'rgba(56,189,248,0.25)',
+    desc: 'Sjezdové lyžování, snowboard, běžky',
+    macros: { carbs: 6.5, protein: 1.9, fat: 1.0 },
+    microMul: 1.25, calBurnRate: 7.0,
+    tips: ['V chladu tělo spaluje více kalorií – jez víc','Teplý polévkový oběd na horách – skvělá volba','Hydratace v chladu je stejně důležitá jako v teple'],
+  },
+  {
+    id: 'boxing', label: 'Box / Bojové sporty', icon: '🥊', category: 'sport',
+    color: '#b45309', glow: 'rgba(180,83,9,0.25)',
+    desc: 'Box, MMA, kickbox, karate, judo',
+    macros: { carbs: 5.5, protein: 2.2, fat: 0.9 },
+    microMul: 1.3, calBurnRate: 8.5,
+    tips: ['Sacharidy + bílkoviny 2 hod před tréninkem','Vyhni se tučnému jídlu před bojovým sportem','Protein + sacharidy ihned po tréninku pro regeneraci'],
   },
 ];
 
