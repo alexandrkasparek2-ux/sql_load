@@ -10,7 +10,7 @@ import { useProfile }     from './hooks/useProfile';
 import { useTrainingDay } from './hooks/useTrainingDay';
 import { useFoodEntries } from './hooks/useFoodEntries';
 
-import type { Profile }     from './hooks/useProfile';
+import type { Profile as ProfileData } from './hooks/useProfile';
 import type { TrainingDay } from './hooks/useTrainingDay';
 import type { FoodEntry, MacroTotals } from './hooks/useFoodEntries';
 
@@ -46,8 +46,8 @@ export interface AppCtx {
   setToday:           (date: string) => void;
   accent:             string;
   accentGlow:         string;
-  profile:            Profile | null;
-  saveProfile:        (u: Partial<Omit<Profile, 'id'>>) => Promise<void>;
+  profile:            ProfileData | null;
+  saveProfile:        (u: Partial<Omit<ProfileData, 'id'>>) => Promise<void>;
   trainingDay:        TrainingDay | null;
   upsertTrainingDay:  (u: Partial<TrainingDay>) => Promise<void>;
   entries:            FoodEntry[];
