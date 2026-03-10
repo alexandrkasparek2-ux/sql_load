@@ -30,6 +30,8 @@ export interface Food {
 
 export const FOOD_CATEGORIES = [
   '🍚 Sacharidy',
+  '🍞 Pečivo',
+  '🍲 Hotová jídla',
   '🍌 Ovoce',
   '🥩 Bílkoviny',
   '🥛 Mléčné',
@@ -413,6 +415,175 @@ export const FOODS: Food[] = [
     name: 'Kefír',
     kcal: 61, carbs: 4.7, protein: 3.3, fat: 3.3, per: 250,
     micros: { na: 40, k: 150, mg: 12, ca: 120, fe: 0.1, vit_c: 1, vit_d: 0.1, b12: 0.5, omega3: 80, zn: 0.4 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🍞 Pečivo
+  // ──────────────────────────────────────────
+  {
+    id: 'rohlik',
+    cat: '🍞 Pečivo',
+    name: 'Rohlík',
+    kcal: 278, carbs: 55.0, protein: 8.5, fat: 2.5, per: 50,
+    micros: { na: 450, k: 100, mg: 20, ca: 15, fe: 1.5, vit_c: 0, vit_d: 0, b12: 0, omega3: 10, zn: 0.7 },
+  },
+  {
+    id: 'bageta',
+    cat: '🍞 Pečivo',
+    name: 'Bageta',
+    kcal: 272, carbs: 55.0, protein: 9.0, fat: 1.5, per: 80,
+    micros: { na: 450, k: 80, mg: 18, ca: 15, fe: 1.2, vit_c: 0, vit_d: 0, b12: 0, omega3: 5, zn: 0.6 },
+  },
+  {
+    id: 'toast_whole',
+    cat: '🍞 Pečivo',
+    name: 'Toust celozrnný',
+    kcal: 246, carbs: 43.0, protein: 10.0, fat: 3.5, per: 50,
+    micros: { na: 380, k: 200, mg: 55, ca: 65, fe: 2.2, vit_c: 0, vit_d: 0, b12: 0, omega3: 80, zn: 1.5 },
+  },
+  {
+    id: 'toast_white',
+    cat: '🍞 Pečivo',
+    name: 'Toust bílý',
+    kcal: 265, carbs: 49.0, protein: 8.5, fat: 3.2, per: 50,
+    micros: { na: 490, k: 100, mg: 20, ca: 80, fe: 1.2, vit_c: 0, vit_d: 0, b12: 0, omega3: 10, zn: 0.7 },
+  },
+  {
+    id: 'croissant',
+    cat: '🍞 Pečivo',
+    name: 'Croissant',
+    kcal: 406, carbs: 45.0, protein: 7.0, fat: 21.0, per: 70,
+    micros: { na: 380, k: 120, mg: 15, ca: 20, fe: 1.0, vit_c: 0, vit_d: 0.2, b12: 0.1, omega3: 100, zn: 0.6 },
+  },
+  {
+    id: 'rye_bread',
+    cat: '🍞 Pečivo',
+    name: 'Chléb žitný',
+    kcal: 259, carbs: 48.0, protein: 8.5, fat: 3.3, per: 60,
+    micros: { na: 470, k: 200, mg: 40, ca: 30, fe: 2.0, vit_c: 0, vit_d: 0, b12: 0, omega3: 90, zn: 1.5 },
+  },
+  {
+    id: 'graham_roll',
+    cat: '🍞 Pečivo',
+    name: 'Grahamový rohlík',
+    kcal: 265, carbs: 51.0, protein: 9.0, fat: 3.0, per: 55,
+    micros: { na: 420, k: 180, mg: 35, ca: 25, fe: 1.8, vit_c: 0, vit_d: 0, b12: 0, omega3: 60, zn: 1.2 },
+  },
+  {
+    id: 'pretzel',
+    cat: '🍞 Pečivo',
+    name: 'Preclík (slaný)',
+    kcal: 380, carbs: 80.0, protein: 9.0, fat: 2.0, per: 30,
+    micros: { na: 1500, k: 100, mg: 20, ca: 15, fe: 1.5, vit_c: 0, vit_d: 0, b12: 0, omega3: 5, zn: 0.8 },
+  },
+  {
+    id: 'sourdough',
+    cat: '🍞 Pečivo',
+    name: 'Kváskový chléb',
+    kcal: 230, carbs: 44.0, protein: 8.0, fat: 1.5, per: 70,
+    micros: { na: 350, k: 150, mg: 30, ca: 20, fe: 1.8, vit_c: 0, vit_d: 0, b12: 0, omega3: 30, zn: 1.0 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🍲 Hotová jídla
+  // ──────────────────────────────────────────
+  {
+    id: 'beef_goulash',
+    cat: '🍲 Hotová jídla',
+    name: 'Guláš hovězí',
+    kcal: 120, carbs: 8.0, protein: 10.0, fat: 5.5, per: 300,
+    micros: { na: 500, k: 350, mg: 20, ca: 25, fe: 2.0, vit_c: 5, vit_d: 0, b12: 1.5, omega3: 30, zn: 3.5 },
+  },
+  {
+    id: 'svickova',
+    cat: '🍲 Hotová jídla',
+    name: 'Svíčková na smetaně',
+    kcal: 130, carbs: 10.0, protein: 9.0, fat: 6.5, per: 300,
+    micros: { na: 400, k: 300, mg: 18, ca: 45, fe: 1.5, vit_c: 3, vit_d: 0.1, b12: 1.0, omega3: 50, zn: 2.5 },
+  },
+  {
+    id: 'lasagne',
+    cat: '🍲 Hotová jídla',
+    name: 'Lasagne',
+    kcal: 135, carbs: 12.0, protein: 8.0, fat: 6.0, per: 350,
+    micros: { na: 450, k: 280, mg: 22, ca: 120, fe: 1.5, vit_c: 5, vit_d: 0.1, b12: 0.5, omega3: 40, zn: 1.8 },
+  },
+  {
+    id: 'bolognese',
+    cat: '🍲 Hotová jídla',
+    name: 'Boloňská omáčka',
+    kcal: 110, carbs: 8.0, protein: 9.0, fat: 4.5, per: 200,
+    micros: { na: 500, k: 400, mg: 20, ca: 30, fe: 2.0, vit_c: 10, vit_d: 0, b12: 1.0, omega3: 30, zn: 2.5 },
+  },
+  {
+    id: 'tomato_sauce_meat',
+    cat: '🍲 Hotová jídla',
+    name: 'Rajská omáčka s masem',
+    kcal: 95, carbs: 9.0, protein: 7.0, fat: 3.5, per: 250,
+    micros: { na: 450, k: 380, mg: 18, ca: 35, fe: 1.5, vit_c: 15, vit_d: 0, b12: 0.8, omega3: 20, zn: 1.5 },
+  },
+  {
+    id: 'knedliky_houskove',
+    cat: '🍲 Hotová jídla',
+    name: 'Houskové knedlíky',
+    kcal: 190, carbs: 38.0, protein: 6.0, fat: 1.5, per: 150,
+    micros: { na: 360, k: 80, mg: 12, ca: 30, fe: 0.8, vit_c: 0, vit_d: 0, b12: 0.1, omega3: 10, zn: 0.5 },
+  },
+  {
+    id: 'knedliky_bramborove',
+    cat: '🍲 Hotová jídla',
+    name: 'Bramborové knedlíky',
+    kcal: 110, carbs: 23.0, protein: 3.0, fat: 1.0, per: 150,
+    micros: { na: 200, k: 200, mg: 15, ca: 20, fe: 0.5, vit_c: 5, vit_d: 0, b12: 0, omega3: 5, zn: 0.3 },
+  },
+  {
+    id: 'rizoto',
+    cat: '🍲 Hotová jídla',
+    name: 'Rizoto',
+    kcal: 140, carbs: 25.0, protein: 4.0, fat: 3.5, per: 300,
+    micros: { na: 400, k: 120, mg: 15, ca: 30, fe: 0.8, vit_c: 2, vit_d: 0, b12: 0.2, omega3: 20, zn: 0.7 },
+  },
+  {
+    id: 'cesnecka',
+    cat: '🍲 Hotová jídla',
+    name: 'Česnečka',
+    kcal: 45, carbs: 6.0, protein: 2.5, fat: 1.5, per: 300,
+    micros: { na: 600, k: 150, mg: 10, ca: 40, fe: 0.5, vit_c: 5, vit_d: 0, b12: 0, omega3: 10, zn: 0.3 },
+  },
+  {
+    id: 'chicken_schnitzel',
+    cat: '🍲 Hotová jídla',
+    name: 'Kuřecí řízek',
+    kcal: 220, carbs: 12.0, protein: 20.0, fat: 9.0, per: 150,
+    micros: { na: 350, k: 280, mg: 25, ca: 25, fe: 1.0, vit_c: 0, vit_d: 0.1, b12: 0.3, omega3: 70, zn: 1.5 },
+  },
+  {
+    id: 'halusky',
+    cat: '🍲 Hotová jídla',
+    name: 'Halušky se slaninou',
+    kcal: 195, carbs: 28.0, protein: 8.0, fat: 6.0, per: 300,
+    micros: { na: 500, k: 250, mg: 20, ca: 50, fe: 1.0, vit_c: 5, vit_d: 0.1, b12: 0.3, omega3: 20, zn: 1.0 },
+  },
+  {
+    id: 'pork_roast',
+    cat: '🍲 Hotová jídla',
+    name: 'Vepřová pečeně',
+    kcal: 145, carbs: 3.0, protein: 16.0, fat: 7.5, per: 200,
+    micros: { na: 380, k: 320, mg: 22, ca: 20, fe: 1.2, vit_c: 0, vit_d: 0.2, b12: 0.8, omega3: 40, zn: 2.5 },
+  },
+  {
+    id: 'soup_chicken',
+    cat: '🍲 Hotová jídla',
+    name: 'Kuřecí vývar s nudlemi',
+    kcal: 55, carbs: 7.0, protein: 4.0, fat: 1.0, per: 350,
+    micros: { na: 700, k: 180, mg: 10, ca: 20, fe: 0.4, vit_c: 2, vit_d: 0, b12: 0.2, omega3: 15, zn: 0.5 },
+  },
+  {
+    id: 'stuffed_pepper',
+    cat: '🍲 Hotová jídla',
+    name: 'Plněná paprika',
+    kcal: 105, carbs: 10.0, protein: 8.0, fat: 3.5, per: 300,
+    micros: { na: 430, k: 350, mg: 22, ca: 30, fe: 1.5, vit_c: 40, vit_d: 0, b12: 0.7, omega3: 25, zn: 2.0 },
   },
 
   // ──────────────────────────────────────────
