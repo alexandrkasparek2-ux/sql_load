@@ -245,3 +245,147 @@ export function calcMicroGoals(microMul: number): Record<string, number> {
     MICRO_META.map(m => [m.key, parseFloat((m.base + m.perMul * (microMul - 1)).toFixed(2))]),
   );
 }
+
+// ============================================================
+// Meal recommendations per training type
+// ============================================================
+
+export interface MealRecItem {
+  foodId:   string;
+  grams:    number;
+  slot:     string; // meal slot id
+}
+
+export interface MealRecommendation {
+  title:       string;
+  description: string;
+  emoji:       string;
+  items:       MealRecItem[];
+}
+
+export const MEAL_RECS: Partial<Record<TrainingType, MealRecommendation>> = {
+  light: {
+    title:       'Lehký výjezd',
+    description: 'Energeticky šetrný balíček na 1–2 hod jízdy',
+    emoji:       '🚴',
+    items: [
+      { foodId: 'banana',        grams: 120, slot: 'behem_tren' },
+      { foodId: 'rice_cakes',    grams:  30, slot: 'behem_tren' },
+      { foodId: 'isotonic_drink',grams:  35, slot: 'behem_tren' },
+    ],
+  },
+  medium: {
+    title:       'Intervalový trénink',
+    description: 'Sacharidy + elektrolyty pro tempo a intervaly',
+    emoji:       '⚡',
+    items: [
+      { foodId: 'energy_bar',    grams:  65, slot: 'behem_tren' },
+      { foodId: 'banana',        grams: 120, slot: 'behem_tren' },
+      { foodId: 'isotonic_drink',grams:  70, slot: 'behem_tren' },
+      { foodId: 'energy_gel',    grams:  40, slot: 'behem_tren' },
+    ],
+  },
+  hard: {
+    title:       'Těžký trénink',
+    description: '3+ hod výkonu — 60–90 g sacharidů za hodinu',
+    emoji:       '🔥',
+    items: [
+      { foodId: 'energy_gel',    grams:  80, slot: 'behem_tren' },
+      { foodId: 'energy_bar',    grams:  65, slot: 'behem_tren' },
+      { foodId: 'banana',        grams: 120, slot: 'behem_tren' },
+      { foodId: 'dates',         grams:  50, slot: 'behem_tren' },
+      { foodId: 'isotonic_drink',grams:  70, slot: 'behem_tren' },
+    ],
+  },
+  race: {
+    title:       'Závodní balíček',
+    description: 'Maximum energie a elektrolytů pro závod',
+    emoji:       '🏆',
+    items: [
+      { foodId: 'energy_gel',    grams: 120, slot: 'behem_tren' },
+      { foodId: 'energy_bar',    grams:  65, slot: 'behem_tren' },
+      { foodId: 'dates',         grams:  50, slot: 'behem_tren' },
+      { foodId: 'banana',        grams: 120, slot: 'behem_tren' },
+      { foodId: 'isotonic_drink',grams: 105, slot: 'behem_tren' },
+      { foodId: 'rice_cakes',    grams:  60, slot: 'behem_tren' },
+    ],
+  },
+  strength: {
+    title:       'Silový trénink',
+    description: 'Proteiny + sacharidy pro svalový růst',
+    emoji:       '🏋️',
+    items: [
+      { foodId: 'whey_protein',  grams:  30, slot: 'po_tren' },
+      { foodId: 'banana',        grams: 120, slot: 'po_tren' },
+      { foodId: 'white_rice',    grams: 200, slot: 'po_tren' },
+      { foodId: 'chicken_breast',grams: 150, slot: 'obed' },
+    ],
+  },
+  running: {
+    title:       'Běžecký výkon',
+    description: 'Sacharidy před + elektrolyty během běhu',
+    emoji:       '🏃',
+    items: [
+      { foodId: 'energy_gel',    grams:  40, slot: 'behem_tren' },
+      { foodId: 'banana',        grams: 120, slot: 'pred_tren' },
+      { foodId: 'isotonic_drink',grams:  35, slot: 'behem_tren' },
+      { foodId: 'dates',         grams:  50, slot: 'pred_tren' },
+    ],
+  },
+  hiking: {
+    title:       'Túra',
+    description: 'Výdržový mix na celodenní pohyb v přírodě',
+    emoji:       '🥾',
+    items: [
+      { foodId: 'whole_bread',   grams:  60, slot: 'snidane' },
+      { foodId: 'ham_premium',   grams:  60, slot: 'snidane' },
+      { foodId: 'banana',        grams: 120, slot: 'behem_tren' },
+      { foodId: 'walnuts',       grams:  30, slot: 'behem_tren' },
+      { foodId: 'energy_bar',    grams:  65, slot: 'behem_tren' },
+      { foodId: 'apple',         grams: 150, slot: 'behem_tren' },
+    ],
+  },
+  swimming: {
+    title:       'Plavání',
+    description: 'Lehký balíček pro bazénový trénink',
+    emoji:       '🏊',
+    items: [
+      { foodId: 'banana',        grams: 120, slot: 'pred_tren' },
+      { foodId: 'greek_yogurt',  grams: 200, slot: 'po_tren' },
+      { foodId: 'protein_bar',   grams:  60, slot: 'po_tren' },
+    ],
+  },
+  cycling_indoor: {
+    title:       'Spinning',
+    description: 'Elektrolyty a rychlé sacharidy pro indoor ride',
+    emoji:       '🚲',
+    items: [
+      { foodId: 'isotonic_drink',grams:  70, slot: 'behem_tren' },
+      { foodId: 'energy_gel',    grams:  40, slot: 'behem_tren' },
+      { foodId: 'banana',        grams: 120, slot: 'po_tren' },
+    ],
+  },
+  skiing: {
+    title:       'Lyžování',
+    description: 'Dlouhý výdej energie na svahu — lyžařský balíček',
+    emoji:       '⛷️',
+    items: [
+      { foodId: 'whole_bread',   grams:  60, slot: 'snidane' },
+      { foodId: 'energy_bar',    grams:  65, slot: 'behem_tren' },
+      { foodId: 'dates',         grams:  50, slot: 'behem_tren' },
+      { foodId: 'banana',        grams: 120, slot: 'behem_tren' },
+      { foodId: 'walnuts',       grams:  30, slot: 'behem_tren' },
+    ],
+  },
+  boxing: {
+    title:       'Boxing / bojový sport',
+    description: 'Výbušná energie + proteiny pro regeneraci',
+    emoji:       '🥊',
+    items: [
+      { foodId: 'banana',        grams: 120, slot: 'pred_tren' },
+      { foodId: 'energy_gel',    grams:  40, slot: 'pred_tren' },
+      { foodId: 'whey_protein',  grams:  30, slot: 'po_tren' },
+      { foodId: 'white_rice',    grams: 200, slot: 'po_tren' },
+    ],
+  },
+};

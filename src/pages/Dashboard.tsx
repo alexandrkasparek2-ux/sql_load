@@ -1,8 +1,9 @@
-import { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext }  from '../App';
 import { T, MacroCard, ProgressBar, SectionTitle, Card, Btn } from '../components/UI';
-import { MICRO_META, TRAINING_TYPES } from '../constants/training';
+import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
+import { FOODS } from '../constants/foods';
 import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
 
 // ─── Calorie ring ────────────────────────────────────────────
@@ -48,39 +49,47 @@ function KcalRing({ consumed, goal, accent }: { consumed: number; goal: number; 
   );
 }
 
-// ─── Weekly calorie chart ─────────────────────────────────────
-function WeeklyChart({ data, accent, kcalGoal }: { data: DayKcal[]; accent: string; kcalGoal: number }) {
+// ─── 14-day history chart ─────────────────────────────────────
+function HistoryChart({ data, accent, kcalGoal }: { data: DayKcal[]; accent: string; kcalGoal: number }) {
   const today  = new Date().toISOString().split('T')[0];
   const maxVal = Math.max(...data.map(d => d.kcal), kcalGoal, 1);
-  const barW   = 30;
-  const gap    = 12;
-  const H      = 80;
-  const W      = 7 * barW + 6 * gap;
+  const barW   = 22;
+  const gap    = 7;
+  const H      = 70;
 
   return (
-    <div>
-      <svg viewBox={`0 0 ${W} ${H + 24}`} width="100%" style={{ display: 'block', overflow: 'visible' }}>
+    <div style={{ overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
+      <svg
+        viewBox={`0 0 ${data.length * (barW + gap)} ${H + 32}`}
+        width={data.length * (barW + gap)}
+        height={H + 32}
+        style={{ display: 'block', overflow: 'visible', minWidth: '100%' }}
+      >
         {data.map((d, i) => {
           const x        = i * (barW + gap);
           const barH     = maxVal > 0 ? (d.kcal / maxVal) * H : 0;
           const y        = H - barH;
           const isToday  = d.date === today;
           const goalY    = kcalGoal > 0 ? H - (kcalGoal / maxVal) * H : -1;
-          const barColor = isToday ? accent : accent + '55';
+          const overGoal = d.kcal > 0 && kcalGoal > 0 && d.kcal > kcalGoal * 1.1;
+          const barColor = isToday ? accent
+            : overGoal ? '#ef444488'
+            : d.kcal > 0 ? accent + '55'
+            : T.border;
 
           return (
             <g key={d.date}>
               {/* Background track */}
-              <rect x={x} y={0} width={barW} height={H} rx={4} fill={T.border} />
+              <rect x={x} y={0} width={barW} height={H} rx={3} fill={T.border + '80'} />
               {/* Filled bar */}
               {d.kcal > 0 && (
                 <rect
-                  x={x} y={y} width={barW} height={barH} rx={4}
+                  x={x} y={y} width={barW} height={barH} rx={3}
                   fill={barColor}
                   style={{ filter: isToday ? `drop-shadow(0 0 4px ${accent}88)` : 'none' }}
                 />
               )}
-              {/* Goal dashed line */}
+              {/* Goal line */}
               {kcalGoal > 0 && goalY >= 0 && (
                 <line
                   x1={x} y1={goalY} x2={x + barW} y2={goalY}
@@ -89,18 +98,26 @@ function WeeklyChart({ data, accent, kcalGoal }: { data: DayKcal[]; accent: stri
               )}
               {/* Day label */}
               <text
-                x={x + barW / 2} y={H + 14}
-                textAnchor="middle" fontSize={9}
+                x={x + barW / 2} y={H + 12}
+                textAnchor="middle" fontSize={8}
                 fill={isToday ? accent : '#6b7280'}
                 fontWeight={isToday ? '700' : '400'}
               >
                 {d.label}
               </text>
+              {/* Date number */}
+              <text
+                x={x + barW / 2} y={H + 23}
+                textAnchor="middle" fontSize={7}
+                fill={isToday ? accent + 'cc' : '#4b5563'}
+              >
+                {d.dateNum}
+              </text>
               {/* Value label */}
               {d.kcal > 0 && (
                 <text
                   x={x + barW / 2} y={Math.max(y - 3, 9)}
-                  textAnchor="middle" fontSize={8}
+                  textAnchor="middle" fontSize={7}
                   fill={isToday ? accent : '#6b7280'}
                 >
                   {d.kcal >= 1000 ? `${(d.kcal / 1000).toFixed(1)}k` : String(Math.round(d.kcal))}
@@ -110,20 +127,6 @@ function WeeklyChart({ data, accent, kcalGoal }: { data: DayKcal[]; accent: stri
           );
         })}
       </svg>
-
-      {/* Legend */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 2 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <div style={{ width: 12, height: 10, borderRadius: 2, background: accent }} />
-          <span style={{ fontSize: 10, color: T.muted }}>dnes</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <svg width={16} height={4} style={{ flexShrink: 0 }}>
-            <line x1={0} y1={2} x2={16} y2={2} stroke={accent + 'aa'} strokeWidth={1.5} strokeDasharray="3,2" />
-          </svg>
-          <span style={{ fontSize: 10, color: T.muted }}>denní cíl</span>
-        </div>
-      </div>
     </div>
   );
 }
@@ -181,8 +184,8 @@ function WaterTracker({
 }
 
 // ─── Caffeine tracker ─────────────────────────────────────────
-const CAFFEINE_PER_CUP = 80;   // mg per espresso
-const CAFFEINE_LIMIT   = 400;  // mg daily limit (5 cups)
+const CAFFEINE_PER_CUP = 80;
+const CAFFEINE_LIMIT   = 400;
 
 function CaffeineTracker({
   cups, onAdd, onRemove,
@@ -233,27 +236,186 @@ function CaffeineTracker({
   );
 }
 
+// ─── Training meal recommendation card ───────────────────────
+function MealRecCard({ trainingType, accent, onAddAll }: {
+  trainingType: string;
+  accent:       string;
+  onAddAll:     (items: Array<{ foodId: string; grams: number; slot: string }>) => Promise<void>;
+}) {
+  const rec = MEAL_RECS[trainingType as keyof typeof MEAL_RECS];
+  const [loading, setLoading] = useState(false);
+  const [done,    setDone]    = useState(false);
+
+  if (!rec || trainingType === 'rest') return null;
+
+  // Calculate totals
+  const totals = rec.items.reduce(
+    (acc, item) => {
+      const food = FOODS.find(f => f.id === item.foodId);
+      if (!food) return acc;
+      const factor = item.grams / 100;
+      return {
+        kcal:    acc.kcal    + food.kcal    * factor,
+        carbs:   acc.carbs   + food.carbs   * factor,
+        protein: acc.protein + food.protein * factor,
+        fat:     acc.fat     + food.fat     * factor,
+      };
+    },
+    { kcal: 0, carbs: 0, protein: 0, fat: 0 },
+  );
+
+  const handleAdd = async () => {
+    setLoading(true);
+    await onAddAll(rec.items);
+    setLoading(false);
+    setDone(true);
+  };
+
+  return (
+    <Card style={{ marginBottom: 16, borderColor: accent + '44', background: accent + '0a' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <span style={{ fontSize: 24 }}>{rec.emoji}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: accent }}>{rec.title}</div>
+          <div style={{ fontSize: 12, color: T.muted }}>{rec.description}</div>
+        </div>
+      </div>
+
+      {/* Items list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+        {rec.items.map(item => {
+          const food = FOODS.find(f => f.id === item.foodId);
+          if (!food) return null;
+          const factor = item.grams / 100;
+          const itemKcal = Math.round(food.kcal * factor);
+          return (
+            <div key={item.foodId} style={{
+              display:        'flex',
+              justifyContent: 'space-between',
+              alignItems:     'center',
+              fontSize:       13,
+            }}>
+              <span style={{ color: T.text }}>{food.name}</span>
+              <span style={{ color: T.muted }}>
+                {item.grams} g · <span style={{ color: accent, fontWeight: 600 }}>{itemKcal} kcal</span>
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Macro totals */}
+      <div style={{
+        display:      'flex',
+        gap:          8,
+        marginBottom: 12,
+        padding:      '8px 10px',
+        background:   T.border + '55',
+        borderRadius: 8,
+      }}>
+        {[
+          { label: 'Kcal', value: Math.round(totals.kcal),    color: accent  },
+          { label: 'S',    value: Math.round(totals.carbs),   color: '#f59e0b' },
+          { label: 'B',    value: Math.round(totals.protein), color: '#22c55e' },
+          { label: 'T',    value: Math.round(totals.fat),     color: '#a855f7' },
+        ].map(m => (
+          <div key={m.label} style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: m.color }}>{m.value}</div>
+            <div style={{ fontSize: 10, color: T.muted }}>{m.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA button */}
+      {done ? (
+        <div style={{
+          textAlign:    'center',
+          padding:      '10px',
+          borderRadius: 10,
+          background:   '#22c55e22',
+          border:       '1px solid #22c55e44',
+          color:        '#22c55e',
+          fontSize:     13,
+          fontWeight:   600,
+        }}>
+          ✓ Zapsáno do deníku!
+        </div>
+      ) : (
+        <Btn
+          accent={accent}
+          size="md"
+          full
+          onClick={handleAdd}
+          disabled={loading}
+        >
+          {loading ? 'Zapisuji…' : '📋 Zapsat do deníku'}
+        </Btn>
+      )}
+    </Card>
+  );
+}
+
 // ─── Dashboard page ──────────────────────────────────────────
 export default function Dashboard() {
   const ctx      = useContext(AppContext);
   const navigate = useNavigate();
 
   const {
-    accent, totals, goals, trainingDay, upsertTrainingDay, entries, userId,
+    accent, totals, goals, trainingDay, upsertTrainingDay,
+    entries, userId, today, addEntry, profile,
   } = ctx;
 
-  const { data: weeklyData } = useWeeklyData(userId);
+  const { data: historyData } = useWeeklyData(userId, 14);
 
-  const training = TRAINING_TYPES.find(t => t.id === (trainingDay?.training_type ?? 'rest'))!;
+  const allTypes   = trainingDay ? [trainingDay.training_type, ...(trainingDay.extra_types ?? [])] : ['rest'];
+  const primary    = primaryType(allTypes as any);
+  const training   = TRAINING_TYPES.find(t => t.id === (trainingDay?.training_type ?? 'rest'))!;
 
   const handleWaterAdd    = () => upsertTrainingDay({ water_glasses: (trainingDay?.water_glasses ?? 0) + 1 });
   const handleWaterRemove = () => upsertTrainingDay({ water_glasses: Math.max(0, (trainingDay?.water_glasses ?? 0) - 1) });
-
   const handleCoffeeAdd    = () => upsertTrainingDay({ coffee_cups: (trainingDay?.coffee_cups ?? 0) + 1 });
   const handleCoffeeRemove = () => upsertTrainingDay({ coffee_cups: Math.max(0, (trainingDay?.coffee_cups ?? 0) - 1) });
 
   const noEntries = entries.length === 0;
   const topMicros = MICRO_META.slice(0, 6);
+
+  // Handle adding all meal recommendation items to food log
+  const handleAddMealRec = async (items: Array<{ foodId: string; grams: number; slot: string }>) => {
+    for (const item of items) {
+      const food = FOODS.find(f => f.id === item.foodId);
+      if (!food || !userId) continue;
+      const factor = item.grams / 100;
+      await addEntry({
+        user_id:    userId,
+        date:       today,
+        meal_slot:  item.slot,
+        food_id:    food.id,
+        food_name:  food.name,
+        grams:      item.grams,
+        kcal:       Math.round(food.kcal    * factor),
+        carbs:      Math.round(food.carbs   * factor * 10) / 10,
+        protein:    Math.round(food.protein * factor * 10) / 10,
+        fat:        Math.round(food.fat     * factor * 10) / 10,
+        na:         Math.round(food.micros.na     * factor),
+        k:          Math.round(food.micros.k      * factor),
+        mg:         Math.round(food.micros.mg     * factor),
+        ca:         Math.round(food.micros.ca     * factor),
+        fe:         Math.round(food.micros.fe     * factor * 10) / 10,
+        vit_c:      Math.round(food.micros.vit_c  * factor),
+        vit_d:      Math.round(food.micros.vit_d  * factor * 10) / 10,
+        b12:        Math.round(food.micros.b12    * factor * 100) / 100,
+        omega3:     Math.round(food.micros.omega3 * factor),
+        zn:         Math.round(food.micros.zn     * factor * 10) / 10,
+      });
+    }
+  };
+
+  // History stats
+  const daysWithData  = historyData.filter(d => d.kcal > 0);
+  const avgKcal       = daysWithData.length > 0
+    ? Math.round(daysWithData.reduce((s, d) => s + d.kcal, 0) / daysWithData.length)
+    : 0;
 
   return (
     <div style={{ padding: '16px 16px 0' }}>
@@ -302,20 +464,54 @@ export default function Dashboard() {
         <MacroCard label="Tuky"      value={totals.fat}     target={goals.fat}     unit="g" color="#a855f7" />
       </div>
 
-      {/* Weekly calorie chart */}
-      <SectionTitle accent={accent}>Týdenní přehled</SectionTitle>
-      <Card style={{ marginBottom: 16, padding: '16px 12px 12px' }}>
-        <div style={{ fontSize: 12, color: T.muted, marginBottom: 10 }}>
-          Kalorický příjem za posledních 7 dní
-        </div>
-        {weeklyData.length > 0 ? (
-          <WeeklyChart data={weeklyData} accent={accent} kcalGoal={goals.kcal} />
+      {/* 14-day history chart */}
+      <SectionTitle accent={accent}>
+        Historie kalorií <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>— 14 dní</span>
+      </SectionTitle>
+      <Card style={{ marginBottom: 4, padding: '14px 12px 10px' }}>
+        {historyData.length > 0 ? (
+          <HistoryChart data={historyData} accent={accent} kcalGoal={goals.kcal} />
         ) : (
           <div style={{ textAlign: 'center', padding: '20px 0', color: T.muted, fontSize: 13 }}>
             Načítám data…
           </div>
         )}
       </Card>
+      {/* Stats row */}
+      {daysWithData.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          {[
+            { label: 'Průměr / den', value: `${avgKcal} kcal`, color: accent },
+            { label: 'Aktivní dny',  value: `${daysWithData.length} / 14`,  color: T.muted },
+            { label: 'Cíl dnes',     value: `${Math.round(goals.kcal)} kcal`, color: T.muted },
+          ].map(s => (
+            <div key={s.label} style={{
+              flex:         1,
+              background:   T.card,
+              border:       `1px solid ${T.border}`,
+              borderRadius: 10,
+              padding:      '8px 10px',
+              textAlign:    'center',
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {!daysWithData.length && <div style={{ marginBottom: 16 }} />}
+
+      {/* Training meal recommendation */}
+      {primary !== 'rest' && (
+        <>
+          <SectionTitle accent={accent}>Co si vzít s sebou?</SectionTitle>
+          <MealRecCard
+            trainingType={primary}
+            accent={accent}
+            onAddAll={handleAddMealRec}
+          />
+        </>
+      )}
 
       {/* Water + Caffeine trackers */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
