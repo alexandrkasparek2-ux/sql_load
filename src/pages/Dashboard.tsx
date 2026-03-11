@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext }  from '../App';
 import { T, MacroCard, ProgressBar, SectionTitle, Card, Btn } from '../components/UI';
@@ -363,7 +363,7 @@ export default function Dashboard() {
 
   const {
     accent, totals, goals, trainingDay, upsertTrainingDay,
-    entries, userId, today, addEntry, profile,
+    entries, userId, today, addEntry,
   } = ctx;
 
   const { data: historyData } = useWeeklyData(userId, 14);

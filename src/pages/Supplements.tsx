@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import { useContext, useState } from 'react';
 import { AppContext } from '../App';
 import { T, Card, SectionTitle, ProgressBar } from '../components/UI';
 import { SUPPLEMENTS, SUPPLEMENT_CATEGORIES } from '../constants/supplements';
@@ -11,14 +11,12 @@ function SupplementCard({
   dose,
   onToggle,
   onDoseChange,
-  accent,
 }: {
   supp:        typeof SUPPLEMENTS[0];
   taken:       boolean;
   dose:        number;
   onToggle:    () => void;
   onDoseChange:(delta: number) => void;
-  accent:      string;
 }) {
   const stepMap: Record<string, number> = {
     mg: supp.defaultDose >= 1000 ? 200 : 50,
@@ -28,7 +26,6 @@ function SupplementCard({
     tab: 1,
   };
   const step = stepMap[supp.unit] ?? 50;
-  const minDose = supp.unit === 'tab' ? 1 : step;
 
   return (
     <div style={{
@@ -112,7 +109,7 @@ function SupplementCard({
 export default function Supplements() {
   const { accent, userId, today } = useContext(AppContext);
   const {
-    toggle, setDose, isTaken, getDose, takenCount, loading,
+    toggle, setDose, isTaken, getDose, takenCount,
   } = useSupplements(userId, today);
 
   const [activeCategory, setActiveCategory] = useState<string>('Vše');
@@ -221,7 +218,6 @@ export default function Supplements() {
                 supp={s}
                 taken={isTaken(s.id)}
                 dose={getDose(s.id, s.defaultDose)}
-                accent={accent}
                 onToggle={() => handleToggle(s)}
                 onDoseChange={delta => handleDoseChange(s, delta)}
               />
