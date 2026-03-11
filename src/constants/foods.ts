@@ -31,6 +31,7 @@ export interface Food {
 export const FOOD_CATEGORIES = [
   '🍚 Sacharidy',
   '🍟 Přílohy',
+  '🥣 Kaše',
   '🍌 Ovoce',
   '🥩 Bílkoviny',
   '🥩 Šunky',
@@ -475,6 +476,101 @@ export const FOODS: Food[] = [
     name: 'Grahamový rohlík',
     kcal: 262, carbs: 48.0, protein: 10.5, fat: 3.0, per: 60,
     micros: { na: 390, k: 200, mg: 55, ca: 60, fe: 2.8, vit_c: 0, vit_d: 0, b12: 0, omega3: 110, zn: 1.6 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🥣 Kaše
+  // ──────────────────────────────────────────
+  {
+    id: 'oat_porridge_water',
+    cat: '🥣 Kaše',
+    name: 'Ovesná kaše (s vodou)',
+    kcal: 71, carbs: 12.0, protein: 2.5, fat: 1.4, per: 300,
+    micros: { na: 2, k: 100, mg: 25, ca: 10, fe: 0.7, vit_c: 0, vit_d: 0, b12: 0, omega3: 40, zn: 0.8 },
+  },
+  {
+    id: 'oat_porridge_milk',
+    cat: '🥣 Kaše',
+    name: 'Ovesná kaše (s mlékem)',
+    kcal: 87, carbs: 13.0, protein: 3.8, fat: 2.2, per: 300,
+    micros: { na: 35, k: 180, mg: 28, ca: 100, fe: 0.7, vit_c: 0.3, vit_d: 0.1, b12: 0.3, omega3: 65, zn: 0.9 },
+  },
+  {
+    id: 'rice_porridge',
+    cat: '🥣 Kaše',
+    name: 'Rýžová kaše (s mlékem)',
+    kcal: 85, carbs: 15.2, protein: 2.8, fat: 2.0, per: 300,
+    micros: { na: 40, k: 120, mg: 12, ca: 90, fe: 0.2, vit_c: 0.3, vit_d: 0.1, b12: 0.3, omega3: 45, zn: 0.4 },
+  },
+  {
+    id: 'millet_porridge',
+    cat: '🥣 Kaše',
+    name: 'Jáhelná kaše (s mlékem)',
+    kcal: 78, carbs: 13.5, protein: 2.6, fat: 1.5, per: 300,
+    micros: { na: 38, k: 140, mg: 22, ca: 85, fe: 0.5, vit_c: 0.3, vit_d: 0.1, b12: 0.3, omega3: 50, zn: 0.5 },
+  },
+  {
+    id: 'buckwheat_porridge',
+    cat: '🥣 Kaše',
+    name: 'Pohánková kaše (s mlékem)',
+    kcal: 88, carbs: 15.5, protein: 3.5, fat: 1.8, per: 300,
+    micros: { na: 36, k: 175, mg: 45, ca: 80, fe: 0.7, vit_c: 0.3, vit_d: 0.1, b12: 0.3, omega3: 60, zn: 0.7 },
+  },
+  {
+    id: 'semolina_porridge',
+    cat: '🥣 Kaše',
+    name: 'Krupicová kaše (s mlékem)',
+    kcal: 80, carbs: 13.8, protein: 3.0, fat: 1.8, per: 300,
+    micros: { na: 42, k: 150, mg: 14, ca: 110, fe: 0.4, vit_c: 0.5, vit_d: 0.1, b12: 0.4, omega3: 35, zn: 0.5 },
+  },
+  {
+    id: 'amaranth_porridge',
+    cat: '🥣 Kaše',
+    name: 'Amarantová kaše (vařená)',
+    kcal: 102, carbs: 18.7, protein: 3.8, fat: 1.6, per: 200,
+    micros: { na: 6, k: 135, mg: 65, ca: 47, fe: 2.1, vit_c: 0, vit_d: 0, b12: 0, omega3: 15, zn: 0.9 },
+  },
+  {
+    id: 'quinoa_porridge',
+    cat: '🥣 Kaše',
+    name: 'Quinoová kaše (s mlékem)',
+    kcal: 105, carbs: 17.5, protein: 5.0, fat: 2.5, per: 250,
+    micros: { na: 35, k: 200, mg: 55, ca: 60, fe: 1.4, vit_c: 0.3, vit_d: 0.1, b12: 0.3, omega3: 110, zn: 1.0 },
+  },
+  {
+    id: 'chia_pudding',
+    cat: '🥣 Kaše',
+    name: 'Chia pudink (s mlékem)',
+    kcal: 130, carbs: 14.5, protein: 4.5, fat: 6.5, per: 200,
+    micros: { na: 55, k: 260, mg: 95, ca: 200, fe: 2.2, vit_c: 0.5, vit_d: 0.2, b12: 0.4, omega3: 4500, zn: 1.3 },
+  },
+  {
+    id: 'corn_porridge',
+    cat: '🥣 Kaše',
+    name: 'Kukuřičná kaše (sladká polenta)',
+    kcal: 82, carbs: 15.0, protein: 2.5, fat: 1.5, per: 300,
+    micros: { na: 38, k: 110, mg: 14, ca: 80, fe: 0.3, vit_c: 0.3, vit_d: 0.1, b12: 0.3, omega3: 30, zn: 0.4 },
+  },
+  {
+    id: 'teff_porridge',
+    cat: '🥣 Kaše',
+    name: 'Teff kaše (africké proso)',
+    kcal: 101, carbs: 19.9, protein: 3.9, fat: 0.7, per: 200,
+    micros: { na: 8, k: 107, mg: 45, ca: 123, fe: 3.3, vit_c: 0, vit_d: 0, b12: 0, omega3: 40, zn: 1.7 },
+  },
+  {
+    id: 'spelt_porridge',
+    cat: '🥣 Kaše',
+    name: 'Špaldová kaše (s mlékem)',
+    kcal: 90, carbs: 15.8, protein: 3.5, fat: 2.0, per: 300,
+    micros: { na: 38, k: 160, mg: 38, ca: 95, fe: 0.8, vit_c: 0.3, vit_d: 0.1, b12: 0.3, omega3: 55, zn: 1.0 },
+  },
+  {
+    id: 'protein_oatmeal',
+    cat: '🥣 Kaše',
+    name: 'Proteinová ovesná kaše',
+    kcal: 120, carbs: 14.0, protein: 10.0, fat: 2.5, per: 300,
+    micros: { na: 80, k: 200, mg: 30, ca: 120, fe: 0.8, vit_c: 0, vit_d: 0.5, b12: 0.5, omega3: 60, zn: 1.2 },
   },
 
   // ──────────────────────────────────────────
@@ -1168,6 +1264,161 @@ export const FOODS: Food[] = [
     name: 'Kuřecí šunka',
     kcal: 80, carbs: 1.0, protein: 16.5, fat: 1.2, per: 60,
     micros: { na: 750, k: 240, mg: 18, ca: 8, fe: 0.4, vit_c: 0, vit_d: 0, b12: 0.3, omega3: 25, zn: 0.9 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🥩 Bílkoviny – telecí, zvěřina, drůbež
+  // ──────────────────────────────────────────
+  {
+    id: 'veal',
+    cat: '🥩 Bílkoviny',
+    name: 'Telecí maso (libové)',
+    kcal: 172, carbs: 0, protein: 28.0, fat: 6.5, per: 150,
+    micros: { na: 70, k: 330, mg: 25, ca: 18, fe: 1.0, vit_c: 0, vit_d: 0.1, b12: 1.4, omega3: 60, zn: 3.8 },
+  },
+  {
+    id: 'veal_liver',
+    cat: '🥩 Bílkoviny',
+    name: 'Telecí játra',
+    kcal: 192, carbs: 3.9, protein: 29.5, fat: 6.4, per: 150,
+    micros: { na: 110, k: 380, mg: 19, ca: 8, fe: 6.5, vit_c: 27, vit_d: 1.2, b12: 83, omega3: 200, zn: 11 },
+  },
+  {
+    id: 'beef_liver',
+    cat: '🥩 Bílkoviny',
+    name: 'Hovězí játra',
+    kcal: 175, carbs: 3.9, protein: 26.5, fat: 5.8, per: 150,
+    micros: { na: 75, k: 350, mg: 18, ca: 5, fe: 6.2, vit_c: 23, vit_d: 1.3, b12: 70, omega3: 160, zn: 5.2 },
+  },
+  {
+    id: 'pork_ribs',
+    cat: '🥩 Bílkoviny',
+    name: 'Vepřová žebra (pečená)',
+    kcal: 290, carbs: 0, protein: 22.0, fat: 22.0, per: 200,
+    micros: { na: 80, k: 290, mg: 22, ca: 18, fe: 1.3, vit_c: 0, vit_d: 0.2, b12: 0.6, omega3: 130, zn: 3.2 },
+  },
+  {
+    id: 'rabbit',
+    cat: '🥩 Bílkoviny',
+    name: 'Králičí maso',
+    kcal: 172, carbs: 0, protein: 29.1, fat: 5.6, per: 150,
+    micros: { na: 47, k: 380, mg: 25, ca: 20, fe: 2.3, vit_c: 0, vit_d: 0.1, b12: 7.2, omega3: 100, zn: 2.4 },
+  },
+  {
+    id: 'venison',
+    cat: '🥩 Bílkoviny',
+    name: 'Zvěřina (jelení, vařená)',
+    kcal: 158, carbs: 0, protein: 30.2, fat: 3.5, per: 150,
+    micros: { na: 52, k: 370, mg: 24, ca: 7, fe: 3.4, vit_c: 0, vit_d: 0.1, b12: 7.0, omega3: 90, zn: 3.5 },
+  },
+  {
+    id: 'boar',
+    cat: '🥩 Bílkoviny',
+    name: 'Kančí maso (pečené)',
+    kcal: 190, carbs: 0, protein: 27.0, fat: 9.0, per: 150,
+    micros: { na: 56, k: 345, mg: 22, ca: 12, fe: 1.5, vit_c: 0, vit_d: 0.1, b12: 1.0, omega3: 110, zn: 2.9 },
+  },
+  {
+    id: 'chicken_wings',
+    cat: '🥩 Bílkoviny',
+    name: 'Kuřecí křídla (pečená)',
+    kcal: 270, carbs: 0, protein: 23.0, fat: 19.0, per: 150,
+    micros: { na: 88, k: 205, mg: 20, ca: 14, fe: 0.9, vit_c: 0, vit_d: 0.1, b12: 0.3, omega3: 130, zn: 1.9 },
+  },
+  {
+    id: 'goose_breast',
+    cat: '🥩 Bílkoviny',
+    name: 'Husí prsa (bez kůže)',
+    kcal: 161, carbs: 0, protein: 22.8, fat: 7.6, per: 150,
+    micros: { na: 73, k: 310, mg: 24, ca: 12, fe: 2.6, vit_c: 0, vit_d: 0.4, b12: 0.5, omega3: 100, zn: 2.0 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🥩 Bílkoviny – ryby a mořské plody
+  // ──────────────────────────────────────────
+  {
+    id: 'herring',
+    cat: '🥩 Bílkoviny',
+    name: 'Sledě (marinované)',
+    kcal: 158, carbs: 4.5, protein: 14.0, fat: 9.5, per: 100,
+    micros: { na: 870, k: 220, mg: 28, ca: 55, fe: 1.1, vit_c: 0, vit_d: 4.5, b12: 13, omega3: 1710, zn: 1.0 },
+  },
+  {
+    id: 'anchovies',
+    cat: '🥩 Bílkoviny',
+    name: 'Ančovičky (konzerva)',
+    kcal: 210, carbs: 0, protein: 28.9, fat: 9.7, per: 50,
+    micros: { na: 3668, k: 544, mg: 69, ca: 147, fe: 3.3, vit_c: 0, vit_d: 1.7, b12: 0.7, omega3: 2055, zn: 1.7 },
+  },
+  {
+    id: 'tilapia',
+    cat: '🥩 Bílkoviny',
+    name: 'Tilapie (filé)',
+    kcal: 128, carbs: 0, protein: 26.2, fat: 2.7, per: 150,
+    micros: { na: 52, k: 380, mg: 31, ca: 14, fe: 0.7, vit_c: 0, vit_d: 0.9, b12: 1.6, omega3: 220, zn: 0.4 },
+  },
+  {
+    id: 'halibut',
+    cat: '🥩 Bílkoviny',
+    name: 'Halibut (filé)',
+    kcal: 110, carbs: 0, protein: 22.5, fat: 2.3, per: 150,
+    micros: { na: 68, k: 576, mg: 107, ca: 60, fe: 0.2, vit_c: 0, vit_d: 4.8, b12: 1.2, omega3: 480, zn: 0.5 },
+  },
+  {
+    id: 'sea_bass',
+    cat: '🥩 Bílkoviny',
+    name: 'Mořský vlk (okoun)',
+    kcal: 124, carbs: 0, protein: 23.6, fat: 2.9, per: 150,
+    micros: { na: 68, k: 328, mg: 35, ca: 12, fe: 0.4, vit_c: 0, vit_d: 4.0, b12: 1.5, omega3: 550, zn: 0.5 },
+  },
+  {
+    id: 'mussels',
+    cat: '🥩 Bílkoviny',
+    name: 'Mušle slávky (vařené)',
+    kcal: 86, carbs: 3.7, protein: 11.9, fat: 2.2, per: 150,
+    micros: { na: 286, k: 268, mg: 37, ca: 33, fe: 3.9, vit_c: 8, vit_d: 0.1, b12: 12, omega3: 440, zn: 1.6 },
+  },
+  {
+    id: 'oysters',
+    cat: '🥩 Bílkoviny',
+    name: 'Ústřice (čerstvé)',
+    kcal: 69, carbs: 3.9, protein: 7.0, fat: 2.5, per: 100,
+    micros: { na: 417, k: 168, mg: 47, ca: 45, fe: 5.1, vit_c: 3.7, vit_d: 0, b12: 16, omega3: 672, zn: 39 },
+  },
+  {
+    id: 'squid',
+    cat: '🥩 Bílkoviny',
+    name: 'Kalamáry (vařené)',
+    kcal: 92, carbs: 3.1, protein: 15.6, fat: 1.4, per: 150,
+    micros: { na: 260, k: 280, mg: 33, ca: 32, fe: 0.7, vit_c: 4.7, vit_d: 0, b12: 1.3, omega3: 490, zn: 1.5 },
+  },
+  {
+    id: 'octopus',
+    cat: '🥩 Bílkoviny',
+    name: 'Chobotnice (vařená)',
+    kcal: 82, carbs: 2.2, protein: 14.9, fat: 1.0, per: 150,
+    micros: { na: 230, k: 350, mg: 30, ca: 53, fe: 5.3, vit_c: 5, vit_d: 0, b12: 20, omega3: 330, zn: 1.7 },
+  },
+  {
+    id: 'crab',
+    cat: '🥩 Bílkoviny',
+    name: 'Krab (krabí tyčinky)',
+    kcal: 77, carbs: 6.9, protein: 9.1, fat: 0.7, per: 100,
+    micros: { na: 690, k: 105, mg: 36, ca: 34, fe: 0.3, vit_c: 0, vit_d: 0, b12: 1.5, omega3: 170, zn: 0.3 },
+  },
+  {
+    id: 'lobster',
+    cat: '🥩 Bílkoviny',
+    name: 'Humr (vařený)',
+    kcal: 98, carbs: 1.3, protein: 20.5, fat: 1.5, per: 150,
+    micros: { na: 380, k: 352, mg: 42, ca: 96, fe: 0.3, vit_c: 0, vit_d: 0, b12: 1.4, omega3: 110, zn: 3.0 },
+  },
+  {
+    id: 'clams',
+    cat: '🥩 Bílkoviny',
+    name: 'Škeble / Clams (vařené)',
+    kcal: 74, carbs: 2.6, protein: 12.8, fat: 1.0, per: 100,
+    micros: { na: 56, k: 314, mg: 15, ca: 46, fe: 13.9, vit_c: 13, vit_d: 0, b12: 98, omega3: 220, zn: 1.4 },
   },
 
   // ──────────────────────────────────────────
