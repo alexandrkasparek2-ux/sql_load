@@ -19,12 +19,13 @@ import {
   calcCalories, calcMacros, calcWater, calcMicroGoals,
 } from './constants/training';
 
-import Login     from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Foods     from './pages/Foods';
-import Micros    from './pages/Micros';
-import Plan      from './pages/Plan';
-import Profile   from './pages/Profile';
+import Login       from './pages/Login';
+import Dashboard   from './pages/Dashboard';
+import Foods       from './pages/Foods';
+import Micros      from './pages/Micros';
+import Plan        from './pages/Plan';
+import Profile     from './pages/Profile';
+import Supplements from './pages/Supplements';
 
 import { T, Spinner } from './components/UI';
 
@@ -135,11 +136,12 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 // Layout
 // ──────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { to: '/',        icon: '🏠', label: 'Přehled' },
-  { to: '/foods',   icon: '🍽️', label: 'Jídla'   },
-  { to: '/plan',    icon: '⚡', label: 'Plán'    },
-  { to: '/micros',  icon: '📊', label: 'Mikro'   },
-  { to: '/profile', icon: '👤', label: 'Profil'  },
+  { to: '/',            icon: '🏠', label: 'Přehled' },
+  { to: '/foods',       icon: '🍽️', label: 'Jídla'   },
+  { to: '/plan',        icon: '⚡', label: 'Plán'    },
+  { to: '/supplements', icon: '💊', label: 'Supl.'   },
+  { to: '/micros',      icon: '📊', label: 'Mikro'   },
+  { to: '/profile',     icon: '👤', label: 'Profil'  },
 ] as const;
 
 interface AppLayoutProps {
@@ -268,11 +270,12 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
       {/* Page content */}
       <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
         <Routes>
-          <Route path="/"        element={<Dashboard />} />
-          <Route path="/foods"   element={<Foods />}     />
-          <Route path="/plan"    element={<Plan />}      />
-          <Route path="/micros"  element={<Micros />}    />
-          <Route path="/profile" element={<Profile />}   />
+          <Route path="/"            element={<Dashboard />}   />
+          <Route path="/foods"       element={<Foods />}       />
+          <Route path="/plan"        element={<Plan />}        />
+          <Route path="/supplements" element={<Supplements />} />
+          <Route path="/micros"      element={<Micros />}      />
+          <Route path="/profile"     element={<Profile />}     />
           <Route path="*"        element={<Navigate to="/" replace />} />
         </Routes>
       </main>
