@@ -195,7 +195,8 @@ export function calcCalories(p: CalcProfile, type: TrainingType, activeHours: nu
   const bmr = calcBMR(p);
   if (type === 'rest') return Math.round(bmr * 1.2);
   const cfg = TRAINING_TYPES.find(t => t.id === type)!;
-  return Math.round(bmr * 1.4 + activeHours * p.weight * cfg.calBurnRate);
+  // BMR×1.2 = sedentary base; (calBurnRate-1) = net kcal/kg/h above resting (net MET)
+  return Math.round(bmr * 1.2 + activeHours * p.weight * (cfg.calBurnRate - 1.0));
 }
 
 export const INTENSITY_MUL: Record<string, number> = { low: 0.7, medium: 1.0, high: 1.3 };
@@ -212,9 +213,10 @@ export function calcCaloriesMulti(
   const burn = active.reduce((sum, t) => {
     const cfg = TRAINING_TYPES.find(x => x.id === t)!;
     const mul = INTENSITY_MUL[intensityMap[t] ?? 'medium'] ?? 1.0;
-    return sum + (hoursMap[t] ?? 0) * p.weight * cfg.calBurnRate * mul;
+    // (calBurnRate-1) = net MET (kcal/kg/h above resting) to avoid double-counting BMR
+    return sum + (hoursMap[t] ?? 0) * p.weight * (cfg.calBurnRate - 1.0) * mul;
   }, 0);
-  return Math.round(bmr * 1.4 + burn);
+  return Math.round(bmr * 1.2 + burn);
 }
 
 export function primaryType(types: TrainingType[]): TrainingType {
