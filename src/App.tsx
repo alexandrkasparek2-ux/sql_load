@@ -56,6 +56,7 @@ export interface AppCtx {
   goals:              Goals;
   addEntry:           (e: Omit<FoodEntry, 'id'>) => Promise<void>;
   removeEntry:        (id: string) => Promise<void>;
+  updateEntry:        (id: string, newGrams: number) => Promise<void>;
   signOut:            () => Promise<void>;
 }
 
@@ -88,7 +89,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 
   const { profile,     save: saveProfile    } = useProfile(userId);
   const { trainingDay, upsert              } = useTrainingDay(userId, today);
-  const { entries, totals, addEntry, removeEntry } = useFoodEntries(userId, today);
+  const { entries, totals, addEntry, removeEntry, updateEntry } = useFoodEntries(userId, today);
 
   const trainingType = trainingDay?.training_type ?? 'rest';
   const rideHours    = trainingDay?.ride_hours    ?? 0;
@@ -122,6 +123,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     goals,
     addEntry,
     removeEntry,
+    updateEntry,
     signOut:           onSignOut,
   };
 

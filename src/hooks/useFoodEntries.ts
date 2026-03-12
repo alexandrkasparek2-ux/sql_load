@@ -100,7 +100,32 @@ export function useFoodEntries(userId: string | undefined, date: string) {
     setEntries(prev => prev.filter(e => e.id !== id));
   };
 
+  const updateEntry = async (id: string, newGrams: number): Promise<void> => {
+    const entry = entries.find(e => e.id === id);
+    if (!entry || entry.grams === 0) return;
+    const ratio = newGrams / entry.grams;
+    const updated = {
+      grams:   newGrams,
+      kcal:    parseFloat((entry.kcal    * ratio).toFixed(1)),
+      carbs:   parseFloat((entry.carbs   * ratio).toFixed(1)),
+      protein: parseFloat((entry.protein * ratio).toFixed(1)),
+      fat:     parseFloat((entry.fat     * ratio).toFixed(1)),
+      na:      parseFloat((entry.na      * ratio).toFixed(1)),
+      k:       parseFloat((entry.k       * ratio).toFixed(1)),
+      mg:      parseFloat((entry.mg      * ratio).toFixed(1)),
+      ca:      parseFloat((entry.ca      * ratio).toFixed(1)),
+      fe:      parseFloat((entry.fe      * ratio).toFixed(2)),
+      vit_c:   parseFloat((entry.vit_c   * ratio).toFixed(1)),
+      vit_d:   parseFloat((entry.vit_d   * ratio).toFixed(2)),
+      b12:     parseFloat((entry.b12     * ratio).toFixed(2)),
+      omega3:  parseFloat((entry.omega3  * ratio).toFixed(1)),
+      zn:      parseFloat((entry.zn      * ratio).toFixed(2)),
+    };
+    await supabase.from('food_entries').update(updated).eq('id', id);
+    setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e));
+  };
+
   const totals = sumEntries(entries);
 
-  return { entries, totals, loading, addEntry, removeEntry, reload: load };
+  return { entries, totals, loading, addEntry, removeEntry, updateEntry, reload: load };
 }
