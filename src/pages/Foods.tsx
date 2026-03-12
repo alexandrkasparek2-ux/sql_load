@@ -41,31 +41,55 @@ function buildEntry(
 
 // ─── FoodPicker modal ────────────────────────────────────────
 interface FoodPickerProps {
-  mealSlot:  string;
-  mealLabel: string;
-  accent:    string;
-  onClose:   () => void;
-  onConfirm: (entry: Omit<FoodEntry, 'id'>) => Promise<void>;
-  userId:    string;
-  date:      string;
+  mealSlot:         string;
+  mealLabel:        string;
+  accent:           string;
+  onClose:          () => void;
+  onConfirm:        (entry: Omit<FoodEntry, 'id'>) => Promise<void>;
+  onSaveCustomFood: (food: Food) => void;
+  userId:           string;
+  date:             string;
+  allFoods:         Food[];
 }
 
-function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, userId, date }: FoodPickerProps) {
-  const [step,        setStep]        = useState<'browse' | 'portion'>('browse');
+function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCustomFood, userId, date, allFoods }: FoodPickerProps) {
+  type Step = 'browse' | 'portion' | 'custom' | 'recipe';
+  const [step,        setStep]        = useState<Step>('browse');
+  // browse / portion
   const [selCat,      setSelCat]      = useState('');
   const [search,      setSearch]      = useState('');
   const [food,        setFood]        = useState<Food | null>(null);
   const [grams,       setGrams]       = useState(100);
   const [loading,     setLoading]     = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  // custom step
+  const [cName,    setCName]    = useState('');
+  const [cKcal,    setCKcal]    = useState('');
+  const [cCarbs,   setCCarbs]   = useState('');
+  const [cProtein, setCProtein] = useState('');
+  const [cFat,     setCFat]     = useState('');
+  const [cGrams,   setCGrams]   = useState(100);
+  const [cSave,    setCSave]    = useState(false);
+  // recipe step
+  const [rName,   setRName]   = useState('');
+  const [rIngs,   setRIngs]   = useState<{food: Food; grams: number}[]>([]);
+  const [rSearch, setRSearch] = useState('');
+  const [rShow,   setRShow]   = useState(false);
 
-  const filtered = useMemo(() => {
-    return FOODS.filter(f => {
-      const matchCat    = !selCat  || f.cat === selCat;
-      const matchSearch = !search  || f.name.toLowerCase().includes(search.toLowerCase());
-      return matchCat && matchSearch;
-    });
-  }, [selCat, search]);
+  const categories = useMemo(() => {
+    const used = new Set(allFoods.map(f => f.cat));
+    return FOOD_CATEGORIES.filter(c => used.has(c));
+  }, [allFoods]);
+
+  const filtered = useMemo(() =>
+    allFoods.filter(f =>
+      (!selCat || f.cat === selCat) &&
+      (!search || f.name.toLowerCase().includes(search.toLowerCase()))
+    ), [allFoods, selCat, search]);
+
+  const rFiltered = useMemo(() =>
+    rSearch ? allFoods.filter(f => f.name.toLowerCase().includes(rSearch.toLowerCase())).slice(0, 12) : [],
+  [allFoods, rSearch]);
 
   const preview = food ? {
     kcal:    scaleNutrient(food.kcal,    grams),
@@ -74,16 +98,19 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, userId, d
     fat:     scaleNutrient(food.fat,     grams),
   } : null;
 
-  const handleSelectFood = (f: Food) => {
-    setFood(f);
-    setGrams(f.per);
-    setStep('portion');
-  };
+  const rTotals = rIngs.reduce(
+    (acc, ing) => ({
+      grams:   acc.grams   + ing.grams,
+      kcal:    acc.kcal    + scaleNutrient(ing.food.kcal,    ing.grams),
+      carbs:   acc.carbs   + scaleNutrient(ing.food.carbs,   ing.grams),
+      protein: acc.protein + scaleNutrient(ing.food.protein, ing.grams),
+      fat:     acc.fat     + scaleNutrient(ing.food.fat,     ing.grams),
+    }),
+    { grams: 0, kcal: 0, carbs: 0, protein: 0, fat: 0 }
+  );
 
-  const handleBarcodeResult = (f: Food) => {
-    setShowScanner(false);
-    handleSelectFood(f);
-  };
+  const handleSelectFood = (f: Food) => { setFood(f); setGrams(f.per); setStep('portion'); };
+  const handleBarcodeResult = (f: Food) => { setShowScanner(false); handleSelectFood(f); };
 
   const handleConfirm = async () => {
     if (!food) return;
@@ -93,35 +120,77 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, userId, d
     onClose();
   };
 
+  const handleCustomConfirm = async () => {
+    if (!cName.trim()) return;
+    const kc = parseFloat(cKcal)    || 0;
+    const cb = parseFloat(cCarbs)   || 0;
+    const pr = parseFloat(cProtein) || 0;
+    const ft = parseFloat(cFat)     || 0;
+    const f  = cGrams / 100;
+    if (cSave) {
+      onSaveCustomFood({
+        id: `custom_${Date.now()}`, cat: '⭐ Vlastní', name: cName.trim(),
+        kcal: kc, carbs: cb, protein: pr, fat: ft, per: cGrams,
+        micros: { na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0 },
+      });
+    }
+    setLoading(true);
+    await onConfirm({
+      user_id: userId, date, meal_slot: mealSlot,
+      food_id: `custom_${Date.now()}`, food_name: cName.trim(),
+      grams: cGrams,
+      kcal:    parseFloat((kc * f).toFixed(1)),
+      carbs:   parseFloat((cb * f).toFixed(1)),
+      protein: parseFloat((pr * f).toFixed(1)),
+      fat:     parseFloat((ft * f).toFixed(1)),
+      na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
+    });
+    setLoading(false);
+    onClose();
+  };
+
+  const handleRecipeConfirm = async () => {
+    if (!rName.trim() || rIngs.length === 0) return;
+    const sumM = (key: keyof Food['micros']) =>
+      parseFloat(rIngs.reduce((s, ing) => s + scaleNutrient(ing.food.micros[key] as number, ing.grams), 0).toFixed(2));
+    setLoading(true);
+    await onConfirm({
+      user_id: userId, date, meal_slot: mealSlot,
+      food_id: `recipe_${Date.now()}`, food_name: rName.trim(),
+      grams:   Math.round(rTotals.grams),
+      kcal:    parseFloat(rTotals.kcal.toFixed(1)),
+      carbs:   parseFloat(rTotals.carbs.toFixed(1)),
+      protein: parseFloat(rTotals.protein.toFixed(1)),
+      fat:     parseFloat(rTotals.fat.toFixed(1)),
+      na: sumM('na'), k: sumM('k'), mg: sumM('mg'), ca: sumM('ca'), fe: sumM('fe'),
+      vit_c: sumM('vit_c'), vit_d: sumM('vit_d'), b12: sumM('b12'), omega3: sumM('omega3'), zn: sumM('zn'),
+    });
+    setLoading(false);
+    onClose();
+  };
+
+  const stepTitle: Record<Step, string> = {
+    browse: 'Vybrat potravinu', portion: food?.name ?? '',
+    custom: 'Vlastní jídlo',   recipe: 'Sestavit recept',
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', background: T.bg, border: `1px solid ${T.border}`,
+    borderRadius: 10, padding: '10px 12px', color: T.text, fontSize: 14,
+    outline: 'none', boxSizing: 'border-box',
+  };
+
   return (
     <>
       {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.7)',
-          zIndex: 100,
-          backdropFilter: 'blur(4px)',
-        }}
-      />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, backdropFilter: 'blur(4px)' }} />
 
       {/* Bottom sheet */}
       <div style={{
-        position:      'fixed',
-        bottom:        0,
-        left:          '50%',
-        transform:     'translateX(-50%)',
-        width:         '100%',
-        maxWidth:      500,
-        background:    T.card,
-        borderRadius:  '20px 20px 0 0',
-        border:        `1px solid ${T.border}`,
-        borderBottom:  'none',
-        zIndex:        101,
-        maxHeight:     '88dvh',
-        display:       'flex',
-        flexDirection: 'column',
+        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+        width: '100%', maxWidth: 500, background: T.card,
+        borderRadius: '20px 20px 0 0', border: `1px solid ${T.border}`, borderBottom: 'none',
+        zIndex: 101, maxHeight: '88dvh', display: 'flex', flexDirection: 'column',
       }}>
         {/* Handle */}
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10 }}>
@@ -133,114 +202,64 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, userId, d
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 16, fontWeight: 700, color: T.text }}>
-                {step === 'browse' ? 'Vybrat potravinu' : food?.name}
+                {stepTitle[step]}
               </div>
               <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{mealLabel}</div>
             </div>
             <button
-              onClick={step === 'portion' ? () => setStep('browse') : onClose}
+              onClick={step === 'browse' ? onClose : () => setStep('browse')}
               style={{ background: 'none', border: 'none', color: T.muted, fontSize: 20, cursor: 'pointer', padding: 4 }}
-            >
-              {step === 'portion' ? '‹' : '✕'}
-            </button>
+            >{step === 'browse' ? '✕' : '‹'}</button>
           </div>
         </div>
 
         {/* Content */}
         <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 24px' }}>
 
+          {/* ── BROWSE ── */}
           {step === 'browse' && (
             <>
-              {/* Search + barcode scan row */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Hledat potravinu…"
-                  style={{
-                    flex: 1, background: T.bg, border: `1px solid ${T.border}`,
-                    borderRadius: 10, padding: '10px 12px', color: T.text, fontSize: 14,
-                    outline: 'none',
-                  }}
-                />
+              {/* Quick actions */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                 <button
-                  onClick={() => setShowScanner(true)}
-                  title="Skenovat čárový kód"
-                  style={{
-                    flexShrink: 0,
-                    background:   accent + '22',
-                    border:       `1px solid ${accent}44`,
-                    borderRadius: 10,
-                    padding:      '10px 14px',
-                    color:        accent,
-                    fontSize:     18,
-                    cursor:       'pointer',
-                    display:      'flex',
-                    alignItems:   'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  📷
-                </button>
+                  onClick={() => setStep('custom')}
+                  style={{ flex: 1, padding: '10px 0', borderRadius: 10, fontSize: 13, cursor: 'pointer', background: accent + '18', border: `1px solid ${accent}33`, color: accent, fontWeight: 600 }}
+                >✏️ Vlastní jídlo</button>
+                <button
+                  onClick={() => setStep('recipe')}
+                  style={{ flex: 1, padding: '10px 0', borderRadius: 10, fontSize: 13, cursor: 'pointer', background: T.bg, border: `1px solid ${T.border}`, color: T.text }}
+                >🍳 Z receptu</button>
+              </div>
+
+              {/* Search + barcode */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Hledat potravinu…" style={inputStyle} />
+                <button onClick={() => setShowScanner(true)} title="Skenovat čárový kód"
+                  style={{ flexShrink: 0, background: accent + '22', border: `1px solid ${accent}44`, borderRadius: 10, padding: '10px 14px', color: accent, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📷</button>
               </div>
 
               {/* Category pills */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-                <button
-                  onClick={() => setSelCat('')}
-                  style={{
-                    padding: '5px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
-                    background: !selCat ? accent : T.bg,
-                    border:     `1px solid ${!selCat ? accent : T.border}`,
-                    color:      !selCat ? '#fff' : T.muted,
-                    fontFamily: 'DM Sans, sans-serif',
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  Vše
-                </button>
-                {FOOD_CATEGORIES.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelCat(prev => prev === cat ? '' : cat)}
-                    style={{
-                      padding: '5px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
-                      background: selCat === cat ? accent : T.bg,
-                      border:     `1px solid ${selCat === cat ? accent : T.border}`,
-                      color:      selCat === cat ? '#fff' : T.muted,
-                      fontFamily: 'DM Sans, sans-serif',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    {cat}
-                  </button>
+                <button onClick={() => setSelCat('')}
+                  style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer', background: !selCat ? accent : T.bg, border: `1px solid ${!selCat ? accent : T.border}`, color: !selCat ? '#fff' : T.muted, fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}>Vše</button>
+                {categories.map(cat => (
+                  <button key={cat} onClick={() => setSelCat(prev => prev === cat ? '' : cat)}
+                    style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, cursor: 'pointer', background: selCat === cat ? accent : T.bg, border: `1px solid ${selCat === cat ? accent : T.border}`, color: selCat === cat ? '#fff' : T.muted, fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}
+                  >{cat}</button>
                 ))}
               </div>
 
               {/* Food list */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {filtered.length === 0 && (
-                  <div style={{ textAlign: 'center', color: T.muted, padding: '30px 0', fontSize: 14 }}>
-                    Žádná potravina nenalezena.
-                  </div>
+                  <div style={{ textAlign: 'center', color: T.muted, padding: '30px 0', fontSize: 14 }}>Žádná potravina nenalezena.</div>
                 )}
                 {filtered.map(f => (
-                  <button
-                    key={f.id}
-                    onClick={() => handleSelectFood(f)}
-                    style={{
-                      background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10,
-                      padding: '10px 12px', cursor: 'pointer', textAlign: 'left',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      fontFamily: 'DM Sans, sans-serif', transition: 'border-color 0.15s',
-                    }}
-                  >
+                  <button key={f.id} onClick={() => handleSelectFood(f)}
+                    style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: '10px 12px', cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: 'DM Sans, sans-serif', transition: 'border-color 0.15s' }}>
                     <div>
                       <div style={{ fontSize: 14, color: T.text, fontWeight: 500 }}>{f.name}</div>
-                      <div style={{ fontSize: 12, color: T.muted }}>
-                        {f.cat} • {f.per} g ref.
-                      </div>
+                      <div style={{ fontSize: 12, color: T.muted }}>{f.cat} • {f.per} g ref.</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: accent }}>{f.kcal} kcal</div>
@@ -252,61 +271,33 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, userId, d
             </>
           )}
 
+          {/* ── PORTION ── */}
           {step === 'portion' && food && preview && (
             <>
-              {/* Food macros reference */}
-              <div style={{
-                background: T.bg, borderRadius: 10, padding: '10px 12px',
-                marginBottom: 16, fontSize: 12, color: T.muted,
-                display: 'flex', gap: 12, flexWrap: 'wrap',
-              }}>
+              <div style={{ background: T.bg, borderRadius: 10, padding: '10px 12px', marginBottom: 16, fontSize: 12, color: T.muted, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <span>Per 100 g:</span>
                 <span><b style={{ color: accent }}>{food.kcal}</b> kcal</span>
                 <span><b style={{ color: '#f59e0b' }}>{food.carbs}g</b> sacharidy</span>
                 <span><b style={{ color: '#22c55e' }}>{food.protein}g</b> bílkoviny</span>
                 <span><b style={{ color: '#a855f7' }}>{food.fat}g</b> tuky</span>
               </div>
-
-              {/* Grams slider */}
               <div style={{ marginBottom: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <label style={{ fontSize: 13, color: T.muted }}>Množství</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <button
-                      onClick={() => setGrams(g => Math.max(5, g - 5))}
-                      style={{ width: 26, height: 26, borderRadius: 6, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 16 }}
-                    >−</button>
-                    <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color: T.text, minWidth: 52, textAlign: 'center' }}>
-                      {grams} g
-                    </span>
-                    <button
-                      onClick={() => setGrams(g => Math.min(600, g + 5))}
-                      style={{ width: 26, height: 26, borderRadius: 6, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 16 }}
-                    >+</button>
+                    <button onClick={() => setGrams(g => Math.max(5, g - 5))} style={{ width: 26, height: 26, borderRadius: 6, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 16 }}>−</button>
+                    <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color: T.text, minWidth: 52, textAlign: 'center' }}>{grams} g</span>
+                    <button onClick={() => setGrams(g => Math.min(600, g + 5))} style={{ width: 26, height: 26, borderRadius: 6, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 16 }}>+</button>
                   </div>
                 </div>
-                <input
-                  type="range"
-                  min={5} max={600} step={5}
-                  value={grams}
-                  onChange={e => setGrams(Number(e.target.value))}
-                  style={{ background: `linear-gradient(to right, ${accent} ${((grams - 5) / 595) * 100}%, ${T.border} 0%)`, borderRadius: 3 }}
-                />
+                <input type="range" min={5} max={600} step={5} value={grams} onChange={e => setGrams(Number(e.target.value))}
+                  style={{ background: `linear-gradient(to right, ${accent} ${((grams - 5) / 595) * 100}%, ${T.border} 0%)`, borderRadius: 3 }} />
                 <style>{`input[type=range]::-webkit-slider-thumb { background: ${accent}; } input[type=range]::-moz-range-thumb { background: ${accent}; }`}</style>
               </div>
-
-              {/* Live preview */}
-              <div style={{
-                background: accent + '12', border: `1px solid ${accent}33`,
-                borderRadius: 12, padding: 14, marginBottom: 20,
-              }}>
-                <div style={{ fontSize: 12, color: accent, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
-                  Nutriční hodnoty pro {grams} g
-                </div>
+              <div style={{ background: accent + '12', border: `1px solid ${accent}33`, borderRadius: 12, padding: 14, marginBottom: 20 }}>
+                <div style={{ fontSize: 12, color: accent, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Nutriční hodnoty pro {grams} g</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 24, fontWeight: 800, color: T.text }}>
-                    {preview.kcal.toFixed(0)}
-                  </span>
+                  <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 24, fontWeight: 800, color: T.text }}>{preview.kcal.toFixed(0)}</span>
                   <span style={{ fontSize: 12, color: T.muted, alignSelf: 'flex-end', marginBottom: 4 }}>kcal</span>
                 </div>
                 <div style={{ display: 'flex', gap: 16 }}>
@@ -315,22 +306,147 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, userId, d
                   <MacroLine label="Tuky"      value={preview.fat}     color="#a855f7" unit="g" />
                 </div>
               </div>
-
               <Btn accent={accent} size="lg" full onClick={handleConfirm} disabled={loading}>
                 {loading ? 'Přidávám…' : `+ Přidat do ${mealLabel}`}
               </Btn>
             </>
           )}
+
+          {/* ── CUSTOM ── */}
+          {step === 'custom' && (
+            <>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, color: T.muted, display: 'block', marginBottom: 6 }}>Název jídla</label>
+                <input type="text" value={cName} onChange={e => setCName(e.target.value)} placeholder="Název vlastní potraviny…" style={inputStyle} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                {([
+                  { label: 'Kalorie / 100 g',   value: cKcal,    set: setCKcal,    unit: 'kcal', color: accent },
+                  { label: 'Sacharidy / 100 g',  value: cCarbs,   set: setCCarbs,   unit: 'g',    color: '#f59e0b' },
+                  { label: 'Bílkoviny / 100 g',  value: cProtein, set: setCProtein, unit: 'g',    color: '#22c55e' },
+                  { label: 'Tuky / 100 g',       value: cFat,     set: setCFat,     unit: 'g',    color: '#a855f7' },
+                ] as const).map(({ label, value, set, unit, color }) => (
+                  <div key={label}>
+                    <label style={{ fontSize: 11, color: T.muted, display: 'block', marginBottom: 4 }}>{label}</label>
+                    <div style={{ position: 'relative' }}>
+                      <input type="number" inputMode="decimal" value={value} onChange={e => (set as (v: string) => void)(e.target.value)}
+                        placeholder="0"
+                        style={{ width: '100%', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10, padding: '9px 30px 9px 12px', color, fontSize: 14, outline: 'none', fontWeight: 600, boxSizing: 'border-box' }} />
+                      <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: T.muted }}>{unit}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <label style={{ fontSize: 13, color: T.muted }}>Množství</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button onClick={() => setCGrams(g => Math.max(5, g - 5))} style={{ width: 26, height: 26, borderRadius: 6, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 16 }}>−</button>
+                    <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color: T.text, minWidth: 52, textAlign: 'center' }}>{cGrams} g</span>
+                    <button onClick={() => setCGrams(g => Math.min(1000, g + 5))} style={{ width: 26, height: 26, borderRadius: 6, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 16 }}>+</button>
+                  </div>
+                </div>
+                <input type="range" min={5} max={1000} step={5} value={cGrams} onChange={e => setCGrams(Number(e.target.value))}
+                  style={{ background: `linear-gradient(to right, ${accent} ${((cGrams - 5) / 995) * 100}%, ${T.border} 0%)`, borderRadius: 3 }} />
+              </div>
+              {cKcal && (
+                <div style={{ background: accent + '12', border: `1px solid ${accent}33`, borderRadius: 12, padding: 12, marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, color: accent, marginBottom: 6 }}>Pro {cGrams} g:</div>
+                  <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                    <MacroLine label="Kalorie"   value={(parseFloat(cKcal)    || 0) * cGrams / 100} color={accent}    unit=" kcal" />
+                    {cCarbs   && <MacroLine label="Sacharidy" value={(parseFloat(cCarbs)   || 0) * cGrams / 100} color="#f59e0b" unit="g" />}
+                    {cProtein && <MacroLine label="Bílkoviny" value={(parseFloat(cProtein) || 0) * cGrams / 100} color="#22c55e" unit="g" />}
+                    {cFat     && <MacroLine label="Tuky"      value={(parseFloat(cFat)     || 0) * cGrams / 100} color="#a855f7" unit="g" />}
+                  </div>
+                </div>
+              )}
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, cursor: 'pointer' }}>
+                <input type="checkbox" checked={cSave} onChange={e => setCSave(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
+                <span style={{ fontSize: 13, color: T.muted }}>Uložit do vlastních potravin</span>
+              </label>
+              <Btn accent={accent} size="lg" full onClick={handleCustomConfirm} disabled={!cName.trim() || loading}>
+                {loading ? 'Přidávám…' : `+ Přidat do ${mealLabel}`}
+              </Btn>
+            </>
+          )}
+
+          {/* ── RECIPE ── */}
+          {step === 'recipe' && (
+            <>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ fontSize: 12, color: T.muted, display: 'block', marginBottom: 6 }}>Název jídla / receptu</label>
+                <input type="text" value={rName} onChange={e => setRName(e.target.value)} placeholder="Např. Ovesná kaše s banánem…" style={inputStyle} />
+              </div>
+
+              {/* Ingredient search */}
+              <div style={{ position: 'relative', marginBottom: 12 }}>
+                <input type="text" value={rSearch}
+                  onChange={e => { setRSearch(e.target.value); setRShow(true); }}
+                  onFocus={() => setRShow(true)}
+                  placeholder="➕ Hledat a přidat ingredienci…"
+                  style={inputStyle} />
+                {rShow && rFiltered.length > 0 && (
+                  <div style={{ position: 'absolute', zIndex: 10, width: '100%', maxHeight: 180, overflowY: 'auto', background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, marginTop: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.35)' }}>
+                    {rFiltered.map(f => (
+                      <button key={f.id}
+                        onClick={() => { setRIngs(prev => [...prev, { food: f, grams: f.per }]); setRSearch(''); setRShow(false); }}
+                        style={{ width: '100%', padding: '9px 12px', background: 'none', border: 'none', borderBottom: `1px solid ${T.border}`, cursor: 'pointer', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 13, color: T.text }}>{f.name}</span>
+                        <span style={{ fontSize: 12, color: accent }}>{f.kcal} kcal/100g</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Ingredient list */}
+              {rIngs.length === 0 ? (
+                <div style={{ textAlign: 'center', color: T.muted, padding: '20px 0', fontSize: 13 }}>
+                  Přidejte ingredience pomocí vyhledávání výše.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                  {rIngs.map((ing, i) => (
+                    <div key={i} style={{ background: T.bg, borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, color: T.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ing.food.name}</div>
+                        <div style={{ fontSize: 11, color: accent }}>{scaleNutrient(ing.food.kcal, ing.grams).toFixed(0)} kcal</div>
+                      </div>
+                      <button onClick={() => setRIngs(prev => prev.map((x, j) => j === i ? { ...x, grams: Math.max(5, x.grams - 5) } : x))}
+                        style={{ width: 24, height: 24, borderRadius: 5, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>−</button>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: T.text, minWidth: 44, textAlign: 'center' }}>{ing.grams}g</span>
+                      <button onClick={() => setRIngs(prev => prev.map((x, j) => j === i ? { ...x, grams: Math.min(1000, x.grams + 5) } : x))}
+                        style={{ width: 24, height: 24, borderRadius: 5, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>+</button>
+                      <button onClick={() => setRIngs(prev => prev.filter((_, j) => j !== i))}
+                        style={{ background: 'none', border: 'none', color: T.muted, fontSize: 14, cursor: 'pointer', padding: 2, flexShrink: 0 }}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {rIngs.length > 0 && (
+                <div style={{ background: accent + '12', border: `1px solid ${accent}33`, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, color: accent, marginBottom: 8 }}>Celkem ({Math.round(rTotals.grams)} g):</div>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    <MacroLine label="Kalorie"   value={rTotals.kcal}    color={accent}    unit=" kcal" />
+                    <MacroLine label="Sacharidy" value={rTotals.carbs}   color="#f59e0b"  unit="g" />
+                    <MacroLine label="Bílkoviny" value={rTotals.protein} color="#22c55e"  unit="g" />
+                    <MacroLine label="Tuky"      value={rTotals.fat}     color="#a855f7"  unit="g" />
+                  </div>
+                </div>
+              )}
+
+              <Btn accent={accent} size="lg" full onClick={handleRecipeConfirm} disabled={!rName.trim() || rIngs.length === 0 || loading}>
+                {loading ? 'Přidávám…' : `+ Přidat do ${mealLabel}`}
+              </Btn>
+            </>
+          )}
+
         </div>
       </div>
 
-      {/* Barcode scanner overlay */}
       {showScanner && (
-        <BarcodeScanner
-          accent={accent}
-          onResult={handleBarcodeResult}
-          onClose={() => setShowScanner(false)}
-        />
+        <BarcodeScanner accent={accent} onResult={handleBarcodeResult} onClose={() => setShowScanner(false)} />
       )}
     </>
   );
@@ -354,17 +470,31 @@ export default function Foods() {
   const [confirmDel,    setConfirmDel]    = useState<string | null>(null);
   const [editingEntry,  setEditingEntry]  = useState<string | null>(null);
   const [editGrams,     setEditGrams]     = useState(100);
+  const [editMealSlot,  setEditMealSlot]  = useState('');
   const [savingEdit,    setSavingEdit]    = useState(false);
+  const [customFoods,   setCustomFoods]   = useState<Food[]>(() => {
+    try { return JSON.parse(localStorage.getItem('cyclofuel_custom_foods') ?? '[]'); }
+    catch { return []; }
+  });
 
-  const startEdit = (id: string, currentGrams: number) => {
+  const allFoods = useMemo(() => [...FOODS, ...customFoods], [customFoods]);
+
+  const saveCustomFood = (food: Food) => {
+    const updated = [...customFoods, food];
+    localStorage.setItem('cyclofuel_custom_foods', JSON.stringify(updated));
+    setCustomFoods(updated);
+  };
+
+  const startEdit = (id: string, currentGrams: number, currentMealSlot: string) => {
     setEditingEntry(id);
     setEditGrams(currentGrams);
+    setEditMealSlot(currentMealSlot);
     setConfirmDel(null);
   };
   const cancelEdit = () => setEditingEntry(null);
   const saveEdit   = async (id: string) => {
     setSavingEdit(true);
-    await updateEntry(id, editGrams);
+    await updateEntry(id, editGrams, editMealSlot);
     setSavingEdit(false);
     setEditingEntry(null);
   };
@@ -489,7 +619,7 @@ export default function Foods() {
                         ) : (
                           <>
                             <button
-                              onClick={() => startEdit(entry.id!, entry.grams)}
+                              onClick={() => startEdit(entry.id!, entry.grams, entry.meal_slot)}
                               title="Upravit gramáž"
                               style={{ background: 'none', border: 'none', color: T.muted, fontSize: 14, cursor: 'pointer', padding: 2, opacity: 0.7 }}
                             >✏️</button>
@@ -509,6 +639,19 @@ export default function Foods() {
                         borderBottom: `1px solid ${T.border}`,
                         background:   accent + '06',
                       }}>
+                        {/* Meal slot selector */}
+                        <div style={{ marginBottom: 10 }}>
+                          <div style={{ fontSize: 11, color: T.muted, marginBottom: 6 }}>Přesunout do:</div>
+                          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                            {MEAL_SLOTS.map(slot => (
+                              <button key={slot.id} onClick={() => setEditMealSlot(slot.id)}
+                                style={{ padding: '4px 10px', borderRadius: 16, fontSize: 11, cursor: 'pointer', background: editMealSlot === slot.id ? accent : T.bg, border: `1px solid ${editMealSlot === slot.id ? accent : T.border}`, color: editMealSlot === slot.id ? '#fff' : T.muted }}>
+                                {slot.icon} {slot.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
                         {/* +/- counter + live kcal */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                           <button
@@ -593,6 +736,8 @@ export default function Foods() {
           accent={accent}
           userId={userId}
           date={today}
+          allFoods={allFoods}
+          onSaveCustomFood={saveCustomFood}
           onClose={() => setActivePicker(null)}
           onConfirm={addEntry}
         />

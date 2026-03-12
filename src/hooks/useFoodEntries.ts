@@ -100,11 +100,11 @@ export function useFoodEntries(userId: string | undefined, date: string) {
     setEntries(prev => prev.filter(e => e.id !== id));
   };
 
-  const updateEntry = async (id: string, newGrams: number): Promise<void> => {
+  const updateEntry = async (id: string, newGrams: number, newMealSlot?: string): Promise<void> => {
     const entry = entries.find(e => e.id === id);
     if (!entry || entry.grams === 0) return;
     const ratio = newGrams / entry.grams;
-    const updated = {
+    const updated: Partial<FoodEntry> = {
       grams:   newGrams,
       kcal:    parseFloat((entry.kcal    * ratio).toFixed(1)),
       carbs:   parseFloat((entry.carbs   * ratio).toFixed(1)),
@@ -120,6 +120,7 @@ export function useFoodEntries(userId: string | undefined, date: string) {
       b12:     parseFloat((entry.b12     * ratio).toFixed(2)),
       omega3:  parseFloat((entry.omega3  * ratio).toFixed(1)),
       zn:      parseFloat((entry.zn      * ratio).toFixed(2)),
+      ...(newMealSlot ? { meal_slot: newMealSlot } : {}),
     };
     await supabase.from('food_entries').update(updated).eq('id', id);
     setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e));

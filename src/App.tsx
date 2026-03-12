@@ -56,7 +56,7 @@ export interface AppCtx {
   goals:              Goals;
   addEntry:           (e: Omit<FoodEntry, 'id'>) => Promise<void>;
   removeEntry:        (id: string) => Promise<void>;
-  updateEntry:        (id: string, newGrams: number) => Promise<void>;
+  updateEntry:        (id: string, newGrams: number, newMealSlot?: string) => Promise<void>;
   signOut:            () => Promise<void>;
 }
 
