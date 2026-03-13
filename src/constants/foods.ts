@@ -735,13 +735,6 @@ export const FOODS: Food[] = [
   },
   // ── Drůbež ──
   {
-    id: 'turkey_breast',
-    cat: '🥩 Bílkoviny',
-    name: 'Krůtí prsa',
-    kcal: 157, carbs: 0, protein: 29.0, fat: 4.0, per: 150,
-    micros: { na: 70, k: 293, mg: 28, ca: 13, fe: 1.4, vit_c: 0, vit_d: 0.1, b12: 0.4, omega3: 55, zn: 2.0 },
-  },
-  {
     id: 'turkey_thigh',
     cat: '🥩 Bílkoviny',
     name: 'Krůtí stehno',
@@ -1082,7 +1075,7 @@ export const FOODS: Food[] = [
     micros: { na: 45, k: 350, mg: 22, ca: 25, fe: 0.5, vit_c: 0, vit_d: 1.0, b12: 1.2, omega3: 270, zn: 0.5 },
   },
   {
-    id: 'pork_schnitzel',
+    id: 'pork_schnitzel_fried',
     cat: '🥩 Bílkoviny',
     name: 'Vepřový řízek (smažený)',
     kcal: 280, carbs: 14.0, protein: 22.0, fat: 14.5, per: 180,
@@ -1095,14 +1088,6 @@ export const FOODS: Food[] = [
     kcal: 258, carbs: 0, protein: 25.0, fat: 17.0, per: 150,
     micros: { na: 72, k: 310, mg: 22, ca: 18, fe: 1.9, vit_c: 0, vit_d: 0.1, b12: 2.0, omega3: 150, zn: 4.2 },
   },
-  {
-    id: 'duck_breast',
-    cat: '🥩 Bílkoviny',
-    name: 'Kachní prsa (bez kůže)',
-    kcal: 140, carbs: 0, protein: 24.0, fat: 4.0, per: 150,
-    micros: { na: 77, k: 305, mg: 26, ca: 12, fe: 2.7, vit_c: 0, vit_d: 0.4, b12: 0.4, omega3: 80, zn: 2.1 },
-  },
-
   // ──────────────────────────────────────────
   // 🥛 Mléčné – další
   // ──────────────────────────────────────────
@@ -1425,7 +1410,7 @@ export const FOODS: Food[] = [
     micros: { na: 75, k: 350, mg: 18, ca: 5, fe: 6.2, vit_c: 23, vit_d: 1.3, b12: 70, omega3: 160, zn: 5.2 },
   },
   {
-    id: 'pork_ribs',
+    id: 'pork_ribs_roasted',
     cat: '🥩 Bílkoviny',
     name: 'Vepřová žebra (pečená)',
     kcal: 290, carbs: 0, protein: 22.0, fat: 22.0, per: 200,
@@ -2211,7 +2196,7 @@ export const FOODS: Food[] = [
     micros: { na: 480, k: 290, mg: 22, ca: 55, fe: 1.5, vit_c: 4, vit_d: 0.3, b12: 1.2, omega3: 90, zn: 2.5 },
   },
   {
-    id: 'beef_goulash',
+    id: 'beef_goulash_dish',
     cat: '🍛 Hlavní jídla',
     name: 'Hovězí guláš s knedlíkem',
     kcal: 138, carbs: 14.0, protein: 8.5, fat: 5.0, per: 450,

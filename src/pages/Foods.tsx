@@ -81,15 +81,22 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
     return FOOD_CATEGORIES.filter(c => used.has(c));
   }, [allFoods]);
 
-  const filtered = useMemo(() =>
-    allFoods.filter(f =>
-      (!selCat || f.cat === selCat) &&
-      (!search || f.name.toLowerCase().includes(search.toLowerCase()))
-    ), [allFoods, selCat, search]);
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return allFoods.filter(f => {
+      const n = f.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return (!selCat || f.cat === selCat) && (!q || n.includes(q));
+    });
+  }, [allFoods, selCat, search]);
 
-  const rFiltered = useMemo(() =>
-    rSearch ? allFoods.filter(f => f.name.toLowerCase().includes(rSearch.toLowerCase())).slice(0, 12) : [],
-  [allFoods, rSearch]);
+  const rFiltered = useMemo(() => {
+    if (!rSearch) return [];
+    const q = rSearch.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return allFoods.filter(f => {
+      const n = f.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return n.includes(q);
+    }).slice(0, 12);
+  }, [allFoods, rSearch]);
 
   const preview = food ? {
     kcal:    scaleNutrient(food.kcal,    grams),
