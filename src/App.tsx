@@ -200,35 +200,40 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
     }
   };
 
-  const navBtnStyle: React.CSSProperties = {
-    background:   'none',
-    border:       'none',
-    color:        T.muted,
-    fontSize:     22,
-    lineHeight:   1,
-    cursor:       'pointer',
-    padding:      '6px 10px',   // větší touch target
-    borderRadius: 8,
+  // 44×44px touch target (Apple HIG minimum)
+  const arrowBtn: React.CSSProperties = {
+    background:              'none',
+    border:                  'none',
+    color:                   T.muted,
+    cursor:                  'pointer',
+    minWidth:                44,
+    minHeight:               44,
+    display:                 'flex',
+    alignItems:              'center',
+    justifyContent:          'center',
+    borderRadius:            10,
     WebkitTapHighlightColor: 'transparent',
-    touchAction:  'manipulation',
+    touchAction:             'manipulation',
+    userSelect:              'none',
+    flexShrink:              0,
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', background: T.bg }}>
 
-      {/* Sticky Header */}
+      {/* Sticky Header – BEZ backdrop-filter: iOS Safari má bug kdy blur zabraňuje touch eventům na potomcích */}
       <header style={{
         position:       'sticky',
         top:            0,
         zIndex:         50,
-        background:     T.bg + 'f0',
-        backdropFilter: 'blur(12px)',
+        background:     T.bg,
         borderBottom:   `1px solid ${T.border}`,
-        padding:        '10px 16px',
+        padding:        '0 8px 0 16px',
         display:        'flex',
         justifyContent: 'space-between',
         alignItems:     'center',
         flexShrink:     0,
+        minHeight:      52,
       }}>
         {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -246,25 +251,33 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
 
         {/* Date navigation */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <button onClick={prevDay} style={navBtnStyle} aria-label="Předchozí den">‹</button>
 
-          {/* Kliknutí → showPicker() přes ref; input má pointer-events:none → nikdy nezachycuje klikání */}
+          {/* Šipka zpět */}
+          <button type="button" onClick={prevDay} style={arrowBtn} aria-label="Předchozí den">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+
+          {/* Datum – klik otevře native date picker přes ref */}
           <button
+            type="button"
             onClick={openDatePicker}
             style={{
-              background:   'none',
-              border:       'none',
-              cursor:       'pointer',
-              padding:      '6px 4px',
-              borderRadius: 8,
-              position:     'relative',
+              background:              'none',
+              border:                  'none',
+              cursor:                  'pointer',
+              padding:                 '4px 2px',
+              borderRadius:            8,
+              position:                'relative',
               WebkitTapHighlightColor: 'transparent',
-              touchAction:  'manipulation',
+              touchAction:             'manipulation',
             }}
             aria-label="Vybrat datum"
           >
             <span style={{
-              fontSize:   12,
+              fontSize:   13,
               color:      isToday ? accent : T.muted,
               fontWeight: isToday ? 700 : 400,
               whiteSpace: 'nowrap',
@@ -273,7 +286,7 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
             }}>
               {dateLabel}
             </span>
-            {/* Input schovaný mimo tok; pointer-events:none → nikdy nezachycuje klikání */}
+            {/* pointer-events:none → input nikdy nezachycuje klikání */}
             <input
               ref={dateInputRef}
               type="date"
@@ -291,7 +304,14 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
             />
           </button>
 
-          <button onClick={nextDay} style={navBtnStyle} aria-label="Následující den">›</button>
+          {/* Šipka vpřed */}
+          <button type="button" onClick={nextDay} style={arrowBtn} aria-label="Následující den">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+
         </div>
       </header>
 
