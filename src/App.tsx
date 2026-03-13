@@ -1,5 +1,5 @@
 import React, {
-  createContext, useContext, useMemo, useState,
+  createContext, useContext, useMemo, useState, useRef,
 } from 'react';
 import {
   BrowserRouter, Routes, Route, NavLink, useNavigate, Navigate,
@@ -188,15 +188,29 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
 
   const isToday = today === realToday;
 
+  // Ref na skrytý date input – voláme showPicker() programaticky
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const openDatePicker = () => {
+    const el = dateInputRef.current;
+    if (!el) return;
+    if (typeof (el as any).showPicker === 'function') {
+      (el as any).showPicker();
+    } else {
+      el.click();
+    }
+  };
+
   const navBtnStyle: React.CSSProperties = {
-    background:  'none',
-    border:      'none',
-    color:       T.muted,
-    fontSize:    18,
-    lineHeight:  1,
-    cursor:      'pointer',
-    padding:     '4px 6px',
-    borderRadius: 6,
+    background:   'none',
+    border:       'none',
+    color:        T.muted,
+    fontSize:     22,
+    lineHeight:   1,
+    cursor:       'pointer',
+    padding:      '6px 10px',   // větší touch target
+    borderRadius: 8,
+    WebkitTapHighlightColor: 'transparent',
+    touchAction:  'manipulation',
   };
 
   return (
@@ -231,41 +245,53 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
         </div>
 
         {/* Date navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
           <button onClick={prevDay} style={navBtnStyle} aria-label="Předchozí den">‹</button>
 
-          {/* Clicking the label opens native date picker */}
-          <label style={{ cursor: 'pointer', position: 'relative', margin: '0 2px' }}>
+          {/* Kliknutí → showPicker() přes ref; input má pointer-events:none → nikdy nezachycuje klikání */}
+          <button
+            onClick={openDatePicker}
+            style={{
+              background:   'none',
+              border:       'none',
+              cursor:       'pointer',
+              padding:      '6px 4px',
+              borderRadius: 8,
+              position:     'relative',
+              WebkitTapHighlightColor: 'transparent',
+              touchAction:  'manipulation',
+            }}
+            aria-label="Vybrat datum"
+          >
             <span style={{
               fontSize:   12,
               color:      isToday ? accent : T.muted,
               fontWeight: isToday ? 700 : 400,
               whiteSpace: 'nowrap',
               display:    'block',
-              padding:    '4px 4px',
-              borderRadius: 6,
               transition: 'color 0.2s',
             }}>
               {dateLabel}
             </span>
-            {/* Hidden native date picker */}
+            {/* Input schovaný mimo tok; pointer-events:none → nikdy nezachycuje klikání */}
             <input
+              ref={dateInputRef}
               type="date"
               value={today}
               onChange={e => e.target.value && setToday(e.target.value)}
               style={{
-                position: 'absolute', top: 0, left: 0,
-                width: '100%', height: '100%',
-                opacity: 0, cursor: 'pointer',
+                position:      'absolute',
+                opacity:       0,
+                pointerEvents: 'none',
+                width:         1,
+                height:        1,
+                top:           '50%',
+                left:          '50%',
               }}
             />
-          </label>
+          </button>
 
-          <button
-            onClick={nextDay}
-            style={navBtnStyle}
-            aria-label="Následující den"
-          >›</button>
+          <button onClick={nextDay} style={navBtnStyle} aria-label="Následující den">›</button>
         </div>
       </header>
 
