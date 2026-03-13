@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext, useContext, useMemo, useState, useRef,
 } from 'react';
 import {
@@ -200,43 +200,25 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
     }
   };
 
-  // 44×44px touch target (Apple HIG minimum)
-  const arrowBtn: React.CSSProperties = {
-    background:              'none',
-    border:                  'none',
-    color:                   T.muted,
-    cursor:                  'pointer',
-    minWidth:                44,
-    minHeight:               44,
-    display:                 'flex',
-    alignItems:              'center',
-    justifyContent:          'center',
-    borderRadius:            10,
-    WebkitTapHighlightColor: 'transparent',
-    touchAction:             'manipulation',
-    userSelect:              'none',
-    flexShrink:              0,
-  };
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', background: T.bg }}>
 
-      {/* Sticky Header – BEZ backdrop-filter: iOS Safari má bug kdy blur zabraňuje touch eventům na potomcích */}
-      <header style={{
-        position:       'sticky',
-        top:            0,
-        zIndex:         50,
-        background:     T.bg,
-        borderBottom:   `1px solid ${T.border}`,
-        padding:        '0 8px 0 16px',
-        display:        'flex',
-        justifyContent: 'space-between',
-        alignItems:     'center',
-        flexShrink:     0,
-        minHeight:      52,
+      {/* Sticky wrapper – logo + date nav ve dvou řádcích */}
+      <div style={{
+        position:   'sticky',
+        top:        0,
+        zIndex:     50,
+        background: T.bg,
+        flexShrink: 0,
       }}>
-        {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* Řádek 1: Logo */}
+        <div style={{
+          padding:        '8px 16px',
+          display:        'flex',
+          alignItems:     'center',
+          gap:            8,
+          borderBottom:   `1px solid ${T.border}`,
+        }}>
           <span style={{ fontSize: 20 }}>🚴</span>
           <span style={{
             fontFamily: 'Syne, sans-serif',
@@ -249,44 +231,62 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
           </span>
         </div>
 
-        {/* Date navigation */}
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-
+        {/* Řádek 2: Navigace datumem – plná šířka, velké touch targety */}
+        <div style={{
+          display:      'flex',
+          alignItems:   'stretch',
+          borderBottom: `1px solid ${T.border}`,
+          height:       44,
+        }}>
           {/* Šipka zpět */}
-          <button type="button" onClick={prevDay} style={arrowBtn} aria-label="Předchozí den">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          <button
+            type="button"
+            onPointerDown={e => { e.preventDefault(); prevDay(); }}
+            style={{
+              flex:                    '0 0 56px',
+              background:              'none',
+              border:                  'none',
+              borderRight:             `1px solid ${T.border}`,
+              color:                   T.muted,
+              cursor:                  'pointer',
+              display:                 'flex',
+              alignItems:              'center',
+              justifyContent:          'center',
+              touchAction:             'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              userSelect:              'none',
+            }}
+            aria-label="Předchozí den"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
 
-          {/* Datum – klik otevře native date picker přes ref */}
+          {/* Datum uprostřed – klik otevře native date picker */}
           <button
             type="button"
-            onClick={openDatePicker}
+            onPointerDown={e => { e.preventDefault(); openDatePicker(); }}
             style={{
+              flex:                    1,
               background:              'none',
               border:                  'none',
               cursor:                  'pointer',
-              padding:                 '4px 2px',
-              borderRadius:            8,
               position:                'relative',
-              WebkitTapHighlightColor: 'transparent',
               touchAction:             'manipulation',
+              WebkitTapHighlightColor: 'transparent',
             }}
             aria-label="Vybrat datum"
           >
             <span style={{
-              fontSize:   13,
-              color:      isToday ? accent : T.muted,
+              fontSize:   14,
               fontWeight: isToday ? 700 : 400,
-              whiteSpace: 'nowrap',
-              display:    'block',
+              color:      isToday ? accent : T.muted,
               transition: 'color 0.2s',
             }}>
               {dateLabel}
             </span>
-            {/* pointer-events:none → input nikdy nezachycuje klikání */}
             <input
               ref={dateInputRef}
               type="date"
@@ -298,22 +298,39 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
                 pointerEvents: 'none',
                 width:         1,
                 height:        1,
-                top:           '50%',
-                left:          '50%',
+                top:           0,
+                left:          0,
               }}
             />
           </button>
 
           {/* Šipka vpřed */}
-          <button type="button" onClick={nextDay} style={arrowBtn} aria-label="Následující den">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          <button
+            type="button"
+            onPointerDown={e => { e.preventDefault(); nextDay(); }}
+            style={{
+              flex:                    '0 0 56px',
+              background:              'none',
+              border:                  'none',
+              borderLeft:              `1px solid ${T.border}`,
+              color:                   T.muted,
+              cursor:                  'pointer',
+              display:                 'flex',
+              alignItems:              'center',
+              justifyContent:          'center',
+              touchAction:             'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              userSelect:              'none',
+            }}
+            aria-label="Následující den"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
-
         </div>
-      </header>
+      </div>
 
       {/* Page content */}
       <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
