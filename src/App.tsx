@@ -201,15 +201,15 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', background: T.bg }}>
+    // height:100dvh + overflow:hidden → body nikdy nescrolluje → iOS Safari
+    // nepřijde o touch eventy na headeru kvůli body scroll interceptu
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: T.bg }}>
 
-      {/* Sticky wrapper – logo + date nav ve dvou řádcích */}
+      {/* Header – nepotřebuje sticky, body nescrolluje */}
       <div style={{
-        position:   'sticky',
-        top:        0,
-        zIndex:     50,
-        background: T.bg,
         flexShrink: 0,
+        background: T.bg,
+        zIndex:     50,
       }}>
         {/* Řádek 1: Logo */}
         <div style={{
@@ -332,8 +332,8 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
         </div>
       </div>
 
-      {/* Page content */}
-      <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
+      {/* Page content – flex:1 + minHeight:0 zajistí že main neroste za výšku viewportu */}
+      <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: 80 }}>
         <Routes>
           <Route path="/"            element={<Dashboard />}   />
           <Route path="/foods"       element={<Foods />}       />
