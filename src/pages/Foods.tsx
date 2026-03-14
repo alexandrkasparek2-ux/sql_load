@@ -4,6 +4,7 @@ import { T, Card, SectionTitle, ProgressBar, Btn } from '../components/UI';
 import { FOODS, FOOD_CATEGORIES, type Food } from '../constants/foods';
 import { MEAL_SLOTS }    from '../constants/training';
 import type { FoodEntry } from '../hooks/useFoodEntries';
+import { useSavedMeals, type SavedMeal } from '../hooks/useSavedMeals';
 import BarcodeScanner    from '../components/BarcodeScanner';
 
 // ─── helpers ────────────────────────────────────────────────
@@ -42,19 +43,22 @@ function buildEntry(
 
 // ─── FoodPicker modal ────────────────────────────────────────
 interface FoodPickerProps {
-  mealSlot:         string;
-  mealLabel:        string;
-  accent:           string;
-  onClose:          () => void;
-  onConfirm:        (entry: Omit<FoodEntry, 'id'>) => Promise<void>;
-  onSaveCustomFood: (food: Food) => void;
-  userId:           string;
-  date:             string;
-  allFoods:         Food[];
+  mealSlot:           string;
+  mealLabel:          string;
+  accent:             string;
+  onClose:            () => void;
+  onConfirm:          (entry: Omit<FoodEntry, 'id'>) => Promise<void>;
+  onSaveCustomFood:   (food: Food) => void;
+  onSaveMeal:         (meal: Omit<SavedMeal, 'id' | 'createdAt'>) => void;
+  onDeleteSavedMeal:  (id: string) => void;
+  savedMeals:         SavedMeal[];
+  userId:             string;
+  date:               string;
+  allFoods:           Food[];
 }
 
-function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCustomFood, userId, date, allFoods }: FoodPickerProps) {
-  type Step = 'browse' | 'portion' | 'custom' | 'recipe';
+function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCustomFood, onSaveMeal, onDeleteSavedMeal, savedMeals, userId, date, allFoods }: FoodPickerProps) {
+  type Step = 'browse' | 'portion' | 'custom' | 'recipe' | 'saved_portion';
   const [step,        setStep]        = useState<Step>('browse');
   // browse / portion
   const [selCat,      setSelCat]      = useState('');
@@ -76,6 +80,10 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
   const [rIngs,   setRIngs]   = useState<{food: Food; grams: number}[]>([]);
   const [rSearch, setRSearch] = useState('');
   const [rShow,   setRShow]   = useState(false);
+  const [rSave,   setRSave]   = useState(false);
+  // saved meal portion step
+  const [savedMealSel,   setSavedMealSel]   = useState<SavedMeal | null>(null);
+  const [savedMealGrams, setSavedMealGrams] = useState(100);
 
   const categories = useMemo(() => {
     const used = new Set(allFoods.map(f => f.cat));
@@ -162,16 +170,33 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
     if (!rName.trim() || rIngs.length === 0) return;
     const sumM = (key: keyof Food['micros']) =>
       parseFloat(rIngs.reduce((s, ing) => s + scaleNutrient(ing.food.micros[key] as number, ing.grams), 0).toFixed(2));
+    const totalGrams = Math.round(rTotals.grams);
+    const fiberTotal = parseFloat(rIngs.reduce((s, ing) => s + scaleNutrient(ing.food.fiber ?? 0, ing.grams), 0).toFixed(1));
+
+    if (rSave) {
+      onSaveMeal({
+        name:       rName.trim(),
+        totalGrams,
+        kcal:       parseFloat(rTotals.kcal.toFixed(1)),
+        carbs:      parseFloat(rTotals.carbs.toFixed(1)),
+        protein:    parseFloat(rTotals.protein.toFixed(1)),
+        fat:        parseFloat(rTotals.fat.toFixed(1)),
+        fiber:      fiberTotal,
+        na: sumM('na'), k: sumM('k'), mg: sumM('mg'), ca: sumM('ca'), fe: sumM('fe'),
+        vit_c: sumM('vit_c'), vit_d: sumM('vit_d'), b12: sumM('b12'), omega3: sumM('omega3'), zn: sumM('zn'),
+      });
+    }
+
     setLoading(true);
     await onConfirm({
       user_id: userId, date, meal_slot: mealSlot,
       food_id: `recipe_${Date.now()}`, food_name: rName.trim(),
-      grams:   Math.round(rTotals.grams),
+      grams:   totalGrams,
       kcal:    parseFloat(rTotals.kcal.toFixed(1)),
       carbs:   parseFloat(rTotals.carbs.toFixed(1)),
       protein: parseFloat(rTotals.protein.toFixed(1)),
       fat:     parseFloat(rTotals.fat.toFixed(1)),
-      fiber:   parseFloat(rIngs.reduce((s, ing) => s + scaleNutrient(ing.food.fiber ?? 0, ing.grams), 0).toFixed(1)),
+      fiber:   fiberTotal,
       na: sumM('na'), k: sumM('k'), mg: sumM('mg'), ca: sumM('ca'), fe: sumM('fe'),
       vit_c: sumM('vit_c'), vit_d: sumM('vit_d'), b12: sumM('b12'), omega3: sumM('omega3'), zn: sumM('zn'),
     });
@@ -179,9 +204,44 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
     onClose();
   };
 
+  const handleSavedMealConfirm = async () => {
+    if (!savedMealSel) return;
+    const ratio = savedMealGrams / savedMealSel.totalGrams;
+    const scale = (v: number, dec = 2) => parseFloat((v * ratio).toFixed(dec));
+    setLoading(true);
+    await onConfirm({
+      user_id:   userId,
+      date,
+      meal_slot: mealSlot,
+      food_id:   savedMealSel.id,
+      food_name: savedMealSel.name,
+      grams:     savedMealGrams,
+      kcal:      scale(savedMealSel.kcal, 1),
+      carbs:     scale(savedMealSel.carbs, 1),
+      protein:   scale(savedMealSel.protein, 1),
+      fat:       scale(savedMealSel.fat, 1),
+      fiber:     scale(savedMealSel.fiber, 1),
+      na:        scale(savedMealSel.na),
+      k:         scale(savedMealSel.k),
+      mg:        scale(savedMealSel.mg),
+      ca:        scale(savedMealSel.ca),
+      fe:        scale(savedMealSel.fe),
+      vit_c:     scale(savedMealSel.vit_c),
+      vit_d:     scale(savedMealSel.vit_d),
+      b12:       scale(savedMealSel.b12),
+      omega3:    scale(savedMealSel.omega3),
+      zn:        scale(savedMealSel.zn),
+    });
+    setLoading(false);
+    onClose();
+  };
+
   const stepTitle: Record<Step, string> = {
-    browse: 'Vybrat potravinu', portion: food?.name ?? '',
-    custom: 'Vlastní jídlo',   recipe: 'Sestavit recept',
+    browse:        'Vybrat potravinu',
+    portion:       food?.name ?? '',
+    custom:        'Vlastní jídlo',
+    recipe:        'Sestavit recept',
+    saved_portion: savedMealSel?.name ?? 'Uložené jídlo',
   };
 
   const inputStyle: React.CSSProperties = {
@@ -217,7 +277,11 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
               <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{mealLabel}</div>
             </div>
             <button
-              onClick={step === 'browse' ? onClose : () => setStep('browse')}
+              onClick={() => {
+                if (step === 'browse') { onClose(); return; }
+                if (step === 'saved_portion') { setSavedMealSel(null); setStep('browse'); return; }
+                setStep('browse');
+              }}
               style={{ background: 'none', border: 'none', color: T.muted, fontSize: 20, cursor: 'pointer', padding: 4 }}
             >{step === 'browse' ? '✕' : '‹'}</button>
           </div>
@@ -229,6 +293,48 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
           {/* ── BROWSE ── */}
           {step === 'browse' && (
             <>
+              {/* Saved meals section */}
+              {savedMeals.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
+                    💾 Uložená jídla
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {savedMeals.map(meal => (
+                      <div
+                        key={meal.id}
+                        style={{
+                          background: T.bg, border: `1px solid ${T.border}`, borderRadius: 10,
+                          padding: '10px 12px', display: 'flex', justifyContent: 'space-between',
+                          alignItems: 'center', gap: 8,
+                        }}
+                      >
+                        <button
+                          onClick={() => { setSavedMealSel(meal); setSavedMealGrams(meal.totalGrams); setStep('saved_portion'); }}
+                          style={{ flex: 1, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, minWidth: 0 }}
+                        >
+                          <div style={{ fontSize: 14, color: T.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {meal.name}
+                          </div>
+                          <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
+                            {meal.totalGrams} g
+                            &nbsp;·&nbsp;<span style={{ color: accent }}>{meal.kcal.toFixed(0)} kcal</span>
+                            &nbsp;·&nbsp;<span style={{ color: '#f59e0b' }}>{meal.carbs.toFixed(0)}g S</span>
+                            &nbsp;·&nbsp;<span style={{ color: '#22c55e' }}>{meal.protein.toFixed(0)}g B</span>
+                            &nbsp;·&nbsp;<span style={{ color: '#a855f7' }}>{meal.fat.toFixed(0)}g T</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => onDeleteSavedMeal(meal.id)}
+                          title="Odstranit uložené jídlo"
+                          style={{ background: 'none', border: 'none', color: T.muted, fontSize: 16, cursor: 'pointer', padding: 4, flexShrink: 0, opacity: 0.6 }}
+                        >✕</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Quick actions */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                 <button
@@ -446,11 +552,86 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
                 </div>
               )}
 
+              {rIngs.length > 0 && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={rSave}
+                    onChange={e => setRSave(e.target.checked)}
+                    style={{ width: 16, height: 16, accentColor: accent }}
+                  />
+                  <span style={{ fontSize: 13, color: T.muted }}>💾 Uložit jako jídlo pro příště</span>
+                </label>
+              )}
               <Btn accent={accent} size="lg" full onClick={handleRecipeConfirm} disabled={!rName.trim() || rIngs.length === 0 || loading}>
                 {loading ? 'Přidávám…' : `+ Přidat do ${mealLabel}`}
               </Btn>
             </>
           )}
+
+          {/* ── SAVED PORTION ── */}
+          {step === 'saved_portion' && savedMealSel && (() => {
+            const ratio  = savedMealGrams / savedMealSel.totalGrams;
+            const scaled = {
+              kcal:    savedMealSel.kcal    * ratio,
+              carbs:   savedMealSel.carbs   * ratio,
+              protein: savedMealSel.protein * ratio,
+              fat:     savedMealSel.fat     * ratio,
+            };
+            return (
+              <>
+                {/* Reference portion info */}
+                <div style={{ background: T.bg, borderRadius: 10, padding: '10px 12px', marginBottom: 16, fontSize: 12, color: T.muted, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <span>Ref. ({savedMealSel.totalGrams} g):</span>
+                  <span><b style={{ color: accent }}>{savedMealSel.kcal.toFixed(0)}</b> kcal</span>
+                  <span><b style={{ color: '#f59e0b' }}>{savedMealSel.carbs.toFixed(0)}g</b> sacharidy</span>
+                  <span><b style={{ color: '#22c55e' }}>{savedMealSel.protein.toFixed(0)}g</b> bílkoviny</span>
+                  <span><b style={{ color: '#a855f7' }}>{savedMealSel.fat.toFixed(0)}g</b> tuky</span>
+                </div>
+
+                {/* Gram picker */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <label style={{ fontSize: 13, color: T.muted }}>Množství</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <button onClick={() => setSavedMealGrams(g => Math.max(5, g - 5))}
+                        style={{ width: 26, height: 26, borderRadius: 6, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 16 }}>−</button>
+                      <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color: T.text, minWidth: 52, textAlign: 'center' }}>
+                        {savedMealGrams} g
+                      </span>
+                      <button onClick={() => setSavedMealGrams(g => Math.min(2000, g + 5))}
+                        style={{ width: 26, height: 26, borderRadius: 6, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 16 }}>+</button>
+                    </div>
+                  </div>
+                  <input type="range" min={5} max={2000} step={5} value={savedMealGrams}
+                    onChange={e => setSavedMealGrams(Number(e.target.value))}
+                    style={{ background: `linear-gradient(to right, ${accent} ${((savedMealGrams - 5) / 1995) * 100}%, ${T.border} 0%)`, borderRadius: 3 }} />
+                </div>
+
+                {/* Scaled nutrition preview */}
+                <div style={{ background: accent + '12', border: `1px solid ${accent}33`, borderRadius: 12, padding: 14, marginBottom: 20 }}>
+                  <div style={{ fontSize: 12, color: accent, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>
+                    Nutriční hodnoty pro {savedMealGrams} g
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 24, fontWeight: 800, color: T.text }}>
+                      {scaled.kcal.toFixed(0)}
+                    </span>
+                    <span style={{ fontSize: 12, color: T.muted, alignSelf: 'flex-end', marginBottom: 4 }}>kcal</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <MacroLine label="Sacharidy" value={scaled.carbs}   color="#f59e0b" unit="g" />
+                    <MacroLine label="Bílkoviny" value={scaled.protein} color="#22c55e" unit="g" />
+                    <MacroLine label="Tuky"      value={scaled.fat}     color="#a855f7" unit="g" />
+                  </div>
+                </div>
+
+                <Btn accent={accent} size="lg" full onClick={handleSavedMealConfirm} disabled={loading}>
+                  {loading ? 'Přidávám…' : `+ Přidat do ${mealLabel}`}
+                </Btn>
+              </>
+            );
+          })()}
 
         </div>
       </div>
@@ -486,6 +667,7 @@ export default function Foods() {
     try { return JSON.parse(localStorage.getItem('cyclofuel_custom_foods') ?? '[]'); }
     catch { return []; }
   });
+  const { savedMeals, saveMeal, deleteMeal } = useSavedMeals();
 
   const allFoods = useMemo(() => [...FOODS, ...customFoods], [customFoods]);
 
@@ -747,7 +929,10 @@ export default function Foods() {
           userId={userId}
           date={today}
           allFoods={allFoods}
+          savedMeals={savedMeals}
           onSaveCustomFood={saveCustomFood}
+          onSaveMeal={saveMeal}
+          onDeleteSavedMeal={deleteMeal}
           onClose={() => setActivePicker(null)}
           onConfirm={addEntry}
         />
