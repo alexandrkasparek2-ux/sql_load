@@ -48,6 +48,7 @@ export const FOOD_CATEGORIES = [
   '🥫 Omáčky',
   '🍲 Polévky',
   '🍛 Hlavní jídla',
+  '🍔 Fastfood',
   '⭐ Vlastní',
 ] as const;
 
@@ -2685,5 +2686,275 @@ export const FOODS: Food[] = [
     name: 'Avokádový toast s vejcem',
     kcal: 202, carbs: 18.0, protein: 10.0, fat: 10.5, per: 220,
     micros: { na: 380, k: 380, mg: 35, ca: 60, fe: 1.8, vit_c: 8, vit_d: 1.5, b12: 0.5, omega3: 200, zn: 1.2 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🍔 Fastfood
+  // ──────────────────────────────────────────
+
+  // ── McDonald's ──
+  {
+    id: 'mc_big_mac',
+    cat: '🍔 Fastfood',
+    name: 'McDonald\'s – Big Mac',
+    kcal: 257, carbs: 24.0, protein: 13.0, fat: 12.0, fiber: 2.0, per: 200,
+    micros: { na: 490, k: 270, mg: 28, ca: 150, fe: 2.5, vit_c: 2, vit_d: 0.3, b12: 1.2, omega3: 60, zn: 2.5 },
+  },
+  {
+    id: 'mc_mcchicken',
+    cat: '🍔 Fastfood',
+    name: 'McDonald\'s – McChicken',
+    kcal: 232, carbs: 26.5, protein: 11.5, fat: 9.5, fiber: 1.5, per: 160,
+    micros: { na: 510, k: 220, mg: 22, ca: 80, fe: 1.5, vit_c: 1, vit_d: 0.1, b12: 0.3, omega3: 40, zn: 1.2 },
+  },
+  {
+    id: 'mc_double_cheeseburger',
+    cat: '🍔 Fastfood',
+    name: 'McDonald\'s – Double Cheeseburger',
+    kcal: 295, carbs: 25.5, protein: 18.5, fat: 13.0, fiber: 1.5, per: 175,
+    micros: { na: 620, k: 290, mg: 28, ca: 200, fe: 2.8, vit_c: 1, vit_d: 0.4, b12: 1.5, omega3: 60, zn: 3.0 },
+  },
+  {
+    id: 'mc_quarter_pounder',
+    cat: '🍔 Fastfood',
+    name: 'McDonald\'s – Quarter Pounder with Cheese',
+    kcal: 258, carbs: 20.5, protein: 17.5, fat: 12.5, fiber: 1.5, per: 215,
+    micros: { na: 580, k: 310, mg: 30, ca: 220, fe: 3.0, vit_c: 2, vit_d: 0.3, b12: 1.8, omega3: 60, zn: 3.5 },
+  },
+  {
+    id: 'mc_mcnuggets_9',
+    cat: '🍔 Fastfood',
+    name: 'McDonald\'s – McNuggets (9 ks)',
+    kcal: 220, carbs: 13.5, protein: 13.5, fat: 12.0, fiber: 0.5, per: 162,
+    micros: { na: 430, k: 190, mg: 16, ca: 12, fe: 0.8, vit_c: 0, vit_d: 0.1, b12: 0.2, omega3: 40, zn: 0.8 },
+  },
+  {
+    id: 'mc_fries_large',
+    cat: '🍔 Fastfood',
+    name: 'McDonald\'s – Hranolky velké',
+    kcal: 321, carbs: 43.0, protein: 3.5, fat: 15.0, fiber: 4.0, per: 154,
+    micros: { na: 400, k: 590, mg: 22, ca: 15, fe: 0.8, vit_c: 8, vit_d: 0, b12: 0, omega3: 30, zn: 0.5 },
+  },
+  {
+    id: 'mc_fries_medium',
+    cat: '🍔 Fastfood',
+    name: 'McDonald\'s – Hranolky střední',
+    kcal: 321, carbs: 43.0, protein: 3.5, fat: 15.0, fiber: 4.0, per: 117,
+    micros: { na: 400, k: 590, mg: 22, ca: 15, fe: 0.8, vit_c: 8, vit_d: 0, b12: 0, omega3: 30, zn: 0.5 },
+  },
+  {
+    id: 'mc_filet_o_fish',
+    cat: '🍔 Fastfood',
+    name: 'McDonald\'s – Filet-O-Fish',
+    kcal: 230, carbs: 27.0, protein: 10.5, fat: 9.0, fiber: 1.5, per: 143,
+    micros: { na: 480, k: 190, mg: 22, ca: 130, fe: 1.2, vit_c: 0, vit_d: 1.2, b12: 0.8, omega3: 200, zn: 0.8 },
+  },
+  {
+    id: 'mc_caesar_wrap',
+    cat: '🍔 Fastfood',
+    name: 'McDonald\'s – Caesar Wrap (kuřecí)',
+    kcal: 210, carbs: 22.5, protein: 12.5, fat: 8.0, fiber: 2.0, per: 220,
+    micros: { na: 560, k: 240, mg: 22, ca: 90, fe: 1.2, vit_c: 5, vit_d: 0.1, b12: 0.3, omega3: 40, zn: 1.0 },
+  },
+  {
+    id: 'mc_mcflurry_oreo',
+    cat: '🍔 Fastfood',
+    name: 'McDonald\'s – McFlurry Oreo',
+    kcal: 178, carbs: 27.5, protein: 3.5, fat: 6.0, per: 300,
+    micros: { na: 140, k: 150, mg: 12, ca: 130, fe: 0.5, vit_c: 0, vit_d: 0.5, b12: 0.3, omega3: 20, zn: 0.5 },
+  },
+  {
+    id: 'mc_apple_pie',
+    cat: '🍔 Fastfood',
+    name: 'McDonald\'s – Apple Pie',
+    kcal: 252, carbs: 35.0, protein: 2.5, fat: 11.5, fiber: 2.0, per: 77,
+    micros: { na: 180, k: 70, mg: 6, ca: 15, fe: 0.5, vit_c: 1, vit_d: 0, b12: 0, omega3: 15, zn: 0.2 },
+  },
+
+  // ── KFC ──
+  {
+    id: 'kfc_original_piece',
+    cat: '🍔 Fastfood',
+    name: 'KFC – Original Recipe (1 kus)',
+    kcal: 235, carbs: 8.5, protein: 22.0, fat: 13.5, fiber: 0.5, per: 140,
+    micros: { na: 620, k: 290, mg: 22, ca: 25, fe: 1.2, vit_c: 0, vit_d: 0.1, b12: 0.5, omega3: 50, zn: 1.5 },
+  },
+  {
+    id: 'kfc_crispy_burger',
+    cat: '🍔 Fastfood',
+    name: 'KFC – Crispy Burger',
+    kcal: 268, carbs: 31.5, protein: 14.0, fat: 10.5, fiber: 2.0, per: 185,
+    micros: { na: 680, k: 250, mg: 24, ca: 80, fe: 1.8, vit_c: 2, vit_d: 0.2, b12: 0.5, omega3: 40, zn: 1.5 },
+  },
+  {
+    id: 'kfc_bucket_3',
+    cat: '🍔 Fastfood',
+    name: 'KFC – Bucket (3 kusy)',
+    kcal: 235, carbs: 8.5, protein: 22.0, fat: 13.5, fiber: 0.5, per: 420,
+    micros: { na: 620, k: 290, mg: 22, ca: 25, fe: 1.2, vit_c: 0, vit_d: 0.1, b12: 0.5, omega3: 50, zn: 1.5 },
+  },
+  {
+    id: 'kfc_coleslaw',
+    cat: '🍔 Fastfood',
+    name: 'KFC – Coleslaw',
+    kcal: 102, carbs: 11.5, protein: 0.8, fat: 6.0, fiber: 1.5, per: 142,
+    micros: { na: 200, k: 170, mg: 10, ca: 30, fe: 0.3, vit_c: 12, vit_d: 0, b12: 0, omega3: 20, zn: 0.2 },
+  },
+  {
+    id: 'kfc_popcorn_chicken',
+    cat: '🍔 Fastfood',
+    name: 'KFC – Popcorn Chicken (velký)',
+    kcal: 280, carbs: 17.0, protein: 17.5, fat: 16.0, fiber: 0.5, per: 170,
+    micros: { na: 700, k: 220, mg: 18, ca: 18, fe: 1.0, vit_c: 0, vit_d: 0.1, b12: 0.3, omega3: 35, zn: 1.0 },
+  },
+
+  // ── Subway ──
+  {
+    id: 'subway_chicken_teriyaki',
+    cat: '🍔 Fastfood',
+    name: 'Subway – Chicken Teriyaki (30 cm)',
+    kcal: 165, carbs: 24.5, protein: 11.5, fat: 3.0, fiber: 2.5, per: 370,
+    micros: { na: 620, k: 260, mg: 28, ca: 80, fe: 1.8, vit_c: 10, vit_d: 0.1, b12: 0.3, omega3: 40, zn: 1.0 },
+  },
+  {
+    id: 'subway_tuna',
+    cat: '🍔 Fastfood',
+    name: 'Subway – Tuna (30 cm)',
+    kcal: 195, carbs: 22.5, protein: 10.5, fat: 7.5, fiber: 2.5, per: 370,
+    micros: { na: 580, k: 220, mg: 24, ca: 80, fe: 1.5, vit_c: 8, vit_d: 0.5, b12: 1.5, omega3: 350, zn: 0.8 },
+  },
+  {
+    id: 'subway_bmt',
+    cat: '🍔 Fastfood',
+    name: 'Subway – BMT (salám + šunka, 30 cm)',
+    kcal: 205, carbs: 23.5, protein: 11.5, fat: 7.5, fiber: 2.5, per: 340,
+    micros: { na: 850, k: 220, mg: 22, ca: 80, fe: 1.5, vit_c: 5, vit_d: 0.2, b12: 0.5, omega3: 40, zn: 1.5 },
+  },
+  {
+    id: 'subway_veggie',
+    cat: '🍔 Fastfood',
+    name: 'Subway – Veggie Delite (30 cm)',
+    kcal: 130, carbs: 23.5, protein: 5.0, fat: 2.0, fiber: 3.5, per: 290,
+    micros: { na: 420, k: 270, mg: 28, ca: 80, fe: 1.5, vit_c: 15, vit_d: 0, b12: 0, omega3: 20, zn: 0.5 },
+  },
+
+  // ── Burger King ──
+  {
+    id: 'bk_whopper',
+    cat: '🍔 Fastfood',
+    name: 'Burger King – Whopper',
+    kcal: 252, carbs: 22.0, protein: 13.5, fat: 12.5, fiber: 2.0, per: 270,
+    micros: { na: 520, k: 310, mg: 28, ca: 80, fe: 2.8, vit_c: 5, vit_d: 0.2, b12: 1.5, omega3: 60, zn: 3.0 },
+  },
+  {
+    id: 'bk_chicken_royal',
+    cat: '🍔 Fastfood',
+    name: 'Burger King – Chicken Royal',
+    kcal: 248, carbs: 30.0, protein: 13.5, fat: 8.5, fiber: 2.0, per: 190,
+    micros: { na: 580, k: 240, mg: 22, ca: 70, fe: 1.5, vit_c: 2, vit_d: 0.1, b12: 0.3, omega3: 40, zn: 1.2 },
+  },
+  {
+    id: 'bk_onion_rings',
+    cat: '🍔 Fastfood',
+    name: 'Burger King – Cibulové kroužky',
+    kcal: 288, carbs: 37.5, protein: 3.5, fat: 14.0, fiber: 2.5, per: 113,
+    micros: { na: 480, k: 130, mg: 12, ca: 20, fe: 0.8, vit_c: 2, vit_d: 0, b12: 0, omega3: 20, zn: 0.4 },
+  },
+
+  // ── Bombay Express / indický fastfood ──
+  {
+    id: 'bombay_butter_chicken',
+    cat: '🍔 Fastfood',
+    name: 'Bombay Express – Butter Chicken s rýží',
+    kcal: 128, carbs: 14.5, protein: 8.5, fat: 4.2, fiber: 1.5, per: 400,
+    micros: { na: 510, k: 310, mg: 28, ca: 40, fe: 1.5, vit_c: 5, vit_d: 0.1, b12: 0.4, omega3: 60, zn: 1.2 },
+  },
+  {
+    id: 'bombay_dal',
+    cat: '🍔 Fastfood',
+    name: 'Bombay Express – Dal (červená čočka)',
+    kcal: 95, carbs: 14.5, protein: 5.5, fat: 2.5, fiber: 4.0, per: 350,
+    micros: { na: 480, k: 380, mg: 38, ca: 35, fe: 2.5, vit_c: 5, vit_d: 0, b12: 0, omega3: 30, zn: 1.2 },
+  },
+  {
+    id: 'bombay_palak_paneer',
+    cat: '🍔 Fastfood',
+    name: 'Bombay Express – Palak Paneer s rýží',
+    kcal: 118, carbs: 13.0, protein: 6.5, fat: 4.5, fiber: 2.5, per: 400,
+    micros: { na: 490, k: 350, mg: 40, ca: 180, fe: 2.0, vit_c: 12, vit_d: 0.2, b12: 0.2, omega3: 50, zn: 1.5 },
+  },
+  {
+    id: 'bombay_chicken_tikka',
+    cat: '🍔 Fastfood',
+    name: 'Bombay Express – Chicken Tikka Masala s rýží',
+    kcal: 132, carbs: 14.0, protein: 9.5, fat: 4.0, fiber: 1.5, per: 400,
+    micros: { na: 530, k: 300, mg: 28, ca: 40, fe: 1.8, vit_c: 8, vit_d: 0.1, b12: 0.4, omega3: 55, zn: 1.5 },
+  },
+  {
+    id: 'bombay_samosa',
+    cat: '🍔 Fastfood',
+    name: 'Bombay Express – Samosa (1 ks)',
+    kcal: 265, carbs: 30.5, protein: 4.5, fat: 14.0, fiber: 3.0, per: 80,
+    micros: { na: 320, k: 200, mg: 18, ca: 20, fe: 1.2, vit_c: 8, vit_d: 0, b12: 0, omega3: 25, zn: 0.5 },
+  },
+  {
+    id: 'bombay_naan',
+    cat: '🍔 Fastfood',
+    name: 'Bombay Express – Naan chléb',
+    kcal: 280, carbs: 49.0, protein: 7.5, fat: 6.5, fiber: 2.0, per: 90,
+    micros: { na: 370, k: 110, mg: 18, ca: 45, fe: 1.5, vit_c: 0, vit_d: 0, b12: 0.1, omega3: 20, zn: 0.6 },
+  },
+  {
+    id: 'bombay_mango_lassi',
+    cat: '🍔 Fastfood',
+    name: 'Bombay Express – Mango Lassi',
+    kcal: 82, carbs: 15.5, protein: 2.5, fat: 1.5, per: 350,
+    micros: { na: 65, k: 180, mg: 12, ca: 90, fe: 0.2, vit_c: 12, vit_d: 0.1, b12: 0.3, omega3: 10, zn: 0.4 },
+  },
+
+  // ── Pizza delivery ──
+  {
+    id: 'pizza_pepperoni_delivery',
+    cat: '🍔 Fastfood',
+    name: 'Pizza pepperoni (rozvoz, 1 plátek)',
+    kcal: 268, carbs: 28.5, protein: 11.5, fat: 12.0, fiber: 2.0, per: 107,
+    micros: { na: 680, k: 200, mg: 20, ca: 160, fe: 1.5, vit_c: 2, vit_d: 0.3, b12: 0.5, omega3: 50, zn: 1.5 },
+  },
+  {
+    id: 'pizza_bbq_chicken_delivery',
+    cat: '🍔 Fastfood',
+    name: 'Pizza BBQ kuřecí (rozvoz, 1 plátek)',
+    kcal: 252, carbs: 30.0, protein: 13.5, fat: 8.0, fiber: 2.0, per: 107,
+    micros: { na: 620, k: 220, mg: 22, ca: 150, fe: 1.2, vit_c: 3, vit_d: 0.2, b12: 0.3, omega3: 40, zn: 1.2 },
+  },
+
+  // ── Ostatní fastfood ──
+  {
+    id: 'hotdog_classic',
+    cat: '🍔 Fastfood',
+    name: 'Hot dog klasický (párk + rohlík)',
+    kcal: 245, carbs: 22.5, protein: 9.5, fat: 13.0, fiber: 1.5, per: 150,
+    micros: { na: 760, k: 190, mg: 16, ca: 50, fe: 1.5, vit_c: 0, vit_d: 0.1, b12: 0.5, omega3: 40, zn: 1.5 },
+  },
+  {
+    id: 'shawarma',
+    cat: '🍔 Fastfood',
+    name: 'Shawarma (hovězí/kuřecí)',
+    kcal: 210, carbs: 22.0, protein: 13.5, fat: 7.5, fiber: 2.0, per: 300,
+    micros: { na: 700, k: 270, mg: 22, ca: 55, fe: 2.0, vit_c: 5, vit_d: 0.1, b12: 0.8, omega3: 50, zn: 2.2 },
+  },
+  {
+    id: 'fish_chips',
+    cat: '🍔 Fastfood',
+    name: 'Fish & Chips',
+    kcal: 248, carbs: 24.5, protein: 12.5, fat: 11.5, fiber: 2.0, per: 400,
+    micros: { na: 560, k: 380, mg: 24, ca: 40, fe: 1.0, vit_c: 8, vit_d: 1.5, b12: 1.0, omega3: 300, zn: 0.8 },
+  },
+  {
+    id: 'nachos_cheese',
+    cat: '🍔 Fastfood',
+    name: 'Nachos se sýrovou omáčkou',
+    kcal: 302, carbs: 32.5, protein: 5.5, fat: 17.0, fiber: 3.0, per: 200,
+    micros: { na: 620, k: 180, mg: 18, ca: 120, fe: 0.8, vit_c: 0, vit_d: 0.1, b12: 0.2, omega3: 25, zn: 0.8 },
   },
 ];
