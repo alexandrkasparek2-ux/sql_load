@@ -1,5 +1,5 @@
 import {
-  createContext, useContext, useMemo, useState, useRef,
+  createContext, useContext, useMemo, useState,
 } from 'react';
 import {
   BrowserRouter, Routes, Route, NavLink, useNavigate, Navigate,
@@ -188,36 +188,20 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
 
   const isToday = today === realToday;
 
-  // Ref na skrytý date input – voláme showPicker() programaticky
-  const dateInputRef = useRef<HTMLInputElement>(null);
-  const openDatePicker = () => {
-    const el = dateInputRef.current;
-    if (!el) return;
-    if (typeof (el as any).showPicker === 'function') {
-      (el as any).showPicker();
-    } else {
-      el.click();
-    }
-  };
-
   return (
-    // height:100dvh + overflow:hidden → body nikdy nescrolluje → iOS Safari
-    // nepřijde o touch eventy na headeru kvůli body scroll interceptu
+    // height:100dvh + overflow:hidden → body nikdy nescrolluje
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: T.bg }}>
 
-      {/* Header – nepotřebuje sticky, body nescrolluje */}
-      <div style={{
-        flexShrink: 0,
-        background: T.bg,
-        zIndex:     50,
-      }}>
+      {/* Header – flexShrink:0, žádný sticky ani backdrop-filter */}
+      <div style={{ flexShrink: 0, background: T.bg, zIndex: 50 }}>
+
         {/* Řádek 1: Logo */}
         <div style={{
-          padding:        '8px 16px',
-          display:        'flex',
-          alignItems:     'center',
-          gap:            8,
-          borderBottom:   `1px solid ${T.border}`,
+          padding:      '8px 16px',
+          display:      'flex',
+          alignItems:   'center',
+          gap:          8,
+          borderBottom: `1px solid ${T.border}`,
         }}>
           <span style={{ fontSize: 20 }}>🚴</span>
           <span style={{
@@ -226,22 +210,20 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
             fontWeight: 800,
             color:      accent,
             transition: 'color 0.4s',
-          }}>
-            CycloFuel
-          </span>
+          }}>CycloFuel</span>
         </div>
 
-        {/* Řádek 2: Navigace datumem – plná šířka, velké touch targety */}
+        {/* Řádek 2: Datum – 44px výška, plná šířka */}
         <div style={{
           display:      'flex',
           alignItems:   'stretch',
           borderBottom: `1px solid ${T.border}`,
           height:       44,
         }}>
-          {/* Šipka zpět */}
+          {/* ◀ Předchozí den */}
           <button
             type="button"
-            onPointerDown={e => { e.preventDefault(); prevDay(); }}
+            onClick={prevDay}
             style={{
               flex:                    '0 0 56px',
               background:              'none',
@@ -264,50 +246,43 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
             </svg>
           </button>
 
-          {/* Datum uprostřed – klik otevře native date picker */}
-          <button
-            type="button"
-            onPointerDown={e => { e.preventDefault(); openDatePicker(); }}
-            style={{
-              flex:                    1,
-              background:              'none',
-              border:                  'none',
-              cursor:                  'pointer',
-              position:                'relative',
-              touchAction:             'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-            }}
-            aria-label="Vybrat datum"
-          >
+          {/* Datum – průhledný date input překrývá text; iOS ho přímo tapne */}
+          <div style={{
+            flex:            1,
+            position:        'relative',
+            display:         'flex',
+            alignItems:      'center',
+            justifyContent:  'center',
+          }}>
             <span style={{
               fontSize:   14,
               fontWeight: isToday ? 700 : 400,
               color:      isToday ? accent : T.muted,
               transition: 'color 0.2s',
+              pointerEvents: 'none',   // text nepřekáží inputu
             }}>
               {dateLabel}
             </span>
+            {/* input zakrývá celou plochu – opacity 0, ale má pointer-events */}
             <input
-              ref={dateInputRef}
               type="date"
               value={today}
               onChange={e => e.target.value && setToday(e.target.value)}
               style={{
-                position:      'absolute',
-                opacity:       0,
-                pointerEvents: 'none',
-                width:         1,
-                height:        1,
-                top:           0,
-                left:          0,
+                position: 'absolute',
+                inset:    0,
+                opacity:  0,
+                cursor:   'pointer',
+                width:    '100%',
+                height:   '100%',
               }}
             />
-          </button>
+          </div>
 
-          {/* Šipka vpřed */}
+          {/* ▶ Následující den */}
           <button
             type="button"
-            onPointerDown={e => { e.preventDefault(); nextDay(); }}
+            onClick={nextDay}
             style={{
               flex:                    '0 0 56px',
               background:              'none',
