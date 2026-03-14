@@ -13,6 +13,7 @@ export interface FoodEntry {
   carbs:     number;
   protein:   number;
   fat:       number;
+  fiber?:    number;   // vláknina g – volitelné (starší záznamy nemají sloupec)
   na:        number;
   k:         number;
   mg:        number;
@@ -30,6 +31,7 @@ export interface MacroTotals {
   carbs:   number;
   protein: number;
   fat:     number;
+  fiber:   number;
   na:      number;
   k:       number;
   mg:      number;
@@ -43,7 +45,7 @@ export interface MacroTotals {
 }
 
 const ZERO: MacroTotals = {
-  kcal: 0, carbs: 0, protein: 0, fat: 0,
+  kcal: 0, carbs: 0, protein: 0, fat: 0, fiber: 0,
   na: 0, k: 0, mg: 0, ca: 0, fe: 0,
   vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
 };
@@ -54,6 +56,7 @@ function sumEntries(entries: FoodEntry[]): MacroTotals {
     carbs:   acc.carbs   + e.carbs,
     protein: acc.protein + e.protein,
     fat:     acc.fat     + e.fat,
+    fiber:   acc.fiber   + (e.fiber ?? 0),
     na:      acc.na      + e.na,
     k:       acc.k       + e.k,
     mg:      acc.mg      + e.mg,
@@ -110,6 +113,7 @@ export function useFoodEntries(userId: string | undefined, date: string) {
       carbs:   parseFloat((entry.carbs   * ratio).toFixed(1)),
       protein: parseFloat((entry.protein * ratio).toFixed(1)),
       fat:     parseFloat((entry.fat     * ratio).toFixed(1)),
+      fiber:   parseFloat(((entry.fiber ?? 0) * ratio).toFixed(1)),
       na:      parseFloat((entry.na      * ratio).toFixed(1)),
       k:       parseFloat((entry.k       * ratio).toFixed(1)),
       mg:      parseFloat((entry.mg      * ratio).toFixed(1)),

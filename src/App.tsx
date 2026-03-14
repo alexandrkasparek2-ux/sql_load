@@ -37,6 +37,7 @@ export interface Goals {
   carbs:   number;
   protein: number;
   fat:     number;
+  fiber:   number;
   water:   number;
   micros:  Record<string, number>;
 }
@@ -61,7 +62,7 @@ export interface AppCtx {
 }
 
 const DEFAULT_GOALS: Goals = {
-  kcal: 2000, carbs: 250, protein: 130, fat: 70, water: 2.5,
+  kcal: 2000, carbs: 250, protein: 130, fat: 70, fiber: 30, water: 2.5,
   micros: {},
 };
 
@@ -97,12 +98,16 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 
   const goals = useMemo<Goals>(() => {
     if (!profile) return DEFAULT_GOALS;
-    const m = calcMacros(profile, trainingType);
+    const m       = calcMacros(profile, trainingType);
+    const kcalGoal = calcCalories(profile, trainingType, rideHours);
+    // Vláknina: ~14 g / 1 000 kcal, min 25 g, max 45 g
+    const fiberGoal = Math.min(45, Math.max(25, Math.round(kcalGoal * 0.014)));
     return {
-      kcal:    calcCalories(profile, trainingType, rideHours),
+      kcal:    kcalGoal,
       carbs:   m.carbs,
       protein: m.protein,
       fat:     m.fat,
+      fiber:   fiberGoal,
       water:   calcWater(profile, rideHours),
       micros:  calcMicroGoals(training.microMul),
     };

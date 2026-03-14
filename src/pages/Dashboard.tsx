@@ -458,11 +458,42 @@ export default function Dashboard() {
 
       {/* Macro cards */}
       <SectionTitle accent={accent}>Makroživiny</SectionTitle>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
         <MacroCard label="Sacharidy" value={totals.carbs}   target={goals.carbs}   unit="g" color="#f59e0b" />
         <MacroCard label="Bílkoviny" value={totals.protein} target={goals.protein} unit="g" color="#22c55e" />
         <MacroCard label="Tuky"      value={totals.fat}     target={goals.fat}     unit="g" color="#a855f7" />
       </div>
+
+      {/* Fiber bar */}
+      {(() => {
+        const fiberVal  = Math.round(totals.fiber * 10) / 10;
+        const fiberGoal = goals.fiber;
+        const pct       = Math.min(1, fiberVal / fiberGoal);
+        const done      = fiberVal >= fiberGoal;
+        return (
+          <div style={{
+            background:   T.card,
+            border:       `1px solid ${T.border}`,
+            borderRadius: 12,
+            padding:      '10px 14px',
+            marginBottom: 16,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+              <span style={{ fontSize: 12, color: T.muted, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                🌾 Vláknina
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: done ? '#22c55e' : T.text }}>
+                {fiberVal} <span style={{ fontWeight: 400, color: T.muted, fontSize: 11 }}>/ {fiberGoal} g</span>
+                {done && <span style={{ marginLeft: 6, fontSize: 11, color: '#22c55e' }}>✓</span>}
+              </span>
+            </div>
+            <ProgressBar value={fiberVal} max={fiberGoal} color="#84cc16" height={5} />
+            <div style={{ fontSize: 10, color: T.muted, marginTop: 4 }}>
+              Doporučení: {fiberGoal} g / den · {Math.round(pct * 100)} % splněno
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 14-day history chart */}
       <SectionTitle accent={accent}>

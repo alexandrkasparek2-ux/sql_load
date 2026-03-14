@@ -26,6 +26,7 @@ function buildEntry(
     carbs:   parseFloat((food.carbs   * f).toFixed(1)),
     protein: parseFloat((food.protein * f).toFixed(1)),
     fat:     parseFloat((food.fat     * f).toFixed(1)),
+    fiber:   parseFloat(((food.fiber ?? 0) * f).toFixed(1)),
     na:      parseFloat((food.micros.na     * f).toFixed(1)),
     k:       parseFloat((food.micros.k      * f).toFixed(1)),
     mg:      parseFloat((food.micros.mg     * f).toFixed(1)),
@@ -150,6 +151,7 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
       carbs:   parseFloat((cb * f).toFixed(1)),
       protein: parseFloat((pr * f).toFixed(1)),
       fat:     parseFloat((ft * f).toFixed(1)),
+      fiber:   0,
       na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
     });
     setLoading(false);
@@ -169,6 +171,7 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
       carbs:   parseFloat(rTotals.carbs.toFixed(1)),
       protein: parseFloat(rTotals.protein.toFixed(1)),
       fat:     parseFloat(rTotals.fat.toFixed(1)),
+      fiber:   parseFloat(rIngs.reduce((s, ing) => s + scaleNutrient(ing.food.fiber ?? 0, ing.grams), 0).toFixed(1)),
       na: sumM('na'), k: sumM('k'), mg: sumM('mg'), ca: sumM('ca'), fe: sumM('fe'),
       vit_c: sumM('vit_c'), vit_d: sumM('vit_d'), b12: sumM('b12'), omega3: sumM('omega3'), zn: sumM('zn'),
     });
