@@ -2694,6 +2694,13 @@ export const FOODS: Food[] = [
 
   // ── McDonald's ──
   {
+    id: 'mc_cheeseburger',
+    cat: '🍔 Fastfood',
+    name: 'McDonald\'s – Cheeseburger',
+    kcal: 258, carbs: 28.5, protein: 13.5, fat: 10.0, fiber: 1.5, per: 114,
+    micros: { na: 580, k: 220, mg: 20, ca: 150, fe: 2.0, vit_c: 1, vit_d: 0.3, b12: 1.0, omega3: 45, zn: 2.0 },
+  },
+  {
     id: 'mc_big_mac',
     cat: '🍔 Fastfood',
     name: 'McDonald\'s – Big Mac',
