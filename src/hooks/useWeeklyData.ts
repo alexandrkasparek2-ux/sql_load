@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { loadDailyGoals } from './useDailyGoals';
 
 export interface DayKcal {
   date:    string; // YYYY-MM-DD
@@ -7,6 +8,7 @@ export interface DayKcal {
   carbs:   number;
   protein: number;
   fat:     number;
+  goal:    number; // kcal cíl pro daný den (uložený v localStorage)
   label:   string; // 'Po', 'Út', …
   dateNum: number; // day of month (e.g. 10)
 }
@@ -46,6 +48,7 @@ export function useWeeklyData(userId: string | undefined, days = 14) {
       .eq('user_id', userId)
       .in('date', dates);
 
+    const storedGoals = loadDailyGoals();
     const grouped: DayKcal[] = dates.map(date => {
       const dayRows = (rows ?? []).filter(r => r.date === date);
       return {
@@ -56,6 +59,7 @@ export function useWeeklyData(userId: string | undefined, days = 14) {
         carbs:   dayRows.reduce((s, r) => s + (r.carbs   as number), 0),
         protein: dayRows.reduce((s, r) => s + (r.protein as number), 0),
         fat:     dayRows.reduce((s, r) => s + (r.fat     as number), 0),
+        goal:    storedGoals[date] ?? 0,
       };
     });
 

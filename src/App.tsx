@@ -1,5 +1,5 @@
 import {
-  createContext, useContext, useMemo, useState,
+  createContext, useContext, useEffect, useMemo, useState,
 } from 'react';
 import {
   BrowserRouter, Routes, Route, NavLink, useNavigate, Navigate,
@@ -9,6 +9,7 @@ import { useAuth }        from './hooks/useAuth';
 import { useProfile }     from './hooks/useProfile';
 import { useTrainingDay } from './hooks/useTrainingDay';
 import { useFoodEntries } from './hooks/useFoodEntries';
+import { useDailyGoals }  from './hooks/useDailyGoals';
 
 import type { Profile as ProfileData } from './hooks/useProfile';
 import type { TrainingDay } from './hooks/useTrainingDay';
@@ -112,6 +113,12 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       micros:  calcMicroGoals(training.microMul),
     };
   }, [profile, trainingType, rideHours, training.microMul]);
+
+  // Uložit cíl kalorií pro aktuální den, aby ho historie zobrazila správně
+  const { saveGoalForDate } = useDailyGoals();
+  useEffect(() => {
+    if (goals.kcal > 0) saveGoalForDate(today, goals.kcal);
+  }, [today, goals.kcal, saveGoalForDate]);
 
   const ctx: AppCtx = {
     userId,

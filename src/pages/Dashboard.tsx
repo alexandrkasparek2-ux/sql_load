@@ -52,7 +52,8 @@ function KcalRing({ consumed, goal, accent }: { consumed: number; goal: number; 
 // ─── 14-day history chart ─────────────────────────────────────
 function HistoryChart({ data, accent, kcalGoal }: { data: DayKcal[]; accent: string; kcalGoal: number }) {
   const today  = new Date().toISOString().split('T')[0];
-  const maxVal = Math.max(...data.map(d => d.kcal), kcalGoal, 1);
+  // Max přes všechny hodnoty i cíle (fallback na dnešní cíl pro dny bez uloženého cíle)
+  const maxVal = Math.max(...data.map(d => d.kcal), ...data.map(d => d.goal || kcalGoal), 1);
   const barW   = 22;
   const gap    = 7;
   const H      = 70;
@@ -66,13 +67,15 @@ function HistoryChart({ data, accent, kcalGoal }: { data: DayKcal[]; accent: str
         style={{ display: 'block', overflow: 'visible', minWidth: '100%' }}
       >
         {data.map((d, i) => {
-          const x        = i * (barW + gap);
-          const barH     = maxVal > 0 ? (d.kcal / maxVal) * H : 0;
-          const y        = H - barH;
-          const isToday  = d.date === today;
-          const goalY    = kcalGoal > 0 ? H - (kcalGoal / maxVal) * H : -1;
-          const overGoal = d.kcal > 0 && kcalGoal > 0 && d.kcal > kcalGoal * 1.1;
-          const barColor = isToday ? accent
+          const x          = i * (barW + gap);
+          const barH       = maxVal > 0 ? (d.kcal / maxVal) * H : 0;
+          const y          = H - barH;
+          const isToday    = d.date === today;
+          // Použij uložený cíl pro daný den, jinak dnešní cíl jako fallback
+          const dayGoal    = d.goal > 0 ? d.goal : kcalGoal;
+          const goalY      = dayGoal > 0 ? H - (dayGoal / maxVal) * H : -1;
+          const overGoal   = d.kcal > 0 && dayGoal > 0 && d.kcal > dayGoal * 1.1;
+          const barColor   = isToday ? accent
             : overGoal ? '#ef444488'
             : d.kcal > 0 ? accent + '55'
             : T.border;
@@ -89,8 +92,8 @@ function HistoryChart({ data, accent, kcalGoal }: { data: DayKcal[]; accent: str
                   style={{ filter: isToday ? `drop-shadow(0 0 4px ${accent}88)` : 'none' }}
                 />
               )}
-              {/* Goal line */}
-              {kcalGoal > 0 && goalY >= 0 && (
+              {/* Goal line – per-day */}
+              {dayGoal > 0 && goalY >= 0 && (
                 <line
                   x1={x} y1={goalY} x2={x + barW} y2={goalY}
                   stroke={accent + 'aa'} strokeWidth={1.5} strokeDasharray="3,2"
