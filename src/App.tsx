@@ -27,6 +27,7 @@ import Micros      from './pages/Micros';
 import Plan        from './pages/Plan';
 import Profile     from './pages/Profile';
 import Supplements from './pages/Supplements';
+import Chat        from './pages/Chat';
 
 import { T, Spinner } from './components/UI';
 
@@ -152,9 +153,9 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 const NAV_ITEMS = [
   { to: '/',            icon: '🏠', label: 'Přehled' },
   { to: '/foods',       icon: '🍽️', label: 'Jídla'   },
+  { to: '/chat',        icon: '🤖', label: 'AI'      },
   { to: '/plan',        icon: '⚡', label: 'Plán'    },
   { to: '/supplements', icon: '💊', label: 'Supl.'   },
-  { to: '/micros',      icon: '📊', label: 'Mikro'   },
   { to: '/profile',     icon: '👤', label: 'Profil'  },
 ] as const;
 
@@ -324,6 +325,7 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
         <Routes>
           <Route path="/"            element={<Dashboard />}   />
           <Route path="/foods"       element={<Foods />}       />
+          <Route path="/chat"        element={<Chat />}        />
           <Route path="/plan"        element={<Plan />}        />
           <Route path="/supplements" element={<Supplements />} />
           <Route path="/micros"      element={<Micros />}      />
