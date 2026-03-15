@@ -79,23 +79,47 @@ export default function Chat() {
     setError('');
 
     try {
-      const res = await fetch('/api/chat', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: newMessages,
-          context:  buildContext(ctx),
-        }),
-      });
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string;
+      if (!apiKey) throw new Error('API klíč není nastaven');
 
-      const text = await res.text();
-      let data: { reply?: string; error?: string } = {};
-      try { data = JSON.parse(text); } catch {
-        throw new Error(`Server vrátil neplatnou odpověď (${res.status}). Zkus to znovu.`);
+      const systemPrompt = `Jsi výživový poradce specializovaný na cyklistiku a vytrvalostní sporty.
+Odpovídáš stručně, prakticky a v češtině. Nepoužívej zbytečně dlouhé odpovědi.
+
+Aktuální data uživatele:
+${buildContext(ctx)}
+
+Pravidla:
+- Vždy zohledni tréninkový typ a cíl dne
+- Doporučuj konkrétní potraviny nebo množství
+- Pokud chybí data, řekni co by uživatel měl zadat
+- Nepiš úvody jako "Samozřejmě!" nebo "Výborně!" – jdi rovnou k věci`;
+
+      const contents = [
+        { role: 'user',  parts: [{ text: systemPrompt }] },
+        { role: 'model', parts: [{ text: 'Rozumím. Jsem připraven radit s výživou pro cyklistiku.' }] },
+        ...newMessages.map(m => ({ role: m.role, parts: [{ text: m.content }] })),
+      ];
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents,
+            generationConfig: { temperature: 0.7, maxOutputTokens: 500, topP: 0.9 },
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: { message?: string } };
+        throw new Error(err.error?.message ?? `Gemini error ${res.status}`);
       }
-      if (!res.ok || data.error) throw new Error(data.error ?? 'Chyba serveru');
 
-      setMessages(prev => [...prev, { role: 'model', content: data.reply! }]);
+      const data = await res.json() as { candidates: { content: { parts: { text: string }[] } }[] };
+      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Nepodařilo se získat odpověď.';
+      setMessages(prev => [...prev, { role: 'model', content: reply }]);
     } catch (e) {
       setError((e as Error).message);
     } finally {
