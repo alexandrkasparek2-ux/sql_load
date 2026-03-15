@@ -1,10 +1,9 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-
 // POST /api/chat
 // Body: { messages: [{role, content}], context: string }
 // Returns: { reply: string }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -49,7 +48,7 @@ Pravidla:
 
   try {
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
