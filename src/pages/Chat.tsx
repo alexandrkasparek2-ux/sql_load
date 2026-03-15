@@ -88,7 +88,11 @@ export default function Chat() {
         }),
       });
 
-      const data = await res.json() as { reply?: string; error?: string };
+      const text = await res.text();
+      let data: { reply?: string; error?: string } = {};
+      try { data = JSON.parse(text); } catch {
+        throw new Error(`Server vrátil neplatnou odpověď (${res.status}). Zkus to znovu.`);
+      }
       if (!res.ok || data.error) throw new Error(data.error ?? 'Chyba serveru');
 
       setMessages(prev => [...prev, { role: 'model', content: data.reply! }]);
