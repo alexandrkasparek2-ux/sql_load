@@ -4,27 +4,32 @@
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
+  // Allow CORS for same-origin and any future custom domain
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-  if (!apiKey) {
-    return res.status(500).json({ error: 'Gemini API key not configured' });
-  }
+  try {
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Gemini API key not configured' });
+    }
 
-  const { messages, context } = req.body as {
-    messages: { role: 'user' | 'model'; content: string }[];
-    context:  string;
-  };
+    // Parse body — req.body may be a string if Content-Type wasn't detected
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body ?? {});
+    const messages: { role: 'user' | 'model'; content: string }[] = body.messages ?? [];
+    const context: string = body.context ?? '';
 
-  if (!messages?.length) {
-    return res.status(400).json({ error: 'No messages provided' });
-  }
+    if (!messages.length) {
+      return res.status(400).json({ error: 'No messages provided' });
+    }
 
-  // Build Gemini conversation history
-  // System prompt is injected as the first "user" turn with model ack
-  const systemPrompt = `Jsi výživový poradce specializovaný na cyklistiku a vytrvalostní sporty.
+    const systemPrompt = `Jsi výživový poradce specializovaný na cyklistiku a vytrvalostní sporty.
 Odpovídáš stručně, prakticky a v češtině. Nepoužívej zbytečně dlouhé odpovědi.
 
 Aktuální data uživatele:
@@ -36,17 +41,15 @@ Pravidla:
 - Pokud chybí data, řekni co by uživatel měl zadat
 - Nepiš úvody jako "Samozřejmě!" nebo "Výborně!" – jdi rovnou k věci`;
 
-  // Gemini format: contents array with role + parts
-  const contents = [
-    { role: 'user',  parts: [{ text: systemPrompt }] },
-    { role: 'model', parts: [{ text: 'Rozumím. Jsem připraven radit s výživou pro cyklistiku.' }] },
-    ...messages.map(m => ({
-      role:  m.role,
-      parts: [{ text: m.content }],
-    })),
-  ];
+    const contents = [
+      { role: 'user',  parts: [{ text: systemPrompt }] },
+      { role: 'model', parts: [{ text: 'Rozumím. Jsem připraven radit s výživou pro cyklistiku.' }] },
+      ...messages.map(m => ({
+        role:  m.role,
+        parts: [{ text: m.content }],
+      })),
+    ];
 
-  try {
     const geminiRes = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
@@ -70,20 +73,21 @@ Pravidla:
     );
 
     if (!geminiRes.ok) {
-      const err = await geminiRes.text();
-      console.error('Gemini error:', err);
-      return res.status(502).json({ error: 'Gemini API error', detail: err });
+      const errText = await geminiRes.text();
+      console.error('Gemini API error:', geminiRes.status, errText);
+      return res.status(502).json({ error: `Gemini error ${geminiRes.status}: ${errText.slice(0, 200)}` });
     }
 
     const data = await geminiRes.json() as {
       candidates: { content: { parts: { text: string }[] } }[];
     };
 
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Omlouvám se, nepodařilo se získat odpověď.';
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text
+      ?? 'Omlouvám se, nepodařilo se získat odpověď.';
     return res.status(200).json({ reply });
 
   } catch (err) {
-    console.error('Chat error:', err);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Chat handler error:', err);
+    return res.status(500).json({ error: String(err) });
   }
 }
