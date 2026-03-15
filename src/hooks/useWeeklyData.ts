@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { loadDailyGoals } from './useDailyGoals';
+import { calcCalories, type CalcProfile } from '../constants/training';
 
 export interface DayKcal {
   date:    string; // YYYY-MM-DD
@@ -8,7 +9,7 @@ export interface DayKcal {
   carbs:   number;
   protein: number;
   fat:     number;
-  goal:    number; // kcal cíl pro daný den (uložený v localStorage)
+  goal:    number; // kcal cíl pro daný den
   label:   string; // 'Po', 'Út', …
   dateNum: number; // day of month (e.g. 10)
 }
@@ -32,7 +33,12 @@ function dayNum(dateStr: string): number {
   return new Date(dateStr + 'T00:00:00').getDate();
 }
 
-export function useWeeklyData(userId: string | undefined, days = 14) {
+export function useWeeklyData(
+  userId:  string | undefined,
+  days = 14,
+  profile?: CalcProfile | null,
+  fallbackGoal = 0,
+) {
   const [data,    setData]    = useState<DayKcal[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -42,15 +48,39 @@ export function useWeeklyData(userId: string | undefined, days = 14) {
 
     const dates = getLastNDates(days);
 
-    const { data: rows } = await supabase
-      .from('food_entries')
-      .select('date, kcal, carbs, protein, fat')
-      .eq('user_id', userId)
-      .in('date', dates);
+    // Fetch food entries and training days in parallel
+    const [{ data: rows }, { data: trainRows }] = await Promise.all([
+      supabase
+        .from('food_entries')
+        .select('date, kcal, carbs, protein, fat')
+        .eq('user_id', userId)
+        .in('date', dates),
+      supabase
+        .from('training_days')
+        .select('date, training_type, ride_hours')
+        .eq('user_id', userId)
+        .in('date', dates),
+    ]);
 
+    // localStorage goals as secondary fallback (for days without training_days row)
     const storedGoals = loadDailyGoals();
+
     const grouped: DayKcal[] = dates.map(date => {
-      const dayRows = (rows ?? []).filter(r => r.date === date);
+      const dayRows  = (rows      ?? []).filter(r => r.date === date);
+      const trainRow = (trainRows ?? []).find(r  => r.date === date);
+
+      // Priority: 1) DB training type → recalculate, 2) localStorage, 3) fallback
+      let goal = fallbackGoal;
+      if (trainRow && profile) {
+        goal = Math.round(calcCalories(
+          profile,
+          trainRow.training_type,
+          trainRow.ride_hours ?? 0,
+        ));
+      } else if (storedGoals[date]) {
+        goal = storedGoals[date];
+      }
+
       return {
         date,
         label:   dayLabel(date),
@@ -59,13 +89,13 @@ export function useWeeklyData(userId: string | undefined, days = 14) {
         carbs:   dayRows.reduce((s, r) => s + (r.carbs   as number), 0),
         protein: dayRows.reduce((s, r) => s + (r.protein as number), 0),
         fat:     dayRows.reduce((s, r) => s + (r.fat     as number), 0),
-        goal:    storedGoals[date] ?? 0,
+        goal,
       };
     });
 
     setData(grouped);
     setLoading(false);
-  }, [userId, days]);
+  }, [userId, days, profile, fallbackGoal]);
 
   useEffect(() => { load(); }, [load]);
 

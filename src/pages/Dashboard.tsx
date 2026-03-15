@@ -366,10 +366,10 @@ export default function Dashboard() {
 
   const {
     accent, totals, goals, trainingDay, upsertTrainingDay,
-    entries, userId, today, addEntry,
+    entries, userId, today, addEntry, profile,
   } = ctx;
 
-  const { data: historyData } = useWeeklyData(userId, 14);
+  const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal);
 
   const allTypes   = trainingDay ? [trainingDay.training_type, ...(trainingDay.extra_types ?? [])] : ['rest'];
   const primary    = primaryType(allTypes as any);
