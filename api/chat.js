@@ -2,9 +2,7 @@
 // Body: { messages: [{role, content}], context: string }
 // Returns: { reply: string }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default async function handler(req: any, res: any) {
-  // Allow CORS for same-origin and any future custom domain
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -15,15 +13,14 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
     if (!apiKey) {
       return res.status(500).json({ error: 'Gemini API key not configured' });
     }
 
-    // Parse body — req.body may be a string if Content-Type wasn't detected
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body ?? {});
-    const messages: { role: 'user' | 'model'; content: string }[] = body.messages ?? [];
-    const context: string = body.context ?? '';
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    const messages = body.messages || [];
+    const context  = body.context  || '';
 
     if (!messages.length) {
       return res.status(400).json({ error: 'No messages provided' });
@@ -44,10 +41,7 @@ Pravidla:
     const contents = [
       { role: 'user',  parts: [{ text: systemPrompt }] },
       { role: 'model', parts: [{ text: 'Rozumím. Jsem připraven radit s výživou pro cyklistiku.' }] },
-      ...messages.map(m => ({
-        role:  m.role,
-        parts: [{ text: m.content }],
-      })),
+      ...messages.map(m => ({ role: m.role, parts: [{ text: m.content }] })),
     ];
 
     const geminiRes = await fetch(
@@ -57,11 +51,7 @@ Pravidla:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents,
-          generationConfig: {
-            temperature:     0.7,
-            maxOutputTokens: 500,
-            topP:            0.9,
-          },
+          generationConfig: { temperature: 0.7, maxOutputTokens: 500, topP: 0.9 },
           safetySettings: [
             { category: 'HARM_CATEGORY_HARASSMENT',        threshold: 'BLOCK_NONE' },
             { category: 'HARM_CATEGORY_HATE_SPEECH',       threshold: 'BLOCK_NONE' },
@@ -74,20 +64,17 @@ Pravidla:
 
     if (!geminiRes.ok) {
       const errText = await geminiRes.text();
-      console.error('Gemini API error:', geminiRes.status, errText);
-      return res.status(502).json({ error: `Gemini error ${geminiRes.status}: ${errText.slice(0, 200)}` });
+      console.error('Gemini error:', geminiRes.status, errText);
+      return res.status(502).json({ error: `Gemini ${geminiRes.status}: ${errText.slice(0, 300)}` });
     }
 
-    const data = await geminiRes.json() as {
-      candidates: { content: { parts: { text: string }[] } }[];
-    };
-
+    const data = await geminiRes.json();
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text
-      ?? 'Omlouvám se, nepodařilo se získat odpověď.';
+      || 'Omlouvám se, nepodařilo se získat odpověď.';
     return res.status(200).json({ reply });
 
   } catch (err) {
-    console.error('Chat handler error:', err);
+    console.error('Chat error:', err);
     return res.status(500).json({ error: String(err) });
   }
 }
