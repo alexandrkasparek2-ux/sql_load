@@ -17,7 +17,7 @@ import type { FoodEntry, MacroTotals } from './hooks/useFoodEntries';
 
 import {
   TRAINING_TYPES,
-  calcCalories, calcMacros, calcWater, calcMicroGoals,
+  calcCaloriesMulti, calcMacros, calcWater, calcMicroGoals,
 } from './constants/training';
 
 import Login       from './pages/Login';
@@ -100,8 +100,15 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 
   const goals = useMemo<Goals>(() => {
     if (!profile) return DEFAULT_GOALS;
-    const m       = calcMacros(profile, trainingType);
-    const kcalGoal = calcCalories(profile, trainingType, rideHours);
+    const m      = calcMacros(profile, trainingType);
+    const types  = (trainingDay?.extra_types ?? []).length > 0
+      ? (trainingDay!.extra_types as typeof trainingType[])
+      : [trainingType];
+    const kcalGoal = calcCaloriesMulti(
+      profile, types,
+      trainingDay?.activity_hours     ?? {},
+      trainingDay?.activity_intensity ?? {},
+    );
     // Vláknina: ~14 g / 1 000 kcal, min 25 g, max 45 g
     const fiberGoal = Math.min(45, Math.max(25, Math.round(kcalGoal * 0.014)));
     return {
@@ -113,7 +120,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       water:   calcWater(profile, rideHours),
       micros:  calcMicroGoals(training.microMul),
     };
-  }, [profile, trainingType, rideHours, training.microMul]);
+  }, [profile, trainingType, rideHours, training.microMul, trainingDay]);
 
   // Uložit cíl kalorií pro aktuální den, aby ho historie zobrazila správně
   const { saveGoalForDate } = useDailyGoals();

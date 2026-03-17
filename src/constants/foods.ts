@@ -2964,4 +2964,114 @@ export const FOODS: Food[] = [
     kcal: 302, carbs: 32.5, protein: 5.5, fat: 17.0, fiber: 3.0, per: 200,
     micros: { na: 620, k: 180, mg: 18, ca: 120, fe: 0.8, vit_c: 0, vit_d: 0.1, b12: 0.2, omega3: 25, zn: 0.8 },
   },
+
+  // ──────────────────────────────────────────
+  // 🥩 Ryby – další druhy
+  // ──────────────────────────────────────────
+  {
+    id: 'cod',
+    cat: '🥩 Bílkoviny',
+    name: 'Treska (čerstvá)',
+    kcal: 82, carbs: 0, protein: 17.8, fat: 0.7, per: 150,
+    micros: { na: 54, k: 413, mg: 32, ca: 16, fe: 0.4, vit_c: 1, vit_d: 1.0, b12: 0.9, omega3: 158, zn: 0.5 },
+  },
+  {
+    id: 'trout',
+    cat: '🥩 Bílkoviny',
+    name: 'Pstruh (čerstvý)',
+    kcal: 141, carbs: 0, protein: 19.5, fat: 6.6, per: 150,
+    micros: { na: 52, k: 481, mg: 28, ca: 86, fe: 0.5, vit_c: 0, vit_d: 12, b12: 3.5, omega3: 980, zn: 0.7 },
+  },
+  {
+    id: 'mackerel_canned',
+    cat: '🥩 Bílkoviny',
+    name: 'Makrela (konzerva)',
+    kcal: 167, carbs: 0, protein: 19.0, fat: 9.8, per: 125,
+    micros: { na: 380, k: 312, mg: 30, ca: 15, fe: 1.0, vit_c: 0, vit_d: 5, b12: 7.3, omega3: 1850, zn: 0.8 },
+  },
+  {
+    id: 'pangasius',
+    cat: '🥩 Bílkoviny',
+    name: 'Pangasius (filé)',
+    kcal: 83, carbs: 0, protein: 15.7, fat: 2.5, per: 150,
+    micros: { na: 55, k: 280, mg: 22, ca: 14, fe: 0.3, vit_c: 0, vit_d: 1.5, b12: 0.6, omega3: 120, zn: 0.4 },
+  },
+  {
+    id: 'herring',
+    cat: '🥩 Bílkoviny',
+    name: 'Sleď (naložený)',
+    kcal: 158, carbs: 0, protein: 17.9, fat: 9.0, per: 100,
+    micros: { na: 870, k: 327, mg: 32, ca: 66, fe: 1.1, vit_c: 0, vit_d: 5.5, b12: 13.0, omega3: 1729, zn: 1.0 },
+  },
+  {
+    id: 'carp',
+    cat: '🥩 Bílkoviny',
+    name: 'Kapr (čerstvý)',
+    kcal: 127, carbs: 0, protein: 17.8, fat: 5.6, per: 150,
+    micros: { na: 49, k: 333, mg: 28, ca: 41, fe: 1.0, vit_c: 1.7, vit_d: 11.0, b12: 1.5, omega3: 340, zn: 1.4 },
+  },
+
+  // ──────────────────────────────────────────
+  // ☕ Sladké nápoje
+  // ──────────────────────────────────────────
+  {
+    id: 'coca_cola',
+    cat: '☕ Nápoje',
+    name: 'Coca-Cola',
+    kcal: 42, carbs: 10.6, protein: 0, fat: 0, per: 330,
+    micros: { na: 10, k: 2, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0 },
+  },
+  {
+    id: 'coca_cola_zero',
+    cat: '☕ Nápoje',
+    name: 'Coca-Cola Zero',
+    kcal: 1, carbs: 0.1, protein: 0, fat: 0, per: 330,
+    micros: { na: 12, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0 },
+  },
+  {
+    id: 'kofola',
+    cat: '☕ Nápoje',
+    name: 'Kofola',
+    kcal: 38, carbs: 9.3, protein: 0, fat: 0, per: 330,
+    micros: { na: 8, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0 },
+  },
+  {
+    id: 'fanta',
+    cat: '☕ Nápoje',
+    name: 'Fanta (pomeranč)',
+    kcal: 48, carbs: 11.8, protein: 0, fat: 0, per: 330,
+    micros: { na: 5, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 12, vit_d: 0, b12: 0, omega3: 0, zn: 0 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🥫 Konzervy
+  // ──────────────────────────────────────────
+  {
+    id: 'tomatoes_canned',
+    cat: '🥦 Zelenina',
+    name: 'Rajčata konzervovaná (plechovka)',
+    kcal: 18, carbs: 3.9, protein: 1.1, fat: 0.2, fiber: 1.2, per: 400,
+    micros: { na: 220, k: 237, mg: 11, ca: 31, fe: 0.8, vit_c: 12, vit_d: 0, b12: 0, omega3: 30, zn: 0.2 },
+  },
+  {
+    id: 'beans_corn_tomato',
+    cat: '🫘 Luštěniny',
+    name: 'Fazole s kukuřicí v rajčatovém nálevu',
+    kcal: 78, carbs: 14.5, protein: 4.2, fat: 0.5, fiber: 4.5, per: 400,
+    micros: { na: 340, k: 280, mg: 30, ca: 35, fe: 1.8, vit_c: 5, vit_d: 0, b12: 0, omega3: 50, zn: 0.7 },
+  },
+  {
+    id: 'kidney_beans_canned',
+    cat: '🫘 Luštěniny',
+    name: 'Červené fazole (konzerva)',
+    kcal: 85, carbs: 14.5, protein: 5.5, fat: 0.4, fiber: 5.5, per: 240,
+    micros: { na: 290, k: 340, mg: 42, ca: 33, fe: 2.2, vit_c: 1, vit_d: 0, b12: 0, omega3: 80, zn: 0.9 },
+  },
+  {
+    id: 'corn_canned',
+    cat: '🥦 Zelenina',
+    name: 'Kukuřice konzervovaná',
+    kcal: 86, carbs: 18.7, protein: 2.9, fat: 1.0, fiber: 2.0, per: 200,
+    micros: { na: 220, k: 218, mg: 26, ca: 2, fe: 0.5, vit_c: 5, vit_d: 0, b12: 0, omega3: 40, zn: 0.5 },
+  },
 ];

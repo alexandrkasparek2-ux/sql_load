@@ -88,14 +88,18 @@ export default function Plan() {
   };
 
   const saveAll = async () => {
-    const types  = Array.from(selected) as TrainingType[];
-    const prime  = primaryType(types);
-    const totalH = Object.values(actHours).reduce((s, h) => s + h, 0);
+    const types = Array.from(selected) as TrainingType[];
+    const prime = primaryType(types);
+    // Only persist hours for currently selected activities — prevents stale
+    // hours from deselected activities inflating the calorie calculation.
+    const filteredHours: Record<string, number> = {};
+    types.forEach(t => { filteredHours[t] = actHours[t] ?? 0; });
+    const totalH = Object.values(filteredHours).reduce((s, h) => s + h, 0);
     setSaving(true);
     await upsertTrainingDay({
       training_type:      prime,
       extra_types:        types,
-      activity_hours:     actHours,
+      activity_hours:     filteredHours,
       activity_intensity: actIntens,
       ride_hours:         totalH,
     });
