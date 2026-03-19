@@ -2966,6 +2966,17 @@ export const FOODS: Food[] = [
   },
 
   // ──────────────────────────────────────────
+  // 🍫 Sladké snídaně
+  // ──────────────────────────────────────────
+  {
+    id: 'french_toast_sweet',
+    cat: '🍛 Hlavní jídla',
+    name: 'Francouzské toasty (sladké)',
+    kcal: 230, carbs: 29.0, protein: 8.0, fat: 10.0, fiber: 1.0, per: 150,
+    micros: { na: 280, k: 140, mg: 14, ca: 85, fe: 1.2, vit_c: 0, vit_d: 0.8, b12: 0.5, omega3: 80, zn: 0.7 },
+  },
+
+  // ──────────────────────────────────────────
   // 🥩 Uzeniny
   // ──────────────────────────────────────────
   {
