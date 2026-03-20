@@ -169,7 +169,18 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
   };
 
   const handleRecipeConfirm = async (addToSlot: boolean) => {
-    if (!rName.trim() || rIngs.length === 0) return;
+    if (!rName.trim()) return;
+
+    // Edit mode with no ingredients = rename only (keep existing nutritional values)
+    if (rEditId && rIngs.length === 0) {
+      const existing = savedMeals.find(m => m.id === rEditId);
+      if (existing) onUpdateSavedMeal(rEditId, { ...existing, name: rName.trim() });
+      onClose();
+      return;
+    }
+
+    if (rIngs.length === 0) return;
+
     const sumM = (key: keyof Food['micros']) =>
       parseFloat(rIngs.reduce((s, ing) => s + scaleNutrient(ing.food.micros[key] as number, ing.grams), 0).toFixed(2));
     const totalGrams = Math.round(rTotals.grams);
@@ -625,11 +636,16 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
                   </Btn>
                   <button
                     onClick={() => handleRecipeConfirm(false)}
-                    disabled={!rName.trim() || rIngs.length === 0 || loading}
-                    style={{ width: '100%', padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', background: 'transparent', border: `1px solid ${T.border}`, color: T.muted }}
+                    disabled={!rName.trim() || loading}
+                    style={{ width: '100%', padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: !rName.trim() || loading ? 'default' : 'pointer', background: 'transparent', border: `1px solid ${T.border}`, color: T.muted, opacity: !rName.trim() || loading ? 0.5 : 1 }}
                   >
                     Jen uložit změny
                   </button>
+                  {rIngs.length === 0 && (
+                    <div style={{ fontSize: 12, color: T.muted, textAlign: 'center' }}>
+                      Přidejte ingredience výše pro aktualizaci výpočtů
+                    </div>
+                  )}
                 </div>
               ) : (
                 <Btn accent={accent} size="lg" full onClick={() => handleRecipeConfirm(true)} disabled={!rName.trim() || rIngs.length === 0 || loading}>
