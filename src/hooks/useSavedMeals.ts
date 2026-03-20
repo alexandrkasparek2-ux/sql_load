@@ -23,6 +23,7 @@ export interface SavedMeal {
   b12:         number;
   omega3:      number;
   zn:          number;
+  ingredients?: Array<{ id: string; name: string; grams: number }>;
 }
 
 const LS_KEY = 'cyclofuel_saved_meals';
@@ -53,11 +54,17 @@ export function useSavedMeals() {
     setSavedMeals(updated);
   };
 
+  const updateMeal = (id: string, updates: Omit<SavedMeal, 'id' | 'createdAt'>): void => {
+    const updated = savedMeals.map(m => m.id === id ? { ...m, ...updates } : m);
+    persist(updated);
+    setSavedMeals(updated);
+  };
+
   const deleteMeal = (id: string): void => {
     const updated = savedMeals.filter(m => m.id !== id);
     persist(updated);
     setSavedMeals(updated);
   };
 
-  return { savedMeals, saveMeal, deleteMeal };
+  return { savedMeals, saveMeal, updateMeal, deleteMeal };
 }
