@@ -2437,6 +2437,13 @@ export const FOODS: Food[] = [
   // 🍛 Hlavní jídla
   // ──────────────────────────────────────────
   {
+    id: 'duck_curry',
+    cat: '🍛 Hlavní jídla',
+    name: 'Pečená kachna na kari',
+    kcal: 220, carbs: 6.0, protein: 21.0, fat: 13.0, fiber: 1.5, per: 300,
+    micros: { na: 420, k: 310, mg: 24, ca: 22, fe: 2.0, vit_c: 5, vit_d: 0.3, b12: 0.8, omega3: 120, zn: 2.4 },
+  },
+  {
     id: 'svickova',
     cat: '🍛 Hlavní jídla',
     name: 'Svíčková na smetaně s knedlíkem',
