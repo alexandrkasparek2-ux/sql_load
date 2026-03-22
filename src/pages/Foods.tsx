@@ -767,7 +767,15 @@ export default function Foods() {
   });
   const { savedMeals, saveMeal, updateMeal, deleteMeal } = useSavedMeals();
 
-  const allFoods = useMemo(() => [...FOODS, ...customFoods], [customFoods]);
+  const allFoods = useMemo(() => {
+    // Deduplicate by ID — FOODS take priority, customFoods fill in anything extra
+    const seen = new Set<string>();
+    const result: Food[] = [];
+    for (const f of [...FOODS, ...customFoods]) {
+      if (!seen.has(f.id)) { seen.add(f.id); result.push(f); }
+    }
+    return result;
+  }, [customFoods]);
 
   const saveCustomFood = (food: Food) => {
     const updated = [...customFoods, food];
