@@ -94,10 +94,12 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    // Require either a search query or a selected category — never dump all 400+ foods
+    if (!q && !selCat) return [];
     return allFoods.filter(f => {
       const n = f.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       return (!selCat || f.cat === selCat) && (!q || n.includes(q));
-    });
+    }).slice(0, 60);
   }, [allFoods, selCat, search]);
 
   const rFiltered = useMemo(() => {
@@ -412,7 +414,12 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
 
               {/* Food list */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {filtered.length === 0 && (
+                {!search && !selCat && (
+                  <div style={{ textAlign: 'center', color: T.muted, padding: '30px 0', fontSize: 14 }}>
+                    🔍 Vyhledej potravinu nebo vyber kategorii
+                  </div>
+                )}
+                {(search || selCat) && filtered.length === 0 && (
                   <div style={{ textAlign: 'center', color: T.muted, padding: '30px 0', fontSize: 14 }}>Žádná potravina nenalezena.</div>
                 )}
                 {filtered.map(f => (
