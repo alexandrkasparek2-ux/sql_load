@@ -1355,7 +1355,7 @@ export const FOODS: Food[] = [
     micros: { na: 17, k: 401, mg: 25, ca: 181, fe: 1.7, vit_c: 31, vit_d: 0, b12: 0, omega3: 5, zn: 1.2 },
   },
   {
-    id: 'sweet_potato',
+    id: 'sweet_potato_raw',
     cat: '🥦 Zelenina',
     name: 'Batáty (syrové)',
     kcal: 86, carbs: 20.1, protein: 1.6, fat: 0.1, fiber: 3.0, per: 200,
@@ -1390,9 +1390,9 @@ export const FOODS: Food[] = [
     micros: { na: 56, k: 554, mg: 50, ca: 138, fe: 6.2, vit_c: 133, vit_d: 0, b12: 0, omega3: 32, zn: 1.1 },
   },
   {
-    id: 'avocado',
+    id: 'avocado_large',
     cat: '🥦 Zelenina',
-    name: 'Avokádo',
+    name: 'Avokádo (velká porce)',
     kcal: 160, carbs: 8.5, protein: 2.0, fat: 14.7, fiber: 6.7, per: 150,
     micros: { na: 7, k: 485, mg: 29, ca: 12, fe: 0.6, vit_c: 10, vit_d: 0, b12: 0, omega3: 110, zn: 0.6 },
   },
@@ -3069,14 +3069,14 @@ export const FOODS: Food[] = [
   // 🥩 Ryby – další druhy
   // ──────────────────────────────────────────
   {
-    id: 'cod',
+    id: 'cod_fresh',
     cat: '🥩 Bílkoviny',
     name: 'Treska (čerstvá)',
     kcal: 82, carbs: 0, protein: 17.8, fat: 0.7, per: 150,
     micros: { na: 54, k: 413, mg: 32, ca: 16, fe: 0.4, vit_c: 1, vit_d: 1.0, b12: 0.9, omega3: 158, zn: 0.5 },
   },
   {
-    id: 'trout',
+    id: 'trout_fresh',
     cat: '🥩 Bílkoviny',
     name: 'Pstruh (čerstvý)',
     kcal: 141, carbs: 0, protein: 19.5, fat: 6.6, per: 150,
@@ -3090,14 +3090,14 @@ export const FOODS: Food[] = [
     micros: { na: 380, k: 312, mg: 30, ca: 15, fe: 1.0, vit_c: 0, vit_d: 5, b12: 7.3, omega3: 1850, zn: 0.8 },
   },
   {
-    id: 'pangasius',
+    id: 'pangasius_fresh',
     cat: '🥩 Bílkoviny',
-    name: 'Pangasius (filé)',
+    name: 'Pangasius (čerstvý)',
     kcal: 83, carbs: 0, protein: 15.7, fat: 2.5, per: 150,
     micros: { na: 55, k: 280, mg: 22, ca: 14, fe: 0.3, vit_c: 0, vit_d: 1.5, b12: 0.6, omega3: 120, zn: 0.4 },
   },
   {
-    id: 'herring',
+    id: 'herring_pickled',
     cat: '🥩 Bílkoviny',
     name: 'Sleď (naložený)',
     kcal: 158, carbs: 0, protein: 17.9, fat: 9.0, per: 100,
