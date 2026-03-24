@@ -3174,4 +3174,71 @@ export const FOODS: Food[] = [
     kcal: 86, carbs: 18.7, protein: 2.9, fat: 1.0, fiber: 2.0, per: 200,
     micros: { na: 220, k: 218, mg: 26, ca: 2, fe: 0.5, vit_c: 5, vit_d: 0, b12: 0, omega3: 40, zn: 0.5 },
   },
+
+  // ──────────────────────────────────────────
+  // 🍫 Banana Bread + ingredience
+  // ──────────────────────────────────────────
+  {
+    id: 'banana_bread',
+    cat: '🍫 Sladkosti',
+    name: 'Banana bread',
+    kcal: 265, carbs: 44.5, protein: 4.1, fat: 7.5, fiber: 1.5, per: 80,
+    micros: { na: 180, k: 140, mg: 15, ca: 30, fe: 1.0, vit_c: 1.5, vit_d: 0.1, b12: 0.1, omega3: 80, zn: 0.4 },
+  },
+  {
+    id: 'flour_plain',
+    cat: '🍚 Sacharidy',
+    name: 'Mouka hladká pšeničná',
+    kcal: 364, carbs: 76.3, protein: 10.3, fat: 1.0, fiber: 2.7, per: 50,
+    micros: { na: 2, k: 107, mg: 22, ca: 15, fe: 1.2, vit_c: 0, vit_d: 0, b12: 0, omega3: 50, zn: 0.7 },
+  },
+  {
+    id: 'sugar_white',
+    cat: '🍫 Sladkosti',
+    name: 'Cukr bílý',
+    kcal: 387, carbs: 99.9, protein: 0, fat: 0, fiber: 0, per: 20,
+    micros: { na: 0, k: 2, mg: 0, ca: 1, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0 },
+  },
+  {
+    id: 'baking_soda',
+    cat: '🍚 Sacharidy',
+    name: 'Jedlá soda',
+    kcal: 0, carbs: 0, protein: 0, fat: 0, fiber: 0, per: 5,
+    micros: { na: 27360, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0 },
+  },
+  {
+    id: 'baking_powder',
+    cat: '🍚 Sacharidy',
+    name: 'Prášek do pečiva',
+    kcal: 53, carbs: 27.7, protein: 0.1, fat: 0, fiber: 0, per: 5,
+    micros: { na: 10600, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0 },
+  },
+  {
+    id: 'vanilla_extract',
+    cat: '🍫 Sladkosti',
+    name: 'Vanilkový extrakt',
+    kcal: 288, carbs: 12.7, protein: 0.1, fat: 0.1, fiber: 0, per: 5,
+    micros: { na: 9, k: 148, mg: 12, ca: 11, fe: 0.1, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0.1 },
+  },
+  {
+    id: 'walnut',
+    cat: '🥜 Ořechy',
+    name: 'Vlašský ořech',
+    kcal: 654, carbs: 13.7, protein: 15.2, fat: 65.2, fiber: 6.7, per: 30,
+    micros: { na: 2, k: 441, mg: 158, ca: 98, fe: 2.9, vit_c: 1.3, vit_d: 0, b12: 0, omega3: 9079, zn: 3.1 },
+  },
+  {
+    id: 'cinnamon',
+    cat: '🍫 Sladkosti',
+    name: 'Skořice mletá',
+    kcal: 247, carbs: 80.6, protein: 4.0, fat: 1.2, fiber: 53.1, per: 5,
+    micros: { na: 10, k: 431, mg: 60, ca: 1002, fe: 8.3, vit_c: 3.8, vit_d: 0, b12: 0, omega3: 83, zn: 1.8 },
+  },
+  {
+    id: 'salt',
+    cat: '🥫 Omáčky',
+    name: 'Sůl kuchyňská',
+    kcal: 0, carbs: 0, protein: 0, fat: 0, fiber: 0, per: 5,
+    micros: { na: 38758, k: 8, mg: 1, ca: 24, fe: 0.3, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0 },
+  },
 ];
