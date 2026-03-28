@@ -45,6 +45,7 @@ export const FOOD_CATEGORIES = [
   '🫒 Tuky',
   '🍫 Sladkosti',
   '☕ Nápoje',
+  '🥪 Pomazánky',
   '🥫 Omáčky',
   '🍲 Polévky',
   '🍛 Hlavní jídla',
