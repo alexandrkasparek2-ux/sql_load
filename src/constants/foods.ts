@@ -3241,4 +3241,64 @@ export const FOODS: Food[] = [
     kcal: 0, carbs: 0, protein: 0, fat: 0, fiber: 0, per: 5,
     micros: { na: 38758, k: 8, mg: 1, ca: 24, fe: 0.3, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0 },
   },
+
+  // ──────────────────────────────────────────
+  // 🥪 Pomazánky
+  // ──────────────────────────────────────────
+  {
+    id: 'nivova_pomazanka',
+    cat: '🥪 Pomazánky',
+    name: 'Nivová pomazánka',
+    kcal: 280, carbs: 2.0, protein: 9.0, fat: 26.0, per: 30,
+    micros: { na: 620, k: 95, mg: 12, ca: 140, fe: 0.3, vit_c: 0, vit_d: 0.2, b12: 0.5, omega3: 80, zn: 1.0 },
+  },
+  {
+    id: 'rybickova_pomazanka',
+    cat: '🥪 Pomazánky',
+    name: 'Rybičková pomazánka',
+    kcal: 210, carbs: 1.5, protein: 12.0, fat: 17.0, per: 30,
+    micros: { na: 530, k: 180, mg: 18, ca: 50, fe: 0.8, vit_c: 0, vit_d: 1.5, b12: 2.2, omega3: 600, zn: 0.8 },
+  },
+  {
+    id: 'tvarohova_pomazanka',
+    cat: '🥪 Pomazánky',
+    name: 'Tvarohová pomazánka (s pažitkou)',
+    kcal: 145, carbs: 3.5, protein: 11.0, fat: 9.0, per: 30,
+    micros: { na: 310, k: 130, mg: 10, ca: 90, fe: 0.2, vit_c: 1.0, vit_d: 0, b12: 0.4, omega3: 40, zn: 0.6 },
+  },
+  {
+    id: 'sunkova_pomazanka',
+    cat: '🥪 Pomazánky',
+    name: 'Šunková pomazánka',
+    kcal: 195, carbs: 2.0, protein: 10.5, fat: 16.0, per: 30,
+    micros: { na: 580, k: 150, mg: 10, ca: 30, fe: 0.5, vit_c: 0, vit_d: 0, b12: 0.3, omega3: 60, zn: 0.9 },
+  },
+  {
+    id: 'vajickova_pomazanka',
+    cat: '🥪 Pomazánky',
+    name: 'Vajíčková pomazánka',
+    kcal: 220, carbs: 1.2, protein: 9.5, fat: 19.5, per: 30,
+    micros: { na: 400, k: 100, mg: 9, ca: 35, fe: 1.2, vit_c: 0, vit_d: 0.8, b12: 0.7, omega3: 110, zn: 0.8 },
+  },
+  {
+    id: 'tresciova_pomazanka',
+    cat: '🥪 Pomazánky',
+    name: 'Treščí pomazánka (játrová)',
+    kcal: 240, carbs: 1.0, protein: 13.0, fat: 20.0, per: 30,
+    micros: { na: 490, k: 160, mg: 15, ca: 40, fe: 1.0, vit_c: 0.5, vit_d: 2.0, b12: 3.5, omega3: 800, zn: 0.9 },
+  },
+  {
+    id: 'syrova_pomazanka',
+    cat: '🥪 Pomazánky',
+    name: 'Sýrová pomazánka (tavený sýr)',
+    kcal: 255, carbs: 4.0, protein: 8.5, fat: 22.0, per: 30,
+    micros: { na: 700, k: 85, mg: 8, ca: 200, fe: 0.2, vit_c: 0, vit_d: 0.1, b12: 0.3, omega3: 50, zn: 0.7 },
+  },
+  {
+    id: 'pate_jaterni',
+    cat: '🥪 Pomazánky',
+    name: 'Paštika játrová',
+    kcal: 310, carbs: 2.5, protein: 11.0, fat: 28.0, per: 30,
+    micros: { na: 650, k: 140, mg: 12, ca: 20, fe: 4.5, vit_c: 1.0, vit_d: 0.5, b12: 8.0, omega3: 120, zn: 1.8 },
+  },
 ];
