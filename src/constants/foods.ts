@@ -2318,6 +2318,55 @@ export const FOODS: Food[] = [
     kcal: 110, carbs: 6.0, protein: 8.5, fat: 5.5, per: 150,
     micros: { na: 420, k: 300, mg: 20, ca: 30, fe: 1.5, vit_c: 8, vit_d: 0, b12: 0.8, omega3: 50, zn: 2.0 },
   },
+  {
+    id: 'omacka_paprika',
+    cat: '🥫 Omáčky',
+    name: 'Papriková omáčka (ke kuřeti na paprice)',
+    kcal: 95, carbs: 6.5, protein: 3.5, fat: 6.5, per: 150,
+    micros: { na: 380, k: 220, mg: 16, ca: 55, fe: 0.6, vit_c: 12, vit_d: 0.1, b12: 0.2, omega3: 60, zn: 0.4 },
+  },
+  {
+    id: 'omacka_svickova',
+    cat: '🥫 Omáčky',
+    name: 'Svíčková omáčka (smetanová s kořenovou zeleninou)',
+    kcal: 120, carbs: 10.0, protein: 2.5, fat: 8.0, per: 150,
+    micros: { na: 340, k: 260, mg: 14, ca: 60, fe: 0.5, vit_c: 5, vit_d: 0.1, b12: 0.1, omega3: 70, zn: 0.3 },
+  },
+  {
+    id: 'omacka_houbova',
+    cat: '🥫 Omáčky',
+    name: 'Houbová omáčka',
+    kcal: 80, carbs: 7.0, protein: 2.5, fat: 5.0, per: 150,
+    micros: { na: 310, k: 350, mg: 10, ca: 25, fe: 0.8, vit_c: 1, vit_d: 0.4, b12: 0, omega3: 40, zn: 0.6 },
+  },
+  {
+    id: 'omacka_rajska',
+    cat: '🥫 Omáčky',
+    name: 'Rajská omáčka (česká)',
+    kcal: 75, carbs: 9.5, protein: 1.8, fat: 3.5, per: 150,
+    micros: { na: 360, k: 290, mg: 14, ca: 18, fe: 0.8, vit_c: 14, vit_d: 0, b12: 0, omega3: 30, zn: 0.3 },
+  },
+  {
+    id: 'omacka_koprovka',
+    cat: '🥫 Omáčky',
+    name: 'Koprovka (kopřivová/koprová omáčka)',
+    kcal: 90, carbs: 6.0, protein: 2.5, fat: 6.5, per: 150,
+    micros: { na: 300, k: 180, mg: 12, ca: 70, fe: 0.4, vit_c: 4, vit_d: 0.1, b12: 0.2, omega3: 55, zn: 0.3 },
+  },
+  {
+    id: 'omacka_diabolska',
+    cat: '🥫 Omáčky',
+    name: 'Ďábelská omáčka',
+    kcal: 105, carbs: 8.0, protein: 2.0, fat: 7.0, per: 150,
+    micros: { na: 480, k: 200, mg: 12, ca: 20, fe: 0.6, vit_c: 10, vit_d: 0, b12: 0, omega3: 30, zn: 0.3 },
+  },
+  {
+    id: 'omacka_cibulova',
+    cat: '🥫 Omáčky',
+    name: 'Cibulová omáčka',
+    kcal: 85, carbs: 8.5, protein: 1.5, fat: 5.0, per: 150,
+    micros: { na: 310, k: 170, mg: 8, ca: 20, fe: 0.4, vit_c: 5, vit_d: 0, b12: 0, omega3: 25, zn: 0.2 },
+  },
 
   // ──────────────────────────────────────────
   // 🍲 Polévky
