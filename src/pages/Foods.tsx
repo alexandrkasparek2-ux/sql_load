@@ -6,6 +6,7 @@ import { MEAL_SLOTS }    from '../constants/training';
 import type { FoodEntry } from '../hooks/useFoodEntries';
 import { useSavedMeals, type SavedMeal } from '../hooks/useSavedMeals';
 import BarcodeScanner    from '../components/BarcodeScanner';
+import FoodScanner      from '../components/FoodScanner';
 
 // ─── helpers ────────────────────────────────────────────────
 function scaleNutrient(val: number, grams: number) {
@@ -67,7 +68,8 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
   const [food,        setFood]        = useState<Food | null>(null);
   const [grams,       setGrams]       = useState(100);
   const [loading,     setLoading]     = useState(false);
-  const [showScanner, setShowScanner] = useState(false);
+  const [showScanner,     setShowScanner]     = useState(false);
+  const [showFoodScanner, setShowFoodScanner] = useState(false);
   // custom step
   const [cName,    setCName]    = useState('');
   const [cKcal,    setCKcal]    = useState('');
@@ -131,6 +133,11 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
 
   const handleSelectFood = (f: Food) => { setFood(f); setGrams(f.per); setStep('portion'); };
   const handleBarcodeResult = (f: Food) => { setShowScanner(false); handleSelectFood(f); };
+  const handleFoodScanResult = async (entry: Omit<FoodEntry, 'id'>) => {
+    setShowFoodScanner(false);
+    await onConfirm(entry);
+    onClose();
+  };
 
   const handleConfirm = async () => {
     if (!food) return;
@@ -394,11 +401,13 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
                 >🍳 Z receptu</button>
               </div>
 
-              {/* Search + barcode */}
+              {/* Search + barcode + AI scan */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Hledat potravinu…" style={inputStyle} />
                 <button onClick={() => setShowScanner(true)} title="Skenovat čárový kód"
                   style={{ flexShrink: 0, background: accent + '22', border: `1px solid ${accent}44`, borderRadius: 10, padding: '10px 14px', color: accent, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📷</button>
+                <button onClick={() => setShowFoodScanner(true)} title="Scan jídla pomocí AI"
+                  style={{ flexShrink: 0, background: '#00e676' + '22', border: '1px solid #00e67644', borderRadius: 10, padding: '10px 14px', color: '#00e676', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🤖</button>
               </div>
 
               {/* Category pills */}
@@ -736,6 +745,17 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
 
       {showScanner && (
         <BarcodeScanner accent={accent} onResult={handleBarcodeResult} onClose={() => setShowScanner(false)} />
+      )}
+
+      {showFoodScanner && (
+        <FoodScanner
+          accent={accent}
+          userId={userId}
+          date={date}
+          mealSlot={mealSlot}
+          onResult={handleFoodScanResult}
+          onClose={() => setShowFoodScanner(false)}
+        />
       )}
     </>
   );
