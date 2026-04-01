@@ -13,9 +13,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
     if (!apiKey) {
-      return res.status(500).json({ error: 'Anthropic API key not configured' });
+      return res.status(500).json({ error: 'Gemini API key not configured' });
     }
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No image provided' });
     }
 
-    const systemPrompt = `Jsi výživový expert specializovaný na cyklistiku. Analyzuj jídlo na fotce a vrať POUZE validní JSON bez jakéhokoliv textu navíc, bez markdown bloků, bez uvozovek okolo JSON.
+    const prompt = `Jsi výživový expert specializovaný na cyklistiku. Analyzuj jídlo na fotce a vrať POUZE validní JSON bez jakéhokoliv textu navíc, bez markdown bloků.
 
 Formát odpovědi:
 {
@@ -49,51 +49,41 @@ Formát odpovědi:
 }
 
 Pokud na fotce není jídlo, vrať: {"error": "not_food", "message": "Na fotce nebylo rozpoznáno jídlo."}
-Pokud je fotka nekvalitní, vrať: {"error": "low_quality", "message": "Fotka je příliš tmavá nebo rozmazaná."}`;
+Pokud je fotka nekvalitní, vrať: {"error": "low_quality", "message": "Fotka je příliš tmavá nebo rozmazaná."}
 
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mediaType,
-                  data: image,
-                },
-              },
-              {
-                type: 'text',
-                text: 'Analyzuj toto jídlo a vrať JSON.',
-              },
+Analyzuj toto jídlo a vrať JSON.`;
+
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { inline_data: { mime_type: mediaType, data: image } },
+              { text: prompt },
             ],
+          }],
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 1024,
+            responseMimeType: 'application/json',
           },
-        ],
-      }),
-    });
+        }),
+      }
+    );
 
-    if (!anthropicRes.ok) {
-      const errText = await anthropicRes.text();
-      console.error('Anthropic error:', anthropicRes.status, errText);
-      return res.status(502).json({ error: `API error ${anthropicRes.status}: ${errText.slice(0, 200)}` });
+    if (!geminiRes.ok) {
+      const errText = await geminiRes.text();
+      console.error('Gemini error:', geminiRes.status, errText);
+      return res.status(502).json({ error: `API error ${geminiRes.status}: ${errText.slice(0, 200)}` });
     }
 
-    const data = await anthropicRes.json();
-    const rawText = data.content?.[0]?.text || '';
+    const data = await geminiRes.json();
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    // Strip potential markdown code fences
+    // Strip potential markdown code fences just in case
     const cleaned = rawText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
 
     let result;
