@@ -2,67 +2,19 @@
 // Body: { image: string (base64), mediaType: string, mode: 'food' | 'recipe' }
 // Returns: { result: ScanResult | RecipeResult }
 
-const FOOD_PROMPT = `Jsi výživový expert specializovaný na cyklistiku. Analyzuj jídlo na fotce.
+const SYSTEM_INSTRUCTION = 'You are a nutrition expert. Always respond with a single valid JSON object only. Never use markdown code blocks. Never add any text before or after the JSON.';
 
-DŮLEŽITÉ: Odpověz POUZE validním JSON objektem. Žádný text před ani za JSON. Žádné markdown bloky. Žádné vysvětlování.
+const FOOD_PROMPT = `Analyzuj jídlo na fotce a vrať JSON v tomto přesném formátu:
+{"dish_name":"název jídla česky","ingredients":[{"name":"název česky","estimated_amount":"150g","category":"protein|carb|fat|vegetable|fruit|dairy|other","kcal_estimate":0}],"estimated_macros":{"kcal":0,"carbs_g":0,"protein_g":0,"fat_g":0},"confidence":"high|medium|low","cycling_note":"poznámka pro cyklistu"}
 
-Formát odpovědi:
-{
-  "dish_name": "název jídla česky",
-  "ingredients": [
-    {
-      "name": "název ingredience česky",
-      "estimated_amount": "odhadnuté množství např. 150g",
-      "category": "protein nebo carb nebo fat nebo vegetable nebo fruit nebo dairy nebo other",
-      "kcal_estimate": číslo
-    }
-  ],
-  "estimated_macros": {
-    "kcal": číslo,
-    "carbs_g": číslo,
-    "protein_g": číslo,
-    "fat_g": číslo
-  },
-  "confidence": "high nebo medium nebo low",
-  "cycling_note": "krátká poznámka zda je jídlo vhodné před/při/po jízdě"
-}
+Pokud na fotce není jídlo: {"error":"not_food","message":"Na fotce nebylo rozpoznáno jídlo."}
+Pokud je fotka nekvalitní: {"error":"low_quality","message":"Fotka je příliš tmavá nebo rozmazaná."}`;
 
-Pokud na fotce není jídlo, vrať: {"error": "not_food", "message": "Na fotce nebylo rozpoznáno jídlo."}
-Pokud je fotka nekvalitní, vrať: {"error": "low_quality", "message": "Fotka je příliš tmavá nebo rozmazaná."}
+const RECIPE_PROMPT = `Přečti recept na fotce a vrať JSON v tomto přesném formátu:
+{"recipe_name":"název receptu česky","servings":4,"ingredients":[{"name":"název česky","amount":"200g","grams":200,"category":"protein|carb|fat|vegetable|fruit|dairy|other","kcal_total":0}],"per_serving_macros":{"kcal":0,"carbs_g":0,"protein_g":0,"fat_g":0},"confidence":"high|medium|low","cycling_note":"poznámka pro cyklistu"}
 
-Analyzuj toto jídlo a vrať JSON.`;
-
-const RECIPE_PROMPT = `Jsi výživový expert specializovaný na cyklistiku. Na fotce je recept (text, kniha, webová stránka). Přečti všechny ingredience z receptu.
-
-DŮLEŽITÉ: Odpověz POUZE validním JSON objektem. Žádný text před ani za JSON. Žádné markdown bloky. Žádné vysvětlování.
-
-Formát odpovědi:
-{
-  "recipe_name": "název receptu česky",
-  "servings": číslo (počet porcí z receptu, výchozí 4 pokud není uvedeno),
-  "ingredients": [
-    {
-      "name": "název ingredience česky",
-      "amount": "množství přesně jak je v receptu např. 200g nebo 2 vejce nebo 3 lžíce",
-      "grams": číslo (převod na gramy, u tekutin ml=g),
-      "category": "protein nebo carb nebo fat nebo vegetable nebo fruit nebo dairy nebo other",
-      "kcal_total": číslo (kcal pro celé uvedené množství)
-    }
-  ],
-  "per_serving_macros": {
-    "kcal": číslo,
-    "carbs_g": číslo,
-    "protein_g": číslo,
-    "fat_g": číslo
-  },
-  "confidence": "high nebo medium nebo low",
-  "cycling_note": "krátká poznámka zda je jídlo vhodné před/při/po jízdě"
-}
-
-Pokud na fotce není recept, vrať: {"error": "not_recipe", "message": "Na fotce nebyl rozpoznán recept."}
-Pokud je fotka nekvalitní nebo text nečitelný, vrať: {"error": "low_quality", "message": "Text receptu je nečitelný."}
-
-Analyzuj tento recept a vrať JSON.`;
+Pokud na fotce není recept: {"error":"not_recipe","message":"Na fotce nebyl rozpoznán recept."}
+Pokud je text nečitelný: {"error":"low_quality","message":"Text receptu je nečitelný."}`;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -76,16 +28,11 @@ export default async function handler(req, res) {
 
   try {
     const apiKey = (process.env.GEMINI_API_KEY || '').trim();
-    if (!apiKey) {
-      return res.status(500).json({ error: 'Gemini API key not configured' });
-    }
+    if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured' });
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const { image, mediaType = 'image/jpeg', mode = 'food' } = body;
-
-    if (!image) {
-      return res.status(400).json({ error: 'No image provided' });
-    }
+    if (!image) return res.status(400).json({ error: 'No image provided' });
 
     const prompt = mode === 'recipe' ? RECIPE_PROMPT : FOOD_PROMPT;
 
@@ -95,6 +42,7 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
           contents: [{
             parts: [
               { inline_data: { mime_type: mediaType, data: image } },
@@ -102,8 +50,9 @@ export default async function handler(req, res) {
             ],
           }],
           generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 1500,
+            temperature: 0.1,
+            maxOutputTokens: 2048,
+            response_mime_type: 'application/json',
           },
         }),
       }
@@ -119,25 +68,21 @@ export default async function handler(req, res) {
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     let result;
-    try {
-      // 1) přímý parse
-      result = JSON.parse(rawText);
-    } catch {
-      try {
-        // 2) odstranit markdown fences
-        const stripped = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-        result = JSON.parse(stripped);
-      } catch {
-        // 3) najít první { ... } blok v textu
-        const match = rawText.match(/\{[\s\S]*\}/);
-        if (match) {
-          try { result = JSON.parse(match[0]); } catch { /* fall through */ }
-        }
-        if (!result) {
-          console.error('JSON parse error, raw:', rawText.slice(0, 500));
-          return res.status(502).json({ error: 'Nepodařilo se zpracovat odpověď AI.' });
-        }
-      }
+    // 1) přímý parse
+    try { result = JSON.parse(rawText); } catch { /* try next */ }
+    // 2) strip markdown fences
+    if (!result) {
+      try { result = JSON.parse(rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()); } catch { /* try next */ }
+    }
+    // 3) regex extract first {...} block
+    if (!result) {
+      const m = rawText.match(/\{[\s\S]*\}/);
+      if (m) try { result = JSON.parse(m[0]); } catch { /* fail */ }
+    }
+
+    if (!result) {
+      console.error('JSON parse failed, raw response:', rawText.slice(0, 600));
+      return res.status(502).json({ error: 'Nepodařilo se zpracovat odpověď AI. Raw: ' + rawText.slice(0, 150) });
     }
 
     return res.status(200).json({ result });
