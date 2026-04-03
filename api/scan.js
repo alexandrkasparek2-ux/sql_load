@@ -13,6 +13,8 @@ Pokud je fotka nekvalitní: {"error":"low_quality","message":"Fotka je příliš
 const RECIPE_PROMPT = `Přečti recept na fotce a vrať JSON v tomto přesném formátu:
 {"recipe_name":"název receptu česky","servings":4,"ingredients":[{"name":"název česky","amount":"200g","grams":200,"category":"protein|carb|fat|vegetable|fruit|dairy|other","kcal_total":0}],"per_serving_macros":{"kcal":0,"carbs_g":0,"protein_g":0,"fat_g":0},"confidence":"high|medium|low","cycling_note":"poznámka pro cyklistu"}
 
+Důležité: "kcal_total" u každé ingredience = celkové kcal pro celé množství té ingredience v receptu (ne na porci). "per_serving_macros" = makra na 1 porci (celkové makra děleno počtem porcí).
+
 Pokud na fotce není recept: {"error":"not_recipe","message":"Na fotce nebyl rozpoznán recept."}
 Pokud je text nečitelný: {"error":"low_quality","message":"Text receptu je nečitelný."}`;
 

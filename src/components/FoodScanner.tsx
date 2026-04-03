@@ -224,7 +224,7 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
     const scale = origTotalKcal > 0 ? currTotalKcal / origTotalKcal : 1;
     const m = recipeResult.per_serving_macros;
     return {
-      kcal:    Math.round(currTotalKcal  * servings / recipeResult.servings),
+      kcal:    Math.round(m.kcal      * scale * servings),
       carbs:   Math.round(m.carbs_g   * scale * servings),
       protein: Math.round(m.protein_g * scale * servings),
       fat:     Math.round(m.fat_g     * scale * servings),
