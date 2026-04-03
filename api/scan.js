@@ -2,7 +2,9 @@
 // Body: { image: string (base64), mediaType: string, mode: 'food' | 'recipe' }
 // Returns: { result: ScanResult | RecipeResult }
 
-const FOOD_PROMPT = `Jsi výživový expert specializovaný na cyklistiku. Analyzuj jídlo na fotce a vrať POUZE validní JSON bez jakéhokoliv textu navíc, bez markdown bloků.
+const FOOD_PROMPT = `Jsi výživový expert specializovaný na cyklistiku. Analyzuj jídlo na fotce.
+
+DŮLEŽITÉ: Odpověz POUZE validním JSON objektem. Žádný text před ani za JSON. Žádné markdown bloky. Žádné vysvětlování.
 
 Formát odpovědi:
 {
@@ -30,7 +32,9 @@ Pokud je fotka nekvalitní, vrať: {"error": "low_quality", "message": "Fotka je
 
 Analyzuj toto jídlo a vrať JSON.`;
 
-const RECIPE_PROMPT = `Jsi výživový expert specializovaný na cyklistiku. Na fotce je recept (text, kniha, webová stránka). Přečti všechny ingredience z receptu a vrať POUZE validní JSON bez jakéhokoliv textu navíc, bez markdown bloků.
+const RECIPE_PROMPT = `Jsi výživový expert specializovaný na cyklistiku. Na fotce je recept (text, kniha, webová stránka). Přečti všechny ingredience z receptu.
+
+DŮLEŽITÉ: Odpověz POUZE validním JSON objektem. Žádný text před ani za JSON. Žádné markdown bloky. Žádné vysvětlování.
 
 Formát odpovědi:
 {
@@ -114,14 +118,26 @@ export default async function handler(req, res) {
     const data = await geminiRes.json();
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    const cleaned = rawText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-
     let result;
     try {
-      result = JSON.parse(cleaned);
+      // 1) přímý parse
+      result = JSON.parse(rawText);
     } catch {
-      console.error('JSON parse error, raw:', rawText.slice(0, 300));
-      return res.status(502).json({ error: 'Nepodařilo se zpracovat odpověď AI.' });
+      try {
+        // 2) odstranit markdown fences
+        const stripped = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+        result = JSON.parse(stripped);
+      } catch {
+        // 3) najít první { ... } blok v textu
+        const match = rawText.match(/\{[\s\S]*\}/);
+        if (match) {
+          try { result = JSON.parse(match[0]); } catch { /* fall through */ }
+        }
+        if (!result) {
+          console.error('JSON parse error, raw:', rawText.slice(0, 500));
+          return res.status(502).json({ error: 'Nepodařilo se zpracovat odpověď AI.' });
+        }
+      }
     }
 
     return res.status(200).json({ result });
