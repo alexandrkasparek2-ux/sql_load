@@ -213,18 +213,21 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
     };
   })();
 
-  // scaled recipe macros (per N servings, adjusted for edited ingredients)
+  // scaled recipe macros (per N servings, adjusted for edited/removed ingredients)
   const recipeMacros = (() => {
     if (!recipeResult || !recipeIngredients.length) return null;
-    const origTotal = recipeIngredients.reduce((s, i) => s + i.originalGrams, 0);
-    const currTotal = recipeIngredients.reduce((s, i) => s + i.currentGrams, 0);
-    const scale = origTotal > 0 ? currTotal / origTotal : 1;
+    // Original total kcal from the scan — never changes
+    const origTotalKcal = recipeResult.ingredients.reduce((s, i) => s + (i.kcal_total || 0), 0);
+    // Current kcal — only remaining ingredients, scaled by gram changes
+    const currTotalKcal = recipeIngredients.reduce((s, i) =>
+      s + (i.originalGrams > 0 ? (i.kcal_total * i.currentGrams / i.originalGrams) : 0), 0);
+    const scale = origTotalKcal > 0 ? currTotalKcal / origTotalKcal : 1;
     const m = recipeResult.per_serving_macros;
     return {
-      kcal:    Math.round(m.kcal    * scale * servings),
-      carbs:   Math.round(m.carbs_g * scale * servings),
+      kcal:    Math.round(currTotalKcal  * servings / recipeResult.servings),
+      carbs:   Math.round(m.carbs_g   * scale * servings),
       protein: Math.round(m.protein_g * scale * servings),
-      fat:     Math.round(m.fat_g   * scale * servings),
+      fat:     Math.round(m.fat_g     * scale * servings),
     };
   })();
 
