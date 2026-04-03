@@ -1202,6 +1202,27 @@ export const FOODS: Food[] = [
     kcal: 52, carbs: 5.0, protein: 3.3, fat: 1.8, per: 250,
     micros: { na: 42, k: 140, mg: 11, ca: 115, fe: 0.1, vit_c: 0.8, vit_d: 0.1, b12: 0.4, omega3: 60, zn: 0.4 },
   },
+  {
+    id: 'coconut_milk',
+    cat: '🥛 Mléčné',
+    name: 'Kokosové mléko (plnotučné, konzervované)',
+    kcal: 197, carbs: 2.8, protein: 2.0, fat: 21.0, fiber: 0.2, per: 100,
+    micros: { na: 15, k: 220, mg: 37, ca: 18, fe: 1.6, vit_c: 2, vit_d: 0, b12: 0, omega3: 0, zn: 0.7 },
+  },
+  {
+    id: 'coconut_milk_light',
+    cat: '🥛 Mléčné',
+    name: 'Kokosové mléko light (zředěné)',
+    kcal: 84, carbs: 3.5, protein: 1.0, fat: 7.5, fiber: 0.1, per: 100,
+    micros: { na: 18, k: 105, mg: 18, ca: 10, fe: 0.8, vit_c: 1, vit_d: 0, b12: 0, omega3: 0, zn: 0.3 },
+  },
+  {
+    id: 'coconut_milk_drink',
+    cat: '🥛 Mléčné',
+    name: 'Kokosový nápoj (náhrada mléka, Alpro apod.)',
+    kcal: 21, carbs: 2.5, protein: 0.1, fat: 1.2, fiber: 0.0, per: 250,
+    micros: { na: 80, k: 40, mg: 8, ca: 120, fe: 0.2, vit_c: 0, vit_d: 1.5, b12: 0.4, omega3: 0, zn: 0.1 },
+  },
 
   // ──────────────────────────────────────────
   // 🥜 Ořechy & semínka – další
