@@ -65,6 +65,11 @@ interface EditableIngredient extends RawIngredient {
   currentGrams: number;
 }
 
+interface EditableRecipeIngredient extends RawRecipeIngredient {
+  originalGrams: number;
+  currentGrams: number;
+}
+
 interface FoodScannerProps {
   accent:   string;
   userId:   string;
@@ -113,9 +118,11 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
   const [previewUrl,   setPreviewUrl]  = useState('');
   const [imageData,    setImageData]   = useState<{ base64: string; mediaType: string } | null>(null);
   const [scanResult,   setScanResult]  = useState<ScanResult | null>(null);
-  const [recipeResult, setRecipeResult] = useState<RecipeResult | null>(null);
-  const [ingredients,  setIngredients] = useState<EditableIngredient[]>([]);
-  const [servings,     setServings]    = useState(1);
+  const [recipeResult,      setRecipeResult]      = useState<RecipeResult | null>(null);
+  const [recipeIngredients, setRecipeIngredients] = useState<EditableRecipeIngredient[]>([]);
+  const [ingredients,       setIngredients]       = useState<EditableIngredient[]>([]);
+  const [servings,          setServings]          = useState(1);
+  const [editingIdx,        setEditingIdx]        = useState<number | null>(null);
   const [errorMsg,     setErrorMsg]    = useState('');
   const [adding,       setAdding]      = useState(false);
 
@@ -158,6 +165,9 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
       if (mode === 'recipe') {
         const r = result as RecipeResult;
         setRecipeResult(r);
+        setRecipeIngredients(r.ingredients.map(ing => ({
+          ...ing, originalGrams: ing.grams || 100, currentGrams: ing.grams || 100,
+        })));
         setServings(1);
       } else {
         const r = result as ScanResult;
@@ -178,6 +188,17 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
   const updateGrams = (idx: number, grams: number) =>
     setIngredients(prev => prev.map((ing, i) => i === idx ? { ...ing, currentGrams: grams } : ing));
 
+  const updateRecipeGrams = (idx: number, grams: number) =>
+    setRecipeIngredients(prev => prev.map((ing, i) => i === idx ? { ...ing, currentGrams: grams } : ing));
+
+  const updateRecipeName = (idx: number, name: string) =>
+    setRecipeIngredients(prev => prev.map((ing, i) => i === idx ? { ...ing, name } : ing));
+
+  const removeRecipeIngredient = (idx: number) => {
+    setRecipeIngredients(prev => prev.filter((_, i) => i !== idx));
+    if (editingIdx === idx) setEditingIdx(null);
+  };
+
   // scaled food macros
   const scaledMacros = (() => {
     if (!scanResult || !ingredients.length) return null;
@@ -192,13 +213,18 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
     };
   })();
 
-  // scaled recipe macros (per N servings)
+  // scaled recipe macros (per N servings, adjusted for edited ingredients)
   const recipeMacros = (() => {
-    if (!recipeResult) return null;
+    if (!recipeResult || !recipeIngredients.length) return null;
+    const origTotal = recipeIngredients.reduce((s, i) => s + i.originalGrams, 0);
+    const currTotal = recipeIngredients.reduce((s, i) => s + i.currentGrams, 0);
+    const scale = origTotal > 0 ? currTotal / origTotal : 1;
     const m = recipeResult.per_serving_macros;
     return {
-      kcal: Math.round(m.kcal * servings), carbs: Math.round(m.carbs_g * servings),
-      protein: Math.round(m.protein_g * servings), fat: Math.round(m.fat_g * servings),
+      kcal:    Math.round(m.kcal    * scale * servings),
+      carbs:   Math.round(m.carbs_g * scale * servings),
+      protein: Math.round(m.protein_g * scale * servings),
+      fat:     Math.round(m.fat_g   * scale * servings),
     };
   })();
 
@@ -219,7 +245,7 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
   const handleAddRecipe = async () => {
     if (!recipeResult || !recipeMacros) return;
     setAdding(true);
-    const totalGrams = recipeResult.ingredients.reduce((s, i) => s + (i.grams || 100), 0) * servings;
+    const totalGrams = recipeIngredients.reduce((s, i) => s + i.currentGrams, 0) * servings;
     onResult({
       user_id: userId, date, meal_slot: mealSlot,
       food_id: `ai_recipe_${Date.now()}`,
@@ -234,8 +260,9 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
 
   const reset = () => {
     setStep('idle'); setPreviewUrl(''); setImageData(null);
-    setScanResult(null); setRecipeResult(null); setIngredients([]);
-    setServings(1); setErrorMsg('');
+    setScanResult(null); setRecipeResult(null);
+    setIngredients([]); setRecipeIngredients([]);
+    setServings(1); setErrorMsg(''); setEditingIdx(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -428,28 +455,67 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
 
               {macroBar(recipeMacros)}
 
-              {/* Ingredient list (read-only) */}
+              {/* Ingredient list (editable) */}
               <div>
                 <div style={{ fontSize: 12, color: T.muted, marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
-                  Ingredience receptu
+                  Ingredience receptu · {recipeIngredients.length}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {recipeResult.ingredients.map((ing, i) => {
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {recipeIngredients.map((ing, i) => {
                     const cc = CAT_COLOR[ing.category] ?? C.muted;
-                    const scaledKcal = Math.round(ing.kcal_total * servings / recipeResult.servings);
+                    const scaledKcal = ing.originalGrams > 0
+                      ? Math.round(ing.kcal_total * ing.currentGrams / ing.originalGrams)
+                      : 0;
+                    const isEditing = editingIdx === i;
                     return (
-                      <div key={i} style={{ background: T.bg, borderRadius: 12, padding: '10px 14px', border: `1px solid ${T.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <span style={{ fontSize: 16 }}>{CAT_EMOJI[ing.category] ?? '🍽️'}</span>
-                          <div>
-                            <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{ing.name}</div>
-                            <div style={{ fontSize: 11, color: T.muted }}>{ing.amount}</div>
+                      <div key={i} style={{ background: T.bg, borderRadius: 12, padding: '12px 14px', border: `1px solid ${isEditing ? cc : T.border}`, transition: 'border-color 0.15s' }}>
+                        {/* Top row: emoji + name + delete */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 18, flexShrink: 0 }}>{CAT_EMOJI[ing.category] ?? '🍽️'}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {isEditing ? (
+                              <input
+                                autoFocus
+                                value={ing.name}
+                                onChange={e => updateRecipeName(i, e.target.value)}
+                                onBlur={() => setEditingIdx(null)}
+                                style={{
+                                  width: '100%', background: T.card, border: `1px solid ${cc}`,
+                                  borderRadius: 8, padding: '4px 8px', color: T.text,
+                                  fontSize: 13, fontWeight: 600, outline: 'none',
+                                }}
+                              />
+                            ) : (
+                              <div
+                                onClick={() => setEditingIdx(i)}
+                                style={{ fontSize: 13, color: T.text, fontWeight: 600, cursor: 'pointer', padding: '4px 0' }}
+                                title="Klikni pro úpravu názvu"
+                              >
+                                {ing.name} ✏️
+                              </div>
+                            )}
+                            <span style={{ fontSize: 11, color: cc, background: `${cc}18`, padding: '1px 7px', borderRadius: 20, display: 'inline-block', marginTop: 2 }}>
+                              {CAT_LABEL[ing.category] ?? ing.category}
+                            </span>
                           </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0, marginRight: 4 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{ing.currentGrams} g</div>
+                            <div style={{ fontSize: 11, color: T.muted }}>{scaledKcal} kcal</div>
+                          </div>
+                          <button
+                            onClick={() => removeRecipeIngredient(i)}
+                            style={{ background: '#ff6b6b22', border: '1px solid #ff6b6b44', borderRadius: 8, color: '#ff6b6b', width: 28, height: 28, cursor: 'pointer', fontSize: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Odebrat ingredienci"
+                          >×</button>
                         </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div style={{ fontSize: 12, color: cc, fontWeight: 600 }}>{ing.grams} g</div>
-                          <div style={{ fontSize: 11, color: T.muted }}>{scaledKcal} kcal</div>
-                        </div>
+                        {/* Gram slider */}
+                        <input
+                          type="range"
+                          min={5} max={Math.max(800, ing.originalGrams * 3)} step={5}
+                          value={ing.currentGrams}
+                          onChange={e => updateRecipeGrams(i, Number(e.target.value))}
+                          style={{ width: '100%', accentColor: cc, cursor: 'pointer' }}
+                        />
                       </div>
                     );
                   })}
