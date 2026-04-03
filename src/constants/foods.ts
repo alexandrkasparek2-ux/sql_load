@@ -41,6 +41,8 @@ export const FOOD_CATEGORIES = [
   '🥜 Ořechy',
   '🥦 Zelenina',
   '🫘 Luštěniny',
+  '🍕 Těsta',
+  '🍿 Snacky',
   '⚡ Sportovní',
   '🫒 Tuky',
   '🍫 Sladkosti',
@@ -3439,5 +3441,199 @@ export const FOODS: Food[] = [
     name: 'Paštika játrová',
     kcal: 310, carbs: 2.5, protein: 11.0, fat: 28.0, per: 30,
     micros: { na: 650, k: 140, mg: 12, ca: 20, fe: 4.5, vit_c: 1.0, vit_d: 0.5, b12: 8.0, omega3: 120, zn: 1.8 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🍕 Těsta
+  // ──────────────────────────────────────────
+  {
+    id: 'pizza_dough_albert',
+    cat: '🍕 Těsta',
+    name: 'Pizza těsto Albert (chlazené)',
+    kcal: 232, carbs: 44.0, protein: 7.2, fat: 2.5, fiber: 1.8, per: 100,
+    micros: { na: 480, k: 95, mg: 15, ca: 12, fe: 1.2, vit_c: 0, vit_d: 0, b12: 0, omega3: 30, zn: 0.6 },
+  },
+  {
+    id: 'puff_pastry',
+    cat: '🍕 Těsta',
+    name: 'Listové těsto (chlazené)',
+    kcal: 440, carbs: 38.0, protein: 6.0, fat: 28.5, fiber: 1.5, per: 100,
+    micros: { na: 380, k: 75, mg: 8, ca: 10, fe: 0.9, vit_c: 0, vit_d: 0.1, b12: 0.1, omega3: 80, zn: 0.4 },
+  },
+  {
+    id: 'shortcrust_pastry',
+    cat: '🍕 Těsta',
+    name: 'Křehké těsto (chlazené)',
+    kcal: 455, carbs: 42.0, protein: 6.5, fat: 27.0, fiber: 1.5, per: 100,
+    micros: { na: 320, k: 80, mg: 8, ca: 12, fe: 1.0, vit_c: 0, vit_d: 0.1, b12: 0.1, omega3: 70, zn: 0.4 },
+  },
+  {
+    id: 'filo_pastry',
+    cat: '🍕 Těsta',
+    name: 'Filo těsto (phyllo)',
+    kcal: 299, carbs: 57.0, protein: 8.0, fat: 3.8, fiber: 2.0, per: 100,
+    micros: { na: 420, k: 90, mg: 14, ca: 15, fe: 1.5, vit_c: 0, vit_d: 0, b12: 0, omega3: 20, zn: 0.5 },
+  },
+  {
+    id: 'pizza_dough_dry',
+    cat: '🍕 Těsta',
+    name: 'Směs na pizzu těsto (suchá)',
+    kcal: 345, carbs: 71.0, protein: 10.5, fat: 1.5, fiber: 3.0, per: 100,
+    micros: { na: 520, k: 110, mg: 20, ca: 18, fe: 1.8, vit_c: 0, vit_d: 0, b12: 0, omega3: 40, zn: 0.7 },
+  },
+  {
+    id: 'tortilla_wrap',
+    cat: '🍕 Těsta',
+    name: 'Tortilla wrap (pšeničná)',
+    kcal: 306, carbs: 52.0, protein: 8.5, fat: 6.5, fiber: 3.2, per: 60,
+    micros: { na: 560, k: 120, mg: 18, ca: 80, fe: 2.0, vit_c: 0, vit_d: 0, b12: 0, omega3: 40, zn: 0.6 },
+  },
+  {
+    id: 'pancake_mix',
+    cat: '🍕 Těsta',
+    name: 'Palačinkové těsto (připravené)',
+    kcal: 105, carbs: 15.5, protein: 4.5, fat: 2.8, fiber: 0.5, per: 100,
+    micros: { na: 180, k: 90, mg: 8, ca: 70, fe: 0.5, vit_c: 0, vit_d: 0.3, b12: 0.2, omega3: 30, zn: 0.4 },
+  },
+
+  // ──────────────────────────────────────────
+  // 🍿 Snacky
+  // ──────────────────────────────────────────
+  {
+    id: 'chips_lays',
+    cat: '🍿 Snacky',
+    name: 'Lay\'s chipsy (solené)',
+    kcal: 531, carbs: 53.0, protein: 6.5, fat: 32.0, fiber: 4.0, per: 30,
+    micros: { na: 560, k: 420, mg: 30, ca: 15, fe: 0.8, vit_c: 12, vit_d: 0, b12: 0, omega3: 50, zn: 0.5 },
+  },
+  {
+    id: 'pringles_original',
+    cat: '🍿 Snacky',
+    name: 'Pringles (originál)',
+    kcal: 531, carbs: 51.0, protein: 4.5, fat: 34.0, fiber: 3.0, per: 30,
+    micros: { na: 520, k: 380, mg: 22, ca: 10, fe: 0.7, vit_c: 10, vit_d: 0, b12: 0, omega3: 40, zn: 0.4 },
+  },
+  {
+    id: 'doritos_nacho',
+    cat: '🍿 Snacky',
+    name: 'Doritos Nacho Cheese',
+    kcal: 495, carbs: 58.0, protein: 7.0, fat: 25.0, fiber: 3.5, per: 30,
+    micros: { na: 620, k: 210, mg: 28, ca: 50, fe: 1.0, vit_c: 0, vit_d: 0, b12: 0, omega3: 60, zn: 0.5 },
+  },
+  {
+    id: 'rice_cakes',
+    cat: '🍿 Snacky',
+    name: 'Rýžové chlebíčky (natural)',
+    kcal: 387, carbs: 82.0, protein: 7.5, fat: 2.8, fiber: 3.5, per: 20,
+    micros: { na: 15, k: 100, mg: 40, ca: 5, fe: 0.5, vit_c: 0, vit_d: 0, b12: 0, omega3: 20, zn: 0.8 },
+  },
+  {
+    id: 'popcorn_salted',
+    cat: '🍿 Snacky',
+    name: 'Popcorn solený',
+    kcal: 482, carbs: 52.0, protein: 9.0, fat: 27.0, fiber: 9.8, per: 30,
+    micros: { na: 480, k: 280, mg: 95, ca: 3, fe: 2.1, vit_c: 0, vit_d: 0, b12: 0, omega3: 30, zn: 1.1 },
+  },
+  {
+    id: 'crackers_whole',
+    cat: '🍿 Snacky',
+    name: 'Krekry celozrnné',
+    kcal: 432, carbs: 68.0, protein: 9.5, fat: 13.0, fiber: 7.0, per: 30,
+    micros: { na: 520, k: 210, mg: 45, ca: 35, fe: 2.2, vit_c: 0, vit_d: 0, b12: 0, omega3: 80, zn: 1.2 },
+  },
+  {
+    id: 'granola_bar',
+    cat: '🍿 Snacky',
+    name: 'Müsli tyčinka (granola bar)',
+    kcal: 395, carbs: 64.0, protein: 6.5, fat: 12.0, fiber: 4.5, per: 40,
+    micros: { na: 160, k: 220, mg: 35, ca: 40, fe: 2.0, vit_c: 0, vit_d: 0, b12: 0, omega3: 60, zn: 0.8 },
+  },
+  {
+    id: 'corn_puffs',
+    cat: '🍿 Snacky',
+    name: 'Kukuřičné pufované snacky',
+    kcal: 510, carbs: 60.0, protein: 7.0, fat: 26.0, fiber: 2.5, per: 30,
+    micros: { na: 480, k: 190, mg: 20, ca: 10, fe: 0.8, vit_c: 0, vit_d: 0, b12: 0, omega3: 20, zn: 0.5 },
+  },
+  {
+    id: 'pretzel',
+    cat: '🍿 Snacky',
+    name: 'Preclíky (solené)',
+    kcal: 380, carbs: 78.0, protein: 9.5, fat: 2.5, fiber: 2.8, per: 30,
+    micros: { na: 1040, k: 140, mg: 22, ca: 12, fe: 2.5, vit_c: 0, vit_d: 0, b12: 0, omega3: 20, zn: 0.7 },
+  },
+  {
+    id: 'oreo',
+    cat: '🍿 Snacky',
+    name: 'Oreo sušenky',
+    kcal: 473, carbs: 70.0, protein: 5.0, fat: 20.0, fiber: 2.5, per: 34,
+    micros: { na: 390, k: 160, mg: 18, ca: 50, fe: 3.5, vit_c: 0, vit_d: 0, b12: 0, omega3: 30, zn: 0.4 },
+  },
+
+  // ──────────────────────────────────────────
+  // ⚡ GymBeam produkty
+  // ──────────────────────────────────────────
+  {
+    id: 'gymbeam_protein_bar',
+    cat: '⚡ Sportovní',
+    name: 'GymBeam Protein Bar 32% (čokoláda)',
+    kcal: 365, carbs: 32.0, protein: 32.0, fat: 10.0, fiber: 6.0, per: 60,
+    micros: { na: 210, k: 280, mg: 40, ca: 180, fe: 2.0, vit_c: 0, vit_d: 0, b12: 0, omega3: 80, zn: 1.5 },
+  },
+  {
+    id: 'gymbeam_protein_bar_peanut',
+    cat: '⚡ Sportovní',
+    name: 'GymBeam Protein Bar 32% (arašíd & čokoláda)',
+    kcal: 370, carbs: 33.0, protein: 31.0, fat: 11.0, fiber: 5.0, per: 60,
+    micros: { na: 220, k: 300, mg: 45, ca: 170, fe: 1.8, vit_c: 0, vit_d: 0, b12: 0, omega3: 90, zn: 1.6 },
+  },
+  {
+    id: 'gymbeam_protein_chips',
+    cat: '⚡ Sportovní',
+    name: 'GymBeam High Protein Chips (BBQ)',
+    kcal: 420, carbs: 25.0, protein: 28.0, fat: 18.0, fiber: 8.0, per: 40,
+    micros: { na: 480, k: 320, mg: 50, ca: 200, fe: 2.5, vit_c: 0, vit_d: 0, b12: 0, omega3: 60, zn: 2.0 },
+  },
+  {
+    id: 'gymbeam_protein_cookie',
+    cat: '⚡ Sportovní',
+    name: 'GymBeam Protein Cookie (čokoláda)',
+    kcal: 440, carbs: 45.0, protein: 18.0, fat: 19.0, fiber: 5.0, per: 80,
+    micros: { na: 240, k: 200, mg: 30, ca: 150, fe: 1.5, vit_c: 0, vit_d: 0, b12: 0, omega3: 50, zn: 1.0 },
+  },
+  {
+    id: 'gymbeam_beef_jerky',
+    cat: '⚡ Sportovní',
+    name: 'GymBeam Beef Jerky (natural)',
+    kcal: 280, carbs: 2.0, protein: 55.0, fat: 5.0, fiber: 0, per: 50,
+    micros: { na: 1200, k: 480, mg: 28, ca: 15, fe: 3.5, vit_c: 0, vit_d: 0, b12: 1.5, omega3: 80, zn: 4.5 },
+  },
+  {
+    id: 'gymbeam_loaded_bar',
+    cat: '⚡ Sportovní',
+    name: 'GymBeam Loaded Bar (karamel & ořechy)',
+    kcal: 375, carbs: 38.0, protein: 26.0, fat: 12.0, fiber: 6.0, per: 60,
+    micros: { na: 190, k: 260, mg: 38, ca: 160, fe: 1.8, vit_c: 0, vit_d: 0, b12: 0, omega3: 70, zn: 1.4 },
+  },
+  {
+    id: 'gymbeam_protein_granola',
+    cat: '⚡ Sportovní',
+    name: 'GymBeam Crunchy Protein Granola',
+    kcal: 450, carbs: 42.0, protein: 20.0, fat: 18.0, fiber: 8.0, per: 60,
+    micros: { na: 150, k: 350, mg: 60, ca: 120, fe: 3.0, vit_c: 0, vit_d: 0, b12: 0, omega3: 200, zn: 2.0 },
+  },
+  {
+    id: 'gymbeam_peanut_butter_crispy',
+    cat: '⚡ Sportovní',
+    name: 'GymBeam Peanut Butter Crispy Bar',
+    kcal: 520, carbs: 15.0, protein: 22.0, fat: 40.0, fiber: 7.0, per: 45,
+    micros: { na: 180, k: 320, mg: 55, ca: 60, fe: 1.5, vit_c: 0, vit_d: 0, b12: 0, omega3: 50, zn: 1.8 },
+  },
+  {
+    id: 'gymbeam_protein_spread',
+    cat: '⚡ Sportovní',
+    name: 'GymBeam Premium Protein Spread (lískový ořech)',
+    kcal: 500, carbs: 12.0, protein: 25.0, fat: 38.0, fiber: 6.0, per: 30,
+    micros: { na: 120, k: 280, mg: 50, ca: 100, fe: 2.0, vit_c: 0, vit_d: 0, b12: 0, omega3: 60, zn: 1.5 },
   },
 ];
