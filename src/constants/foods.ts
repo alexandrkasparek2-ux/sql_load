@@ -3374,6 +3374,27 @@ export const FOODS: Food[] = [
     kcal: 410, carbs: 62.0, protein: 10.0, fat: 13.0, per: 30,
     micros: { na: 750, k: 120, mg: 18, ca: 25, fe: 2.0, vit_c: 0, vit_d: 0, b12: 0, omega3: 20, zn: 0.7 },
   },
+  {
+    id: 'livance',
+    cat: '🥐 Pečivo & Buchty',
+    name: 'Lívance (kynuté)',
+    kcal: 218, carbs: 32.0, protein: 7.0, fat: 7.0, fiber: 1.0, per: 150,
+    micros: { na: 180, k: 130, mg: 14, ca: 90, fe: 1.2, vit_c: 0, vit_d: 0.5, b12: 0.4, omega3: 60, zn: 0.7 },
+  },
+  {
+    id: 'livance_s_povidly',
+    cat: '🥐 Pečivo & Buchty',
+    name: 'Lívance s povidly',
+    kcal: 255, carbs: 42.0, protein: 6.5, fat: 6.5, fiber: 1.5, per: 150,
+    micros: { na: 170, k: 180, mg: 14, ca: 85, fe: 1.3, vit_c: 1, vit_d: 0.4, b12: 0.3, omega3: 55, zn: 0.7 },
+  },
+  {
+    id: 'livance_s_kysanou_smetanou',
+    cat: '🥐 Pečivo & Buchty',
+    name: 'Lívance s kysanou smetanou',
+    kcal: 270, carbs: 31.0, protein: 7.5, fat: 13.0, fiber: 1.0, per: 150,
+    micros: { na: 200, k: 160, mg: 15, ca: 120, fe: 1.1, vit_c: 0, vit_d: 0.5, b12: 0.5, omega3: 60, zn: 0.8 },
+  },
 
   {
     id: 'salt',
