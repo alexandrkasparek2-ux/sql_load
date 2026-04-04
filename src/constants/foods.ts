@@ -2390,6 +2390,27 @@ export const FOODS: Food[] = [
     kcal: 85, carbs: 8.5, protein: 1.5, fat: 5.0, per: 150,
     micros: { na: 310, k: 170, mg: 8, ca: 20, fe: 0.4, vit_c: 5, vit_d: 0, b12: 0, omega3: 25, zn: 0.2 },
   },
+  {
+    id: 'omacka_pepřova',
+    cat: '🥫 Omáčky',
+    name: 'Pepřová omáčka (k panence)',
+    kcal: 145, carbs: 5.0, protein: 2.5, fat: 12.5, per: 150,
+    micros: { na: 420, k: 180, mg: 10, ca: 40, fe: 0.5, vit_c: 2, vit_d: 0, b12: 0.1, omega3: 60, zn: 0.3 },
+  },
+  {
+    id: 'omacka_hribkova',
+    cat: '🥫 Omáčky',
+    name: 'Hříbková omáčka',
+    kcal: 105, carbs: 6.0, protein: 2.8, fat: 7.5, per: 150,
+    micros: { na: 380, k: 260, mg: 14, ca: 30, fe: 0.8, vit_c: 2, vit_d: 0.5, b12: 0, omega3: 40, zn: 0.5 },
+  },
+  {
+    id: 'omacka_svestkova',
+    cat: '🥫 Omáčky',
+    name: 'Švestková omáčka (k masu)',
+    kcal: 95, carbs: 14.0, protein: 1.0, fat: 3.5, per: 150,
+    micros: { na: 290, k: 210, mg: 8, ca: 15, fe: 0.6, vit_c: 3, vit_d: 0, b12: 0, omega3: 20, zn: 0.2 },
+  },
 
   // ──────────────────────────────────────────
   // 🍲 Polévky
