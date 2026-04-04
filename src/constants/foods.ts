@@ -2430,6 +2430,20 @@ export const FOODS: Food[] = [
     micros: { na: 480, k: 200, mg: 12, ca: 15, fe: 0.5, vit_c: 2, vit_d: 0, b12: 0.3, omega3: 20, zn: 0.8 },
   },
   {
+    id: 'porkova_polevka',
+    cat: '🍲 Polévky',
+    name: 'Pórková polévka',
+    kcal: 60, carbs: 7.0, protein: 1.8, fat: 2.8, fiber: 1.5, per: 350,
+    micros: { na: 420, k: 220, mg: 14, ca: 45, fe: 0.8, vit_c: 12, vit_d: 0, b12: 0, omega3: 30, zn: 0.3 },
+  },
+  {
+    id: 'porkova_polevka_se_smetanou',
+    cat: '🍲 Polévky',
+    name: 'Pórková polévka se smetanou',
+    kcal: 110, carbs: 7.5, protein: 2.0, fat: 8.0, fiber: 1.5, per: 350,
+    micros: { na: 450, k: 230, mg: 14, ca: 65, fe: 0.8, vit_c: 10, vit_d: 0, b12: 0.1, omega3: 50, zn: 0.3 },
+  },
+  {
     id: 'garlic_soup',
     cat: '🍲 Polévky',
     name: 'Česnečka',
