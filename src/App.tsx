@@ -61,6 +61,8 @@ export interface AppCtx {
   removeEntry:        (id: string) => Promise<void>;
   updateEntry:        (id: string, newGrams: number, newMealSlot?: string) => Promise<void>;
   signOut:            () => Promise<void>;
+  deficitActive:      boolean;
+  setDeficitActive:   (v: boolean) => void;
 }
 
 const DEFAULT_GOALS: Goals = {
@@ -94,6 +96,15 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   const { trainingDay, upsert              } = useTrainingDay(userId, today);
   const { entries, totals, addEntry, removeEntry, updateEntry } = useFoodEntries(userId, today);
 
+  const [deficitActive, setDeficitActiveState] = useState(() =>
+    localStorage.getItem(`cyclofuel_deficit_active_${userId}`) === 'true'
+  );
+
+  const setDeficitActive = (v: boolean) => {
+    localStorage.setItem(`cyclofuel_deficit_active_${userId}`, String(v));
+    setDeficitActiveState(v);
+  };
+
   const trainingType = trainingDay?.training_type ?? 'rest';
   const rideHours    = trainingDay?.ride_hours    ?? 0;
   const training     = TRAINING_TYPES.find(t => t.id === trainingType)!;
@@ -109,10 +120,16 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       trainingDay?.activity_hours     ?? {},
       trainingDay?.activity_intensity ?? {},
     );
+
+    // Apply weight-loss deficit if enabled
+    const targetW = Number(localStorage.getItem(`cyclofuel_target_weight_${userId}`) ?? profile.weight);
+    const deficit = deficitActive && targetW < profile.weight ? 500 : 0;
+    const kcalFinal = Math.max(1200, kcalGoal - deficit);
+
     // Vláknina: ~14 g / 1 000 kcal, min 25 g, max 45 g
-    const fiberGoal = Math.min(45, Math.max(25, Math.round(kcalGoal * 0.014)));
+    const fiberGoal = Math.min(45, Math.max(25, Math.round(kcalFinal * 0.014)));
     return {
-      kcal:    kcalGoal,
+      kcal:    kcalFinal,
       carbs:   m.carbs,
       protein: m.protein,
       fat:     m.fat,
@@ -120,7 +137,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       water:   calcWater(profile, rideHours),
       micros:  calcMicroGoals(training.microMul),
     };
-  }, [profile, trainingType, rideHours, training.microMul, trainingDay]);
+  }, [profile, trainingType, rideHours, training.microMul, trainingDay, deficitActive, userId]);
 
   // Uložit cíl kalorií pro aktuální den, aby ho historie zobrazila správně
   const { saveGoalForDate } = useDailyGoals();
@@ -145,6 +162,8 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     removeEntry,
     updateEntry,
     signOut:           onSignOut,
+    deficitActive,
+    setDeficitActive,
   };
 
   return (

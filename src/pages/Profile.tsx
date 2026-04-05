@@ -35,6 +35,9 @@ function SliderField({
 }
 
 function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; currentWeight: number; accent: string }) {
+  const ctx = useContext(AppContext);
+  const { deficitActive, setDeficitActive } = ctx;
+
   const storageKey = `cyclofuel_target_weight_${userId}`;
   const startKey   = `cyclofuel_start_weight_${userId}`;
 
@@ -125,6 +128,43 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
       <Btn accent={accent} size="md" full onClick={handleSave}>
         {saved ? '✓ Uloženo' : 'Uložit cíl'}
       </Btn>
+
+      {/* Deficit toggle */}
+      {!isGoalReached && (
+        <button
+          onClick={() => setDeficitActive(!deficitActive)}
+          style={{
+            marginTop: 12, width: '100%', padding: '12px 16px',
+            borderRadius: 12, cursor: 'pointer', display: 'flex',
+            alignItems: 'center', justifyContent: 'space-between',
+            border: `1px solid ${deficitActive ? accent : T.border}`,
+            background: deficitActive ? accent + '15' : T.bg,
+            transition: 'all 0.2s',
+          }}
+        >
+          <div style={{ textAlign: 'left' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: deficitActive ? accent : T.text }}>
+              {deficitActive ? '🔥 Deficit aktivní' : '⚡ Zapnout deficit −500 kcal/den'}
+            </div>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+              {deficitActive
+                ? 'Kalorický cíl je snížen o 500 kcal · ~0,5 kg/týden'
+                : 'Odečte 500 kcal od denního cíle v celé aplikaci'}
+            </div>
+          </div>
+          <div style={{
+            width: 44, height: 24, borderRadius: 12, flexShrink: 0,
+            background: deficitActive ? accent : T.border,
+            position: 'relative', transition: 'background 0.2s', marginLeft: 12,
+          }}>
+            <div style={{
+              position: 'absolute', top: 3, width: 18, height: 18, borderRadius: '50%',
+              background: '#fff', transition: 'left 0.2s',
+              left: deficitActive ? 23 : 3,
+            }} />
+          </div>
+        </button>
+      )}
 
       <div style={{ fontSize: 11, color: T.muted, marginTop: 10, textAlign: 'center', lineHeight: 1.5 }}>
         Doporučený deficit ~500 kcal/den = přibližně 0,5 kg/týden
