@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect, useCallback } from 'react';
-import { AppContext } from '../App';
+import { AppContext, type DeficitLevel, DEFICIT_KCAL } from '../App';
 import { T, Card, SectionTitle, StatRow, Btn, Spinner } from '../components/UI';
 import { calcBMR, calcCalories, calcMacros, calcWater } from '../constants/training';
 
@@ -36,7 +36,7 @@ function SliderField({
 
 function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; currentWeight: number; accent: string }) {
   const ctx = useContext(AppContext);
-  const { deficitActive, setDeficitActive } = ctx;
+  const { deficitLevel, setDeficitLevel } = ctx;
 
   const storageKey = `cyclofuel_target_weight_${userId}`;
   const startKey   = `cyclofuel_start_weight_${userId}`;
@@ -58,9 +58,9 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
   const lost       = parseFloat((startWeight - currentWeight).toFixed(1));
   const progress   = totalGoal > 0 ? Math.min(100, Math.max(0, Math.round((lost / totalGoal) * 100))) : 0;
 
-  // Recommended ~500 kcal deficit = ~0.5 kg/week
-  const weeksNeeded = tolose > 0 ? Math.ceil(tolose / 0.5) : 0;
-  const deficit     = tolose > 0 ? 500 : 0;
+  const activeDeficit  = deficitLevel !== 'off' && tolose > 0 ? DEFICIT_KCAL[deficitLevel] : 0;
+  const kgPerWeek      = activeDeficit / 1000; // 7700 kcal ≈ 1 kg, 500 kcal/day ≈ 0.5 kg/week
+  const weeksNeeded    = tolose > 0 && kgPerWeek > 0 ? Math.ceil(tolose / kgPerWeek) : 0;
 
   const handleSave = () => {
     localStorage.setItem(storageKey, String(targetWeight));
@@ -108,8 +108,8 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
             {[
               { label: 'Zbývá', val: `${tolose} kg`, color: accent },
-              { label: 'Deficit/den', val: `-${deficit} kcal`, color: '#f59e0b' },
-              { label: 'Est. čas', val: `${weeksNeeded} týdnů`, color: T.muted },
+              { label: 'Deficit/den', val: activeDeficit > 0 ? `-${activeDeficit} kcal` : '—', color: '#f59e0b' },
+              { label: 'Est. čas', val: weeksNeeded > 0 ? `${weeksNeeded} týdnů` : '—', color: T.muted },
             ].map(x => (
               <div key={x.label} style={{ background: T.bg, borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: x.color, fontFamily: 'Syne,sans-serif' }}>{x.val}</div>
@@ -129,46 +129,46 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
         {saved ? '✓ Uloženo' : 'Uložit cíl'}
       </Btn>
 
-      {/* Deficit toggle */}
+      {/* Deficit speed selector */}
       {!isGoalReached && (
-        <button
-          onClick={() => setDeficitActive(!deficitActive)}
-          style={{
-            marginTop: 12, width: '100%', padding: '12px 16px',
-            borderRadius: 12, cursor: 'pointer', display: 'flex',
-            alignItems: 'center', justifyContent: 'space-between',
-            border: `1px solid ${deficitActive ? accent : T.border}`,
-            background: deficitActive ? accent + '15' : T.bg,
-            transition: 'all 0.2s',
-          }}
-        >
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: deficitActive ? accent : T.text }}>
-              {deficitActive ? '🔥 Deficit aktivní' : '⚡ Zapnout deficit −500 kcal/den'}
-            </div>
-            <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
-              {deficitActive
-                ? 'Kalorický cíl je snížen o 500 kcal · ~0,5 kg/týden'
-                : 'Odečte 500 kcal od denního cíle v celé aplikaci'}
-            </div>
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+            Rychlost hubnutí
           </div>
-          <div style={{
-            width: 44, height: 24, borderRadius: 12, flexShrink: 0,
-            background: deficitActive ? accent : T.border,
-            position: 'relative', transition: 'background 0.2s', marginLeft: 12,
-          }}>
-            <div style={{
-              position: 'absolute', top: 3, width: 18, height: 18, borderRadius: '50%',
-              background: '#fff', transition: 'left 0.2s',
-              left: deficitActive ? 23 : 3,
-            }} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            {([
+              { id: 'off',    label: 'Vypnuto', sub: '—',           color: T.muted  },
+              { id: 'slow',   label: 'Pomalu',  sub: '−250 kcal',   color: '#22c55e' },
+              { id: 'medium', label: 'Středně', sub: '−500 kcal',   color: '#f59e0b' },
+              { id: 'fast',   label: 'Rychle',  sub: '−750 kcal',   color: '#ef4444' },
+            ] as { id: DeficitLevel; label: string; sub: string; color: string }[]).map(opt => {
+              const active = deficitLevel === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => setDeficitLevel(opt.id)}
+                  style={{
+                    flex: 1, padding: '10px 4px', borderRadius: 12, cursor: 'pointer',
+                    border: `1px solid ${active ? opt.color : T.border}`,
+                    background: active ? opt.color + '20' : T.bg,
+                    transition: 'all 0.15s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                  }}
+                >
+                  <span style={{ fontSize: 12, fontWeight: 700, color: active ? opt.color : T.muted }}>{opt.label}</span>
+                  <span style={{ fontSize: 10, color: active ? opt.color : T.muted, opacity: 0.8 }}>{opt.sub}</span>
+                </button>
+              );
+            })}
           </div>
-        </button>
+          {deficitLevel !== 'off' && (
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 8, textAlign: 'center' }}>
+              {deficitLevel === 'slow'   && '~0,25 kg/týden · bezpečné a udržitelné'}
+              {deficitLevel === 'medium' && '~0,5 kg/týden · doporučená rychlost'}
+              {deficitLevel === 'fast'   && '~0,75 kg/týden · náročnější, sleduj energii'}
+            </div>
+          )}
+        </div>
       )}
-
-      <div style={{ fontSize: 11, color: T.muted, marginTop: 10, textAlign: 'center', lineHeight: 1.5 }}>
-        Doporučený deficit ~500 kcal/den = přibližně 0,5 kg/týden
-      </div>
     </Card>
   );
 }

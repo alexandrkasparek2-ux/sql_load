@@ -44,25 +44,30 @@ export interface Goals {
   micros:  Record<string, number>;
 }
 
+export type DeficitLevel = 'off' | 'slow' | 'medium' | 'fast';
+export const DEFICIT_KCAL: Record<DeficitLevel, number> = {
+  off: 0, slow: 250, medium: 500, fast: 750,
+};
+
 export interface AppCtx {
-  userId:             string;
-  today:              string;
-  setToday:           (date: string) => void;
-  accent:             string;
-  accentGlow:         string;
-  profile:            ProfileData | null;
-  saveProfile:        (u: Partial<Omit<ProfileData, 'id'>>) => Promise<void>;
-  trainingDay:        TrainingDay | null;
-  upsertTrainingDay:  (u: Partial<TrainingDay>) => Promise<void>;
-  entries:            FoodEntry[];
-  totals:             MacroTotals;
-  goals:              Goals;
-  addEntry:           (e: Omit<FoodEntry, 'id'>) => Promise<void>;
-  removeEntry:        (id: string) => Promise<void>;
-  updateEntry:        (id: string, newGrams: number, newMealSlot?: string) => Promise<void>;
-  signOut:            () => Promise<void>;
-  deficitActive:      boolean;
-  setDeficitActive:   (v: boolean) => void;
+  userId:            string;
+  today:             string;
+  setToday:          (date: string) => void;
+  accent:            string;
+  accentGlow:        string;
+  profile:           ProfileData | null;
+  saveProfile:       (u: Partial<Omit<ProfileData, 'id'>>) => Promise<void>;
+  trainingDay:       TrainingDay | null;
+  upsertTrainingDay: (u: Partial<TrainingDay>) => Promise<void>;
+  entries:           FoodEntry[];
+  totals:            MacroTotals;
+  goals:             Goals;
+  addEntry:          (e: Omit<FoodEntry, 'id'>) => Promise<void>;
+  removeEntry:       (id: string) => Promise<void>;
+  updateEntry:       (id: string, newGrams: number, newMealSlot?: string) => Promise<void>;
+  signOut:           () => Promise<void>;
+  deficitLevel:      DeficitLevel;
+  setDeficitLevel:   (v: DeficitLevel) => void;
 }
 
 const DEFAULT_GOALS: Goals = {
@@ -96,13 +101,14 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   const { trainingDay, upsert              } = useTrainingDay(userId, today);
   const { entries, totals, addEntry, removeEntry, updateEntry } = useFoodEntries(userId, today);
 
-  const [deficitActive, setDeficitActiveState] = useState(() =>
-    localStorage.getItem(`cyclofuel_deficit_active_${userId}`) === 'true'
-  );
+  const [deficitLevel, setDeficitLevelState] = useState<DeficitLevel>(() => {
+    const v = localStorage.getItem(`cyclofuel_deficit_level_${userId}`);
+    return (v as DeficitLevel) ?? 'off';
+  });
 
-  const setDeficitActive = (v: boolean) => {
-    localStorage.setItem(`cyclofuel_deficit_active_${userId}`, String(v));
-    setDeficitActiveState(v);
+  const setDeficitLevel = (v: DeficitLevel) => {
+    localStorage.setItem(`cyclofuel_deficit_level_${userId}`, v);
+    setDeficitLevelState(v);
   };
 
   const trainingType = trainingDay?.training_type ?? 'rest';
@@ -121,9 +127,9 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       trainingDay?.activity_intensity ?? {},
     );
 
-    // Apply weight-loss deficit if enabled
+    // Apply weight-loss deficit
     const targetW = Number(localStorage.getItem(`cyclofuel_target_weight_${userId}`) ?? profile.weight);
-    const deficit = deficitActive && targetW < profile.weight ? 500 : 0;
+    const deficit = deficitLevel !== 'off' && targetW < profile.weight ? DEFICIT_KCAL[deficitLevel] : 0;
     const kcalFinal = Math.max(1200, kcalGoal - deficit);
 
     // Vláknina: ~14 g / 1 000 kcal, min 25 g, max 45 g
@@ -137,7 +143,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       water:   calcWater(profile, rideHours),
       micros:  calcMicroGoals(training.microMul),
     };
-  }, [profile, trainingType, rideHours, training.microMul, trainingDay, deficitActive, userId]);
+  }, [profile, trainingType, rideHours, training.microMul, trainingDay, deficitLevel, userId]);
 
   // Uložit cíl kalorií pro aktuální den, aby ho historie zobrazila správně
   const { saveGoalForDate } = useDailyGoals();
@@ -162,8 +168,8 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     removeEntry,
     updateEntry,
     signOut:           onSignOut,
-    deficitActive,
-    setDeficitActive,
+    deficitLevel,
+    setDeficitLevel,
   };
 
   return (
