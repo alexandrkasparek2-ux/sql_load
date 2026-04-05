@@ -199,7 +199,7 @@ function initSelected(trainingType: TrainingType, extraTypes: TrainingType[]): S
 
 export default function Plan() {
   const ctx = useContext(AppContext);
-  const { accent, trainingDay, upsertTrainingDay, profile } = ctx;
+  const { accent, trainingDay, upsertTrainingDay, profile, userId, today } = ctx;
 
   const savedPrimary    = trainingDay?.training_type    ?? 'rest';
   const savedExtra      = trainingDay?.extra_types      ?? [];
@@ -271,7 +271,6 @@ export default function Plan() {
     if (!selected.has('rest')) {
       const activeTypes = types.filter(t => t !== 'rest');
       const stretches = getStretches(activeTypes).map(s => ({ ...s, checked: false }));
-      const { userId, today } = ctx;
       localStorage.setItem(`cyclofuel_stretching_${userId}_${today}`, JSON.stringify(stretches));
     }
   };
