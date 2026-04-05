@@ -7,6 +7,165 @@ import {
 } from '../constants/training';
 import type { ActivityIntensity } from '../hooks/useTrainingDay';
 
+// ─── Stretching data ─────────────────────────────────────────
+interface Stretch { name: string; duration: string; desc: string; }
+
+const STRETCHES: Record<string, Stretch[]> = {
+  cycling: [
+    { name: 'Kvadricepsy', duration: '30s každá noha', desc: 'Stoj, ohni koleno, drž kotník za zády. Kyčle vpřed.' },
+    { name: 'Hamstringy', duration: '40s', desc: 'Sed, nohy rovně, předklon s rovnými zády. Sahej na špičky.' },
+    { name: 'Lýtka', duration: '30s každá noha', desc: 'Opři se o zeď, zadní noha rovně, pata na zemi.' },
+    { name: 'Kyčelní flexory', duration: '40s každá noha', desc: 'Výpad vpřed, zadní koleno na zemi. Tlač kyčle vpřed.' },
+    { name: 'Záda & hrudník', duration: '30s', desc: 'Propojené ruce za zády, ruce stlač dolů, hrudník otevři.' },
+    { name: 'Krk & trapézy', duration: '20s každá strana', desc: 'Skloň hlavu do strany, rukou mírně přitlač. Uvolni ramena.' },
+  ],
+  cycling_indoor: [
+    { name: 'Kvadricepsy', duration: '30s každá noha', desc: 'Stoj, ohni koleno, drž kotník za zády.' },
+    { name: 'Hamstringy', duration: '40s', desc: 'Sed, nohy rovně, předklon s rovnými zády.' },
+    { name: 'Kyčelní flexory', duration: '40s každá noha', desc: 'Výpad vpřed, zadní koleno na zemi, tlač kyčle vpřed.' },
+    { name: 'Lýtka', duration: '30s každá noha', desc: 'Opři se o zeď, zadní noha rovně, pata na zemi.' },
+    { name: 'Bederní záda', duration: '30s', desc: 'Leh na záda, přitáhni obě kolena k hrudníku.' },
+  ],
+  running: [
+    { name: 'Hamstringy', duration: '40s každá noha', desc: 'Stoj, jednu nohu natáhni před sebe na podložku, lehce předkloň.' },
+    { name: 'Kvadricepsy', duration: '30s každá noha', desc: 'Stoj, ohni koleno, drž kotník za zády.' },
+    { name: 'Lýtka & Achillova šlacha', duration: '30s každá noha', desc: 'Opři se o zeď, pata pevně na zemi. Pak pokrč koleno pro Achillovku.' },
+    { name: 'IT pásmo', duration: '30s každá noha', desc: 'Zkřiž nohy, předkloň se k přední noze.' },
+    { name: 'Kyčelní flexory', duration: '40s každá noha', desc: 'Hluboký výpad, koleno na zemi, tlač boky vpřed.' },
+    { name: 'Hýžďové svaly', duration: '30s každá noha', desc: 'Leh na záda, pokrč koleno přes druhou nohu do tvaru "4".' },
+  ],
+  strength: [
+    { name: 'Hrudník & ramena', duration: '30s', desc: 'Paže za záda, propojené ruce, ruce stlač dolů a otevři hrudník.' },
+    { name: 'Triceps', duration: '20s každá ruka', desc: 'Zvedni ruku nad hlavu, ohni loktem, druhou rukou mírně přitlač.' },
+    { name: 'Záda — cat-cow', duration: '30s / 10 opakování', desc: 'Klečmo na čtyřech, střídej prohnutí a vyhrbení zad.' },
+    { name: 'Hýžďové svaly', duration: '30s každá noha', desc: 'Leh, pokrč koleno přes druhou nohu, přitáhni k hrudníku.' },
+    { name: 'Kyčelní flexory', duration: '40s každá noha', desc: 'Hluboký výpad, koleno na zemi, tlač boky vpřed.' },
+    { name: 'Předloktí', duration: '20s každá ruka', desc: 'Nataž ruku dlaní nahoru, druhou rukou přitáhni prsty dolů.' },
+  ],
+  swimming: [
+    { name: 'Ramena — cross-body', duration: '20s každé', desc: 'Nataž ruku přes tělo, druhou rukou přitáhni k hrudníku.' },
+    { name: 'Hrudník u zdi', duration: '30s každá strana', desc: 'Dlaň na zeď, otoč tělo od ní. Cítiš protažení hrudníku.' },
+    { name: 'Triceps', duration: '20s každý', desc: 'Ruka za hlavu, loktem nahoru, druhou rukou mírně přitlač.' },
+    { name: 'Boky — rotace', duration: '30s každá strana', desc: 'Sed, přehoď nohu přes druhou, otoč trup na stranu pokrčené nohy.' },
+    { name: 'Záda & bederní oblast', duration: '30s', desc: 'Leh na záda, přitáhni obě kolena k hrudníku, kývej mírně do stran.' },
+  ],
+  yoga: [
+    { name: 'Dětská pozice', duration: '60s', desc: 'Klečmo, sed na paty, ruce natáhni vpřed, čelo na zem.' },
+    { name: 'Holubí pozice', duration: '45s každá strana', desc: 'Jedno koleno vpřed za rukama, druhá noha rovně vzadu.' },
+    { name: 'Kobra', duration: '30s', desc: 'Leh na břicho, vzepři se na dlaně, zvedni hrudník. Lokty mírně pokrčeny.' },
+  ],
+  hiking: [
+    { name: 'Lýtka', duration: '30s každá noha', desc: 'Opři se o zeď nebo strom, pata pevně na zemi.' },
+    { name: 'Hamstringy', duration: '40s', desc: 'Sed, nohy rovně, předklon s rovnými zády.' },
+    { name: 'Kvadricepsy', duration: '30s každá noha', desc: 'Stoj (opři se), ohni koleno, drž kotník.' },
+    { name: 'Kotníky', duration: '20s každý', desc: 'Krouž kotníkem po kruhu oběma směry.' },
+  ],
+  team_sport: [
+    { name: 'Třísla', duration: '30s', desc: 'Sed, chodidla k sobě (motýlek), mírně tlač kolena k zemi.' },
+    { name: 'Hamstringy', duration: '40s každá noha', desc: 'Stoj, jednu nohu polož na nízkou podložku, předkloň.' },
+    { name: 'Kyčle — pigeon', duration: '40s každá noha', desc: 'Z kleku přesuň jedno koleno za ruku, zadní noha rovně.' },
+    { name: 'Lýtka', duration: '30s každá noha', desc: 'Opři se, pata na zemi, noha rovně.' },
+  ],
+  boxing: [
+    { name: 'Ramena — overhead', duration: '30s každé', desc: 'Zvedni loket nad hlavu, druhou rukou mírně přitlač.' },
+    { name: 'Krk', duration: '20s každá strana', desc: 'Skloň hlavu do strany, rukou jemně přidej váhu.' },
+    { name: 'Hrudník u zdi', duration: '30s každá strana', desc: 'Dlaň na zeď, otoč tělo pryč od ní.' },
+    { name: 'Kyčelní flexory', duration: '40s každá noha', desc: 'Výpad vpřed, koleno na zemi, boky vpřed.' },
+    { name: 'Záda — rotace', duration: '30s každá strana', desc: 'Sed, pokrč nohu přes druhou, otoč trup ke kolenu.' },
+  ],
+  walking: [
+    { name: 'Lýtka', duration: '30s každá noha', desc: 'Opři se o zeď, pata na zemi.' },
+    { name: 'Třísla', duration: '30s', desc: 'Sed, chodidla k sobě, mírně tlač kolena dolů.' },
+  ],
+  dancing: [
+    { name: 'Třísla & vnitřní stehna', duration: '30s', desc: 'Sed, chodidla k sobě, tlač kolena k zemi.' },
+    { name: 'Kyčle — boční', duration: '30s každá strana', desc: 'Výpad do strany, druhá noha rovně. Tlač boky dolů.' },
+    { name: 'Záda & boky', duration: '30s každá strana', desc: 'Sed, pokrč nohu přes druhou, otoč trup.' },
+  ],
+  skiing: [
+    { name: 'Kvadricepsy', duration: '30s každá noha', desc: 'Stoj, ohni koleno, drž kotník za zády.' },
+    { name: 'Třísla', duration: '30s', desc: 'Sed, chodidla k sobě, mírně tlač kolena dolů.' },
+    { name: 'Lýtka', duration: '30s každá noha', desc: 'Opři se o zeď, pata na zemi, noha rovně.' },
+    { name: 'Záda — cat-cow', duration: '10 opakování', desc: 'Klečmo, střídej prohnutí a vyhrbení zad.' },
+  ],
+  rest: [],
+};
+
+function getStretches(types: TrainingType[]): Stretch[] {
+  const seen = new Set<string>();
+  const result: Stretch[] = [];
+  for (const t of types) {
+    const base = t.replace(/_hard|_medium|_light|_easy/g, '');
+    const key = Object.keys(STRETCHES).find(k => base.startsWith(k) || base.includes(k)) ?? 'cycling';
+    for (const s of (STRETCHES[key] ?? [])) {
+      if (!seen.has(s.name)) { seen.add(s.name); result.push(s); }
+    }
+  }
+  return result.slice(0, 8); // max 8 exercises
+}
+
+function StretchingModal({ types, accent, onClose }: { types: TrainingType[]; accent: string; onClose: () => void }) {
+  const stretches = getStretches(types);
+  if (!stretches.length) return null;
+
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{ background: T.card, borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 520, maxHeight: '88dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 0', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 22 }}>🧘</span>
+            <div>
+              <div style={{ fontFamily: 'Syne,sans-serif', fontWeight: 700, color: T.text, fontSize: 16 }}>Strečink po tréninku</div>
+              <div style={{ fontSize: 12, color: T.muted }}>Doporučeno pro tvoje aktivity · {stretches.length} cviků</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: T.muted, fontSize: 24, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>×</button>
+        </div>
+
+        <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {stretches.map((s, i) => (
+            <div key={i} style={{ background: T.bg, borderRadius: 14, padding: '14px 16px', border: `1px solid ${T.border}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    width: 26, height: 26, borderRadius: '50%', background: accent + '22',
+                    color: accent, fontSize: 12, fontWeight: 700, flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'Syne,sans-serif',
+                  }}>{i + 1}</div>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{s.name}</span>
+                </div>
+                <span style={{ fontSize: 11, color: accent, background: accent + '18', padding: '3px 8px', borderRadius: 20, flexShrink: 0, marginLeft: 8 }}>
+                  ⏱ {s.duration}
+                </span>
+              </div>
+              <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.5, paddingLeft: 34 }}>{s.desc}</div>
+            </div>
+          ))}
+
+          <div style={{ background: accent + '10', border: `1px solid ${accent}30`, borderRadius: 14, padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 18, flexShrink: 0 }}>💡</span>
+            <span style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.5 }}>
+              Strečink dělej pomalu a plynule. Každý cvik drž bez trhání. Dýchej rovnoměrně — při výdechu se hlouběji protáhni.
+            </span>
+          </div>
+
+          <button
+            onClick={onClose}
+            style={{ padding: '14px 0', borderRadius: 14, border: 'none', background: accent, color: '#000', fontWeight: 700, fontSize: 15, cursor: 'pointer', marginTop: 4 }}
+          >
+            ✓ Hotovo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Suggested meal % distributions by training type
 const DISTRIBUTIONS: Record<string, Record<string, number>> = {
   rest:       { snidane: 25, dop_svacina: 10, obed: 30, odp_svacina: 10, vecere: 25 },
@@ -47,10 +206,11 @@ export default function Plan() {
   const savedActHours   = trainingDay?.activity_hours   ?? {};
   const savedActIntens  = trainingDay?.activity_intensity ?? {};
 
-  const [selected,   setSelected]   = useState<Set<TrainingType>>(() => initSelected(savedPrimary, savedExtra));
-  const [actHours,   setActHours]   = useState<Record<string, number>>(savedActHours);
-  const [actIntens,  setActIntens]  = useState<Record<string, ActivityIntensity>>(savedActIntens as Record<string, ActivityIntensity>);
-  const [saving,     setSaving]     = useState(false);
+  const [selected,       setSelected]       = useState<Set<TrainingType>>(() => initSelected(savedPrimary, savedExtra));
+  const [actHours,       setActHours]       = useState<Record<string, number>>(savedActHours);
+  const [actIntens,      setActIntens]      = useState<Record<string, ActivityIntensity>>(savedActIntens as Record<string, ActivityIntensity>);
+  const [saving,         setSaving]         = useState(false);
+  const [showStretching, setShowStretching] = useState(false);
 
   useEffect(() => {
     setSelected(initSelected(
@@ -104,6 +264,7 @@ export default function Plan() {
       ride_hours:         totalH,
     });
     setSaving(false);
+    if (!selected.has('rest')) setShowStretching(true);
   };
 
   const selectedTypes   = Array.from(selected) as TrainingType[];
@@ -130,6 +291,13 @@ export default function Plan() {
 
   return (
     <div style={{ padding: '16px 16px 0' }}>
+      {showStretching && (
+        <StretchingModal
+          types={selectedTypes.filter(t => t !== 'rest')}
+          accent={accent}
+          onClose={() => setShowStretching(false)}
+        />
+      )}
 
       <div style={{ fontSize: 12, color: T.muted, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 14 }}>💡</span>

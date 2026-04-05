@@ -34,9 +34,108 @@ function SliderField({
   );
 }
 
+function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; currentWeight: number; accent: string }) {
+  const storageKey = `cyclofuel_target_weight_${userId}`;
+  const startKey   = `cyclofuel_start_weight_${userId}`;
+
+  const [targetWeight, setTargetWeight] = useState<number>(() => {
+    const v = localStorage.getItem(storageKey);
+    return v ? Number(v) : Math.max(40, currentWeight - 5);
+  });
+  const [startWeight] = useState<number>(() => {
+    const v = localStorage.getItem(startKey);
+    if (v) return Number(v);
+    localStorage.setItem(startKey, String(currentWeight));
+    return currentWeight;
+  });
+  const [saved, setSaved] = useState(false);
+
+  const tolose     = parseFloat((currentWeight - targetWeight).toFixed(1));
+  const totalGoal  = parseFloat((startWeight - targetWeight).toFixed(1));
+  const lost       = parseFloat((startWeight - currentWeight).toFixed(1));
+  const progress   = totalGoal > 0 ? Math.min(100, Math.max(0, Math.round((lost / totalGoal) * 100))) : 0;
+
+  // Recommended ~500 kcal deficit = ~0.5 kg/week
+  const weeksNeeded = tolose > 0 ? Math.ceil(tolose / 0.5) : 0;
+  const deficit     = tolose > 0 ? 500 : 0;
+
+  const handleSave = () => {
+    localStorage.setItem(storageKey, String(targetWeight));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const isGoalReached = tolose <= 0;
+
+  return (
+    <Card style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        <span style={{ fontSize: 20 }}>🎯</span>
+        <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 700, color: T.text }}>Cílová váha</span>
+      </div>
+
+      {isGoalReached ? (
+        <div style={{ textAlign: 'center', padding: '12px 0', marginBottom: 16 }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🏆</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#22c55e', marginBottom: 4 }}>Cíl splněn!</div>
+          <div style={{ fontSize: 13, color: T.muted }}>Aktuální váha je na nebo pod cílem</div>
+        </div>
+      ) : (
+        <>
+          {/* Progress bar */}
+          {totalGoal > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: T.muted, marginBottom: 6 }}>
+                <span>Start: {startWeight} kg</span>
+                <span>{progress}% splněno</span>
+                <span>Cíl: {targetWeight} kg</span>
+              </div>
+              <div style={{ height: 8, background: T.border, borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${progress}%`, background: accent, borderRadius: 4, transition: 'width 0.4s' }} />
+              </div>
+              {lost > 0 && (
+                <div style={{ fontSize: 12, color: '#22c55e', marginTop: 6, textAlign: 'center' }}>
+                  ✓ Už zhubnuto: {lost} kg
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
+            {[
+              { label: 'Zbývá', val: `${tolose} kg`, color: accent },
+              { label: 'Deficit/den', val: `-${deficit} kcal`, color: '#f59e0b' },
+              { label: 'Est. čas', val: `${weeksNeeded} týdnů`, color: T.muted },
+            ].map(x => (
+              <div key={x.label} style={{ background: T.bg, borderRadius: 10, padding: '10px 8px', textAlign: 'center' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: x.color, fontFamily: 'Syne,sans-serif' }}>{x.val}</div>
+                <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{x.label}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <SliderField
+        label="Cílová váha" value={targetWeight} min={40} max={currentWeight} step={0.5} unit="kg"
+        accent={accent} onChange={setTargetWeight}
+      />
+
+      <Btn accent={accent} size="md" full onClick={handleSave}>
+        {saved ? '✓ Uloženo' : 'Uložit cíl'}
+      </Btn>
+
+      <div style={{ fontSize: 11, color: T.muted, marginTop: 10, textAlign: 'center', lineHeight: 1.5 }}>
+        Doporučený deficit ~500 kcal/den = přibližně 0,5 kg/týden
+      </div>
+    </Card>
+  );
+}
+
 export default function Profile() {
   const ctx = useContext(AppContext);
-  const { accent, profile, saveProfile, signOut, trainingDay } = ctx;
+  const { userId, accent, profile, saveProfile, signOut, trainingDay } = ctx;
 
   const [weight, setWeight] = useState(profile?.weight ?? 70);
   const [height, setHeight] = useState(profile?.height ?? 175);
@@ -127,6 +226,10 @@ export default function Profile() {
           ) : saved ? '✓ Uloženo' : 'Uložit profil'}
         </Btn>
       </Card>
+
+      {/* Weight goal */}
+      <SectionTitle accent={accent}>Hubnutí</SectionTitle>
+      <WeightGoalCard userId={userId} currentWeight={weight} accent={accent} />
 
       {/* Stats summary */}
       <SectionTitle accent={accent}>Parametry těla</SectionTitle>
