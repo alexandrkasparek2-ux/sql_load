@@ -1,10 +1,100 @@
-import { useContext, useState } from 'react';
+import { useContext, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext }  from '../App';
 import { T, MacroCard, ProgressBar, SectionTitle, Card, Btn } from '../components/UI';
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
 import { FOODS } from '../constants/foods';
 import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
+
+// ─── Stretching checklist ─────────────────────────────────────
+interface StoredStretch { name: string; duration: string; desc: string; checked: boolean; }
+
+function StretchingChecklist({ userId, today, accent }: { userId: string; today: string; accent: string }) {
+  const key = `cyclofuel_stretching_${userId}_${today}`;
+
+  const [stretches, setStretches] = useState<StoredStretch[]>(() => {
+    try { return JSON.parse(localStorage.getItem(key) ?? 'null') ?? []; }
+    catch { return []; }
+  });
+
+  const toggle = useCallback((i: number) => {
+    setStretches(prev => {
+      const next = prev.map((s, idx) => idx === i ? { ...s, checked: !s.checked } : s);
+      localStorage.setItem(key, JSON.stringify(next));
+      return next;
+    });
+  }, [key]);
+
+  const dismiss = () => {
+    localStorage.removeItem(key);
+    setStretches([]);
+  };
+
+  if (!stretches.length) return null;
+
+  const doneCount = stretches.filter(s => s.checked).length;
+  const allDone   = doneCount === stretches.length;
+
+  return (
+    <>
+      <SectionTitle accent={accent}>
+        🧘 Strečink po tréninku
+        <span style={{ fontSize: 11, color: T.muted, fontWeight: 400, marginLeft: 8 }}>
+          {doneCount}/{stretches.length}
+        </span>
+      </SectionTitle>
+      <Card style={{ marginBottom: 16, borderColor: allDone ? '#22c55e44' : accent + '33', background: allDone ? '#22c55e08' : undefined }}>
+        {allDone && (
+          <div style={{ textAlign: 'center', padding: '10px 0 14px' }}>
+            <div style={{ fontSize: 28, marginBottom: 4 }}>🏆</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', marginBottom: 8 }}>
+              Skvělá práce! Strečink splněn.
+            </div>
+            <button
+              onClick={dismiss}
+              style={{ background: '#22c55e22', border: '1px solid #22c55e44', borderRadius: 10, color: '#22c55e', padding: '8px 20px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+            >
+              Zavřít
+            </button>
+          </div>
+        )}
+        {!allDone && stretches.map((s, i) => (
+          <div
+            key={i}
+            onClick={() => toggle(i)}
+            style={{
+              display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
+              padding: '10px 0',
+              borderBottom: i < stretches.length - 1 ? `1px solid ${T.border}` : 'none',
+              opacity: s.checked ? 0.45 : 1,
+              transition: 'opacity 0.2s',
+            }}
+          >
+            {/* Checkbox */}
+            <div style={{
+              width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: 1,
+              border: `2px solid ${s.checked ? '#22c55e' : accent}`,
+              background: s.checked ? '#22c55e' : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.15s',
+            }}>
+              {s.checked && <span style={{ color: '#000', fontSize: 13, fontWeight: 700, lineHeight: 1 }}>✓</span>}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.text, textDecoration: s.checked ? 'line-through' : 'none' }}>{s.name}</span>
+                <span style={{ fontSize: 11, color: accent, background: accent + '18', padding: '2px 7px', borderRadius: 20, flexShrink: 0, marginLeft: 8 }}>
+                  ⏱ {s.duration}
+                </span>
+              </div>
+              <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.4 }}>{s.desc}</div>
+            </div>
+          </div>
+        ))}
+      </Card>
+    </>
+  );
+}
 
 // ─── Calorie ring ────────────────────────────────────────────
 function KcalRing({ consumed, goal, accent }: { consumed: number; goal: number; accent: string }) {
@@ -437,6 +527,9 @@ export default function Dashboard() {
         <span style={{ fontSize: 14 }}>{training.icon}</span>
         <span style={{ fontSize: 13, color: accent, fontWeight: 600 }}>{training.label}</span>
       </div>
+
+      {/* Stretching checklist */}
+      <StretchingChecklist userId={userId} today={today} accent={accent} />
 
       {/* Calories + ring */}
       <Card style={{ marginBottom: 16 }}>

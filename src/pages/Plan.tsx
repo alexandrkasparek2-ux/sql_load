@@ -206,11 +206,11 @@ export default function Plan() {
   const savedActHours   = trainingDay?.activity_hours   ?? {};
   const savedActIntens  = trainingDay?.activity_intensity ?? {};
 
-  const [selected,       setSelected]       = useState<Set<TrainingType>>(() => initSelected(savedPrimary, savedExtra));
-  const [actHours,       setActHours]       = useState<Record<string, number>>(savedActHours);
-  const [actIntens,      setActIntens]      = useState<Record<string, ActivityIntensity>>(savedActIntens as Record<string, ActivityIntensity>);
-  const [saving,         setSaving]         = useState(false);
-  const [showStretching, setShowStretching] = useState(false);
+  const [selected,  setSelected]  = useState<Set<TrainingType>>(() => initSelected(savedPrimary, savedExtra));
+  const [actHours,  setActHours]  = useState<Record<string, number>>(savedActHours);
+  const [actIntens, setActIntens] = useState<Record<string, ActivityIntensity>>(savedActIntens as Record<string, ActivityIntensity>);
+  const [saving,    setSaving]    = useState(false);
+  const [saved,     setSaved]     = useState(false);
 
   useEffect(() => {
     setSelected(initSelected(
@@ -264,7 +264,16 @@ export default function Plan() {
       ride_hours:         totalH,
     });
     setSaving(false);
-    if (!selected.has('rest')) setShowStretching(true);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+
+    // Write stretches to localStorage so Dashboard can show them as checkboxes
+    if (!selected.has('rest')) {
+      const activeTypes = types.filter(t => t !== 'rest');
+      const stretches = getStretches(activeTypes).map(s => ({ ...s, checked: false }));
+      const { userId, today } = ctx;
+      localStorage.setItem(`cyclofuel_stretching_${userId}_${today}`, JSON.stringify(stretches));
+    }
   };
 
   const selectedTypes   = Array.from(selected) as TrainingType[];
@@ -291,13 +300,6 @@ export default function Plan() {
 
   return (
     <div style={{ padding: '16px 16px 0' }}>
-      {showStretching && (
-        <StretchingModal
-          types={selectedTypes.filter(t => t !== 'rest')}
-          accent={accent}
-          onClose={() => setShowStretching(false)}
-        />
-      )}
 
       <div style={{ fontSize: 12, color: T.muted, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 14 }}>💡</span>
@@ -335,10 +337,10 @@ export default function Plan() {
       </div>
 
       {/* ── Save button ───────────────────────────────── */}
-      {isDirty && (
+      {(isDirty || saved) && (
         <div style={{ marginBottom: 20 }}>
-          <Btn accent={primeCfg.color} size="md" full onClick={saveAll} disabled={saving}>
-            {saving ? 'Ukládám…' : '💾 Uložit plán dne'}
+          <Btn accent={primeCfg.color} size="md" full onClick={saveAll} disabled={saving || saved}>
+            {saving ? 'Ukládám…' : saved ? '✓ Uloženo — strečink čeká na hlavní obrazovce' : '💾 Uložit plán dne'}
           </Btn>
         </div>
       )}
