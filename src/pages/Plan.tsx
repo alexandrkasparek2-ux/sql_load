@@ -104,68 +104,6 @@ function getStretches(types: TrainingType[]): Stretch[] {
   return result.slice(0, 8); // max 8 exercises
 }
 
-function StretchingModal({ types, accent, onClose }: { types: TrainingType[]; accent: string; onClose: () => void }) {
-  const stretches = getStretches(types);
-  if (!stretches.length) return null;
-
-  return (
-    <div
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{ background: T.card, borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 520, maxHeight: '88dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 0', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 22 }}>🧘</span>
-            <div>
-              <div style={{ fontFamily: 'Syne,sans-serif', fontWeight: 700, color: T.text, fontSize: 16 }}>Strečink po tréninku</div>
-              <div style={{ fontSize: 12, color: T.muted }}>Doporučeno pro tvoje aktivity · {stretches.length} cviků</div>
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: T.muted, fontSize: 24, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>×</button>
-        </div>
-
-        <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {stretches.map((s, i) => (
-            <div key={i} style={{ background: T.bg, borderRadius: 14, padding: '14px 16px', border: `1px solid ${T.border}` }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{
-                    width: 26, height: 26, borderRadius: '50%', background: accent + '22',
-                    color: accent, fontSize: 12, fontWeight: 700, flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: 'Syne,sans-serif',
-                  }}>{i + 1}</div>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{s.name}</span>
-                </div>
-                <span style={{ fontSize: 11, color: accent, background: accent + '18', padding: '3px 8px', borderRadius: 20, flexShrink: 0, marginLeft: 8 }}>
-                  ⏱ {s.duration}
-                </span>
-              </div>
-              <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.5, paddingLeft: 34 }}>{s.desc}</div>
-            </div>
-          ))}
-
-          <div style={{ background: accent + '10', border: `1px solid ${accent}30`, borderRadius: 14, padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 18, flexShrink: 0 }}>💡</span>
-            <span style={{ fontSize: 13, color: '#e2e8f0', lineHeight: 1.5 }}>
-              Strečink dělej pomalu a plynule. Každý cvik drž bez trhání. Dýchej rovnoměrně — při výdechu se hlouběji protáhni.
-            </span>
-          </div>
-
-          <button
-            onClick={onClose}
-            style={{ padding: '14px 0', borderRadius: 14, border: 'none', background: accent, color: '#000', fontWeight: 700, fontSize: 15, cursor: 'pointer', marginTop: 4 }}
-          >
-            ✓ Hotovo
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // Suggested meal % distributions by training type
 const DISTRIBUTIONS: Record<string, Record<string, number>> = {
   rest:       { snidane: 25, dop_svacina: 10, obed: 30, odp_svacina: 10, vecere: 25 },
