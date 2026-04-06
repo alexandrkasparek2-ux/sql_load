@@ -36,7 +36,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#22c55e', glow: 'rgba(34,197,94,0.25)',
     desc: 'Regenerační jízda nebo Z2 vytrvalost',
     macros: { carbs: 5.0, protein: 1.9, fat: 1.0 },
-    microMul: 1.1, calBurnRate: 5.5,
+    microMul: 1.1, calBurnRate: 4.0,
     tips: ['Nízká intenzita – měl bys být schopen mluvit','Nezapomeň na elektrolyty při jízdě nad 60 min','Ideální pro aktivní regeneraci'],
   },
   {
@@ -44,7 +44,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#f59e0b', glow: 'rgba(245,158,11,0.25)',
     desc: 'Intervalový nebo tempový trénink',
     macros: { carbs: 7.0, protein: 2.0, fat: 0.9 },
-    microMul: 1.25, calBurnRate: 8.5,
+    microMul: 1.25, calBurnRate: 6.0,
     tips: ['Sacharidy před i během jízdy jsou klíčové','Hydratuj každých 15–20 minut','Po tréninku doplň elektrolyty a bílkoviny'],
   },
   {
@@ -52,7 +52,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#ef4444', glow: 'rgba(239,68,68,0.25)',
     desc: 'VO₂max nebo závodní tempo',
     macros: { carbs: 9.0, protein: 2.1, fat: 0.8 },
-    microMul: 1.5, calBurnRate: 11.0,
+    microMul: 1.5, calBurnRate: 8.0,
     tips: ['60–90 g sacharidů za každou hodinu jízdy','Gel každých 30–45 minut při vysoké intenzitě','Protein do 30 minut po výkonu pro regeneraci'],
   },
   {
@@ -60,7 +60,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#a855f7', glow: 'rgba(168,85,247,0.25)',
     desc: 'Den závodu – maximální výkon',
     macros: { carbs: 11.0, protein: 2.2, fat: 0.7 },
-    microMul: 1.7, calBurnRate: 13.0,
+    microMul: 1.7, calBurnRate: 10.0,
     tips: ['Carb loading 2–3 dny před závodem','90 g sacharidů/hod při závodě','Izotonický nápoj + gely + banán – kombinuj zdroje'],
   },
   // ── Ostatní sporty ───────────────────────────────────────
@@ -69,7 +69,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#f97316', glow: 'rgba(249,115,22,0.25)',
     desc: 'Posilovna, kettlebell, crossfit',
     macros: { carbs: 4.0, protein: 2.3, fat: 1.0 },
-    microMul: 1.2, calBurnRate: 6.0,
+    microMul: 1.2, calBurnRate: 4.5,
     tips: ['Dostatek bílkovin (2,3 g/kg) pro svalový růst','Sacharidy před tréninkem pro energii','Kreatin + protein do 30 min po tréninku'],
   },
   {
@@ -77,7 +77,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#06b6d4', glow: 'rgba(6,182,212,0.25)',
     desc: 'Silniční běh, trail, sprint',
     macros: { carbs: 6.5, protein: 1.9, fat: 0.9 },
-    microMul: 1.3, calBurnRate: 10.0,
+    microMul: 1.3, calBurnRate: 7.5,
     tips: ['Sacharidy 1–2 hod před závodem/tréninkem','Hydratace každých 20 min při běhu','Gel nebo banán při běhu delším než 60 min'],
   },
   {
@@ -85,7 +85,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#0ea5e9', glow: 'rgba(14,165,233,0.25)',
     desc: 'Bazén, otevřená voda',
     macros: { carbs: 6.0, protein: 2.0, fat: 0.9 },
-    microMul: 1.3, calBurnRate: 9.0,
+    microMul: 1.3, calBurnRate: 6.5,
     tips: ['Hydratace i ve vodě – pocit žízně je opožděný','Jídlo 2 hod před plavením','Sacharidy + bílkoviny po tréninku'],
   },
   {
@@ -93,7 +93,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#84cc16', glow: 'rgba(132,204,22,0.25)',
     desc: 'Fotbal, basketbal, tenis, hokej…',
     macros: { carbs: 6.0, protein: 1.9, fat: 1.0 },
-    microMul: 1.2, calBurnRate: 8.0,
+    microMul: 1.2, calBurnRate: 5.5,
     tips: ['Sacharidová jídla 3 hod před zápasem','Izotonický nápoj během zápasu','Regenerace: bílkoviny + sacharidy do 30 min'],
   },
   {
@@ -101,7 +101,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#d946ef', glow: 'rgba(217,70,239,0.25)',
     desc: 'Jóga, pilates, strečink, meditace',
     macros: { carbs: 3.5, protein: 1.8, fat: 1.0 },
-    microMul: 1.05, calBurnRate: 3.0,
+    microMul: 1.05, calBurnRate: 2.5,
     tips: ['Lehké jídlo 1–2 hod před cvičením','Hydratace během i po cvičení','Hořčík večer podporuje svalovou relaxaci'],
   },
   {
@@ -109,7 +109,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#10b981', glow: 'rgba(16,185,129,0.25)',
     desc: 'Procházka, nordic walking, vycházka',
     macros: { carbs: 3.5, protein: 1.7, fat: 1.1 },
-    microMul: 1.05, calBurnRate: 3.5,
+    microMul: 1.05, calBurnRate: 2.5,
     tips: ['Ideální pro aktivní regeneraci a spalování tuků','Nordic walking zapojuje i horní polovinu těla','Dostatek tekutin i při nízké intenzitě'],
   },
   {
@@ -117,7 +117,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#78716c', glow: 'rgba(120,113,108,0.25)',
     desc: 'Horská turistika, trekking, výlety',
     macros: { carbs: 6.0, protein: 1.9, fat: 1.0 },
-    microMul: 1.2, calBurnRate: 6.0,
+    microMul: 1.2, calBurnRate: 4.5,
     tips: ['Energetické tyčinky a ořechy jsou ideální na trail','Pij minimálně 0,5 l vody za hodinu chůze','Elektrolyty při celodenní turistice jsou nezbytné'],
   },
   {
@@ -125,7 +125,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#f43f5e', glow: 'rgba(244,63,94,0.25)',
     desc: 'Spinning, indoor cycling, stacionární kolo',
     macros: { carbs: 7.0, protein: 2.0, fat: 0.9 },
-    microMul: 1.3, calBurnRate: 9.0,
+    microMul: 1.3, calBurnRate: 6.5,
     tips: ['Intenzivní hodina spinningu = 500–800 kcal','Pij izotonický nápoj během cvičení','Sacharidy + protein do 30 min po spinningu'],
   },
   {
@@ -133,7 +133,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#ec4899', glow: 'rgba(236,72,153,0.25)',
     desc: 'Tanec, Zumba, aerobik, salsa',
     macros: { carbs: 5.0, protein: 1.8, fat: 1.0 },
-    microMul: 1.1, calBurnRate: 5.0,
+    microMul: 1.1, calBurnRate: 3.5,
     tips: ['Lehká svačina 1 hod před tancem','Hydratace je klíčová při dlouhých tanečních blocích','Protažení po tanci předchází svalovým křečím'],
   },
   {
@@ -141,7 +141,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#38bdf8', glow: 'rgba(56,189,248,0.25)',
     desc: 'Sjezdové lyžování, snowboard, běžky',
     macros: { carbs: 6.5, protein: 1.9, fat: 1.0 },
-    microMul: 1.25, calBurnRate: 7.0,
+    microMul: 1.25, calBurnRate: 5.0,
     tips: ['V chladu tělo spaluje více kalorií – jez víc','Teplý polévkový oběd na horách – skvělá volba','Hydratace v chladu je stejně důležitá jako v teple'],
   },
   {
@@ -149,7 +149,7 @@ export const TRAINING_TYPES: TrainingConfig[] = [
     color: '#b45309', glow: 'rgba(180,83,9,0.25)',
     desc: 'Box, MMA, kickbox, karate, judo',
     macros: { carbs: 5.5, protein: 2.2, fat: 0.9 },
-    microMul: 1.3, calBurnRate: 8.5,
+    microMul: 1.3, calBurnRate: 6.0,
     tips: ['Sacharidy + bílkoviny 2 hod před tréninkem','Vyhni se tučnému jídlu před bojovým sportem','Protein + sacharidy ihned po tréninku pro regeneraci'],
   },
 ];
@@ -195,8 +195,12 @@ export function calcCalories(p: CalcProfile, type: TrainingType, activeHours: nu
   const bmr = calcBMR(p);
   if (type === 'rest') return Math.round(bmr * 1.2);
   const cfg = TRAINING_TYPES.find(t => t.id === type)!;
-  // BMR×1.2 = sedentary base; (calBurnRate-1) = net kcal/kg/h above resting (net MET)
-  return Math.round(bmr * 1.2 + activeHours * p.weight * (cfg.calBurnRate - 1.0));
+  // Reduce sedentary base proportionally as exercise hours increase (avoid double-counting).
+  // At 0h active → BMR×1.2 (sedentary day). At 8h+ active → BMR×1.05 (base nearly replaced by activity).
+  const h = Math.min(activeHours, 12);
+  const base = bmr * (1.2 - 0.15 * Math.min(h / 8, 1));
+  const activity = h * p.weight * (cfg.calBurnRate - 1.0);
+  return Math.round(base + activity);
 }
 
 export const INTENSITY_MUL: Record<string, number> = { low: 0.7, medium: 1.0, high: 1.3 };
@@ -210,13 +214,16 @@ export function calcCaloriesMulti(
   const bmr = calcBMR(p);
   const active = types.filter(t => t !== 'rest');
   if (active.length === 0) return Math.round(bmr * 1.2);
+  const totalH = active.reduce((s, t) => s + (hoursMap[t] ?? 0), 0);
   const burn = active.reduce((sum, t) => {
     const cfg = TRAINING_TYPES.find(x => x.id === t)!;
     const mul = INTENSITY_MUL[intensityMap[t] ?? 'medium'] ?? 1.0;
-    // (calBurnRate-1) = net MET (kcal/kg/h above resting) to avoid double-counting BMR
     return sum + (hoursMap[t] ?? 0) * p.weight * (cfg.calBurnRate - 1.0) * mul;
   }, 0);
-  return Math.round(bmr * 1.2 + burn);
+  // Same proportional base reduction as calcCalories to avoid double-counting
+  const h = Math.min(totalH, 12);
+  const base = bmr * (1.2 - 0.15 * Math.min(h / 8, 1));
+  return Math.round(base + burn);
 }
 
 export function primaryType(types: TrainingType[]): TrainingType {
