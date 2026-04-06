@@ -752,11 +752,3 @@ export default function Dashboard() {
   );
 }
 
-function MiniStat({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-      <span style={{ fontSize: 13, color: T.muted }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 600, color }}>{value}</span>
-    </div>
-  );
-}
