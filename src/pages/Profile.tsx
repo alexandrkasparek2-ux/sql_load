@@ -173,6 +173,43 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
   );
 }
 
+// ─── Weight log button (inline in profile card) ───────────────
+function WeightLogBtn({ userId, currentWeight, accent, onLogged }: { userId: string; currentWeight: number; accent: string; onLogged: () => void }) {
+  const logKey = `cyclofuel_weight_log_${userId}`;
+  const today  = new Date().toISOString().split('T')[0];
+  const [logged, setLogged] = useState(false);
+
+  const entries: { date: string; weight: number }[] = (() => {
+    try { return JSON.parse(localStorage.getItem(logKey) ?? '[]'); }
+    catch { return []; }
+  })();
+  const todayLogged = entries.some(e => e.date === today);
+
+  const log = () => {
+    const next = [...entries.filter(e => e.date !== today), { date: today, weight: currentWeight }]
+      .sort((a, b) => a.date.localeCompare(b.date)).slice(-60);
+    localStorage.setItem(logKey, JSON.stringify(next));
+    setLogged(true);
+    onLogged();
+    setTimeout(() => setLogged(false), 2000);
+  };
+
+  return (
+    <button onClick={log} style={{
+      width: '100%', marginBottom: 18,
+      padding: '10px', borderRadius: 10, cursor: 'pointer',
+      border: `1px solid ${logged ? '#30d158' : todayLogged ? accent + '44' : accent}`,
+      background: logged ? '#30d15815' : todayLogged ? accent + '10' : accent + '18',
+      color: logged ? '#30d158' : accent,
+      fontSize: 13, fontWeight: 700, letterSpacing: '0.04em',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    }}>
+      <span style={{ fontSize: 16 }}>{logged ? '✓' : '⚖️'}</span>
+      {logged ? 'Váha zaznamenána!' : todayLogged ? `Přepsat dnešní záznam (${currentWeight} kg)` : `Zaznamenat váhu · ${currentWeight} kg`}
+    </button>
+  );
+}
+
 // ─── Weight tracker ───────────────────────────────────────────
 interface WeightEntry { date: string; weight: number; }
 
@@ -180,27 +217,13 @@ function WeightTracker({ userId, currentWeight, accent }: { userId: string; curr
   const logKey    = `cyclofuel_weight_log_${userId}`;
   const targetKey = `cyclofuel_target_weight_${userId}`;
 
-  const [entries, setEntries] = useState<WeightEntry[]>(() => {
+  const [entries] = useState<WeightEntry[]>(() => {
     try { return JSON.parse(localStorage.getItem(logKey) ?? '[]'); }
     catch { return []; }
   });
-  const [logged, setLogged] = useState(false);
 
-  const today       = new Date().toISOString().split('T')[0];
+  const today        = new Date().toISOString().split('T')[0];
   const targetWeight = Number(localStorage.getItem(targetKey) ?? 0) || null;
-
-  const logToday = () => {
-    const existing = entries.filter(e => e.date !== today);
-    const next = [...existing, { date: today, weight: currentWeight }]
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(-60); // keep last 60 entries
-    localStorage.setItem(logKey, JSON.stringify(next));
-    setEntries(next);
-    setLogged(true);
-    setTimeout(() => setLogged(false), 2000);
-  };
-
-  const todayLogged = entries.some(e => e.date === today);
 
   // Chart
   const W = 280, H = 110, padL = 34, padR = 8, padT = 12, padB = 24;
@@ -235,23 +258,12 @@ function WeightTracker({ userId, currentWeight, accent }: { userId: string; curr
   return (
     <Card style={{ marginBottom: 16 }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 18 }}>📈</span>
-          <span style={{ fontFamily: 'Syne,sans-serif', fontWeight: 700, color: T.text, fontSize: 14 }}>Vývoj váhy</span>
-        </div>
-        <button
-          onClick={logToday}
-          style={{
-            background: logged ? '#30d15822' : accent + '22',
-            border:     `1px solid ${logged ? '#30d158' : accent}44`,
-            borderRadius: 8, color: logged ? '#30d158' : accent,
-            padding: '5px 12px', fontSize: 12, fontWeight: 700,
-            cursor: 'pointer', letterSpacing: '0.04em',
-          }}
-        >
-          {logged ? '✓ Uloženo' : todayLogged ? `↺ ${currentWeight} kg` : `+ ${currentWeight} kg`}
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+        <span style={{ fontSize: 16 }}>📈</span>
+        <span style={{ fontFamily: 'Syne,sans-serif', fontWeight: 700, color: T.text, fontSize: 13 }}>Vývoj váhy</span>
+        {entries.length > 0 && (
+          <span style={{ fontSize: 11, color: T.muted, marginLeft: 4 }}>{entries.length} měření</span>
+        )}
       </div>
 
       {entries.length < 2 ? (
@@ -360,8 +372,9 @@ export default function Profile() {
   const [height, setHeight] = useState(profile?.height ?? 175);
   const [age,    setAge]    = useState(profile?.age    ?? 30);
   const [gender, setGender] = useState<'male' | 'female'>(profile?.gender ?? 'male');
-  const [saving, setSaving] = useState(false);
-  const [saved,  setSaved]  = useState(false);
+  const [saving,       setSaving]       = useState(false);
+  const [saved,        setSaved]        = useState(false);
+  const [weightLogKey, setWeightLogKey] = useState(0);
 
   useEffect(() => {
     if (profile) {
@@ -430,6 +443,7 @@ export default function Profile() {
           label="Hmotnost" value={weight} min={40} max={150} step={1} unit="kg"
           accent={accent} onChange={setWeight}
         />
+        <WeightLogBtn userId={userId} currentWeight={weight} accent={accent} onLogged={() => setWeightLogKey(k => k + 1)} />
         <SliderField
           label="Výška"    value={height} min={140} max={220} step={1} unit="cm"
           accent={accent} onChange={setHeight}
@@ -452,7 +466,7 @@ export default function Profile() {
 
       {/* Weight tracker */}
       <SectionTitle accent={accent}>Vývoj váhy</SectionTitle>
-      <WeightTracker userId={userId} currentWeight={weight} accent={accent} />
+      <WeightTracker key={weightLogKey} userId={userId} currentWeight={weight} accent={accent} />
 
       {/* Stats summary */}
       <SectionTitle accent={accent}>Parametry těla</SectionTitle>
