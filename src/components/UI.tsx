@@ -1,7 +1,7 @@
 import React from 'react';
 
 // ──────────────────────────────────────────────────────────
-// Whoop-inspired theme tokens
+// Theme tokens
 // ──────────────────────────────────────────────────────────
 export const T = {
   bg:     '#0a0a0a',
@@ -10,6 +10,16 @@ export const T = {
   text:   '#f0f0f0',
   muted:  '#5a5a5a',
   radius: 10,
+} as const;
+
+// Apple Activity color palette
+export const APPLE = {
+  red:    '#ff375f',   // Move / Kalorie
+  green:  '#30d158',   // Exercise / Bílkoviny
+  blue:   '#0a84ff',   // Stand / Sacharidy
+  orange: '#ff9f0a',   // Tuky
+  cyan:   '#64d2ff',   // Voda
+  yellow: '#ffd60a',
 } as const;
 
 // ──────────────────────────────────────────────────────────
@@ -63,6 +73,25 @@ export function ProgressBar({
 }
 
 // ──────────────────────────────────────────────────────────
+// Mini arc (Apple Activity style)
+// ──────────────────────────────────────────────────────────
+function MiniArc({ pct, color }: { pct: number; color: string }) {
+  const r    = 14;
+  const sw   = 3.5;
+  const circ = 2 * Math.PI * r;
+  const dash = Math.min(pct / 100, 1) * circ;
+  return (
+    <svg width={34} height={34} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
+      <circle cx={17} cy={17} r={r} fill="none" stroke={color + '25'} strokeWidth={sw} />
+      <circle cx={17} cy={17} r={r} fill="none" stroke={color} strokeWidth={sw}
+        strokeLinecap="round" strokeDasharray={`${dash} ${circ}`}
+        style={{ filter: `drop-shadow(0 0 3px ${color}99)`, transition: 'stroke-dasharray 0.5s cubic-bezier(0.4,0,0.2,1)' }}
+      />
+    </svg>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
 // MacroCard
 // ──────────────────────────────────────────────────────────
 interface MacroCardProps {
@@ -84,22 +113,24 @@ export function MacroCard({ label, value, target, unit, color, decimals = 0 }: M
       background:   T.card,
       border:       `1px solid ${T.border}`,
       borderRadius: T.radius,
-      padding:      '14px 12px',
+      padding:      '12px 12px',
       flex:         1,
       minWidth:     0,
     }}>
-      <div style={{ fontSize: 10, color: T.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-        {label}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: 10, color: T.muted, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>
+          {label}
+        </span>
+        <MiniArc pct={pct} color={color} />
       </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginBottom: 8 }}>
-        <span style={{ fontSize: 22, fontWeight: 800, color: T.text, fontFamily: 'Syne, sans-serif', letterSpacing: '-0.02em' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+        <span style={{ fontSize: 20, fontWeight: 800, color, fontFamily: 'Syne, sans-serif', letterSpacing: '-0.02em' }}>
           {fmt(value)}
         </span>
-        <span style={{ fontSize: 11, color: T.muted, marginLeft: 1 }}>{unit}</span>
+        <span style={{ fontSize: 10, color: T.muted, marginLeft: 1 }}>{unit}</span>
       </div>
-      <ProgressBar value={value} max={target} color={color} height={3} />
-      <div style={{ fontSize: 10, color: isOver ? '#ef4444' : T.muted, marginTop: 5 }}>
-        {isOver ? `+${Math.round(value - target)}${unit} přes cíl` : `${pct}% z ${fmt(target)}${unit}`}
+      <div style={{ fontSize: 10, color: isOver ? '#ff375f' : T.muted, marginTop: 4 }}>
+        {isOver ? `+${Math.round(value - target)}${unit} přes` : `z ${fmt(target)}${unit}`}
       </div>
     </div>
   );

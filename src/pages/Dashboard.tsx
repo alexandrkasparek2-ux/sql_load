@@ -1,7 +1,7 @@
 import { useContext, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext }  from '../App';
-import { T, MacroCard, ProgressBar, SectionTitle, Card, Btn } from '../components/UI';
+import { T, APPLE, MacroCard, ProgressBar, SectionTitle, Card, Btn } from '../components/UI';
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
 import { FOODS } from '../constants/foods';
 import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
@@ -96,43 +96,47 @@ function StretchingChecklist({ userId, today, accent }: { userId: string; today:
   );
 }
 
-// ─── Calorie ring ────────────────────────────────────────────
-function KcalRing({ consumed, goal, accent }: { consumed: number; goal: number; accent: string }) {
-  const pct    = goal > 0 ? Math.min(1, consumed / goal) : 0;
-  const r      = 70;
-  const circ   = 2 * Math.PI * r;
-  const dash   = pct * circ;
-  const isOver = consumed > goal && goal > 0;
-  const fill   = isOver ? '#ef4444' : accent;
+// ─── Apple Activity triple rings ─────────────────────────────
+interface ActivityRingsProps {
+  kcal: number; kcalGoal: number;
+  protein: number; proteinGoal: number;
+  carbs: number; carbsGoal: number;
+}
+function ActivityRings({ kcal, kcalGoal, protein, proteinGoal, carbs, carbsGoal }: ActivityRingsProps) {
+  const cx = 90, cy = 90, sw = 11;
+  const rings = [
+    { r: 68, value: kcal,    goal: kcalGoal,    color: APPLE.red,   label: 'kcal' },
+    { r: 52, value: protein, goal: proteinGoal, color: APPLE.green, label: 'B' },
+    { r: 36, value: carbs,   goal: carbsGoal,   color: APPLE.blue,  label: 'S' },
+  ];
+  const kcalOver = kcal > kcalGoal && kcalGoal > 0;
 
   return (
     <div style={{ position: 'relative', width: 180, height: 180, flexShrink: 0 }}>
       <svg width={180} height={180} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={90} cy={90} r={r} fill="none" stroke={T.border} strokeWidth={12} />
-        <circle
-          cx={90} cy={90} r={r}
-          fill="none"
-          stroke={fill}
-          strokeWidth={12}
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ}`}
-          style={{ transition: 'stroke-dasharray 0.6s cubic-bezier(0.4,0,0.2,1)', filter: `drop-shadow(0 0 6px ${fill}88)` }}
-        />
+        {rings.map(ring => {
+          const circ = 2 * Math.PI * ring.r;
+          const pct  = ring.goal > 0 ? Math.min(1, ring.value / ring.goal) : 0;
+          const dash = pct * circ;
+          return (
+            <g key={ring.r}>
+              <circle cx={cx} cy={cy} r={ring.r} fill="none" stroke={ring.color + '22'} strokeWidth={sw} />
+              <circle cx={cx} cy={cy} r={ring.r} fill="none" stroke={ring.color}
+                strokeWidth={sw} strokeLinecap="round"
+                strokeDasharray={`${dash} ${circ}`}
+                style={{ filter: `drop-shadow(0 0 5px ${ring.color}88)`, transition: 'stroke-dasharray 0.6s cubic-bezier(0.4,0,0.2,1)' }}
+              />
+            </g>
+          );
+        })}
       </svg>
-      <div style={{
-        position:       'absolute',
-        inset:          0,
-        display:        'flex',
-        flexDirection:  'column',
-        alignItems:     'center',
-        justifyContent: 'center',
-      }}>
-        <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 30, fontWeight: 800, color: T.text, lineHeight: 1 }}>
-          {Math.round(consumed)}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 28, fontWeight: 800, color: APPLE.red, lineHeight: 1, letterSpacing: '-0.02em' }}>
+          {Math.round(kcal)}
         </span>
-        <span style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>z {Math.round(goal)} kcal</span>
-        <span style={{ fontSize: 11, color: isOver ? '#ef4444' : accent, marginTop: 2, fontWeight: 600 }}>
-          {isOver ? `+${Math.round(consumed - goal)} přes` : `${Math.round(goal - consumed)} zbývá`}
+        <span style={{ fontSize: 10, color: T.muted, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.08em' }}>kcal</span>
+        <span style={{ fontSize: 10, color: kcalOver ? APPLE.red : T.muted, marginTop: 5, fontWeight: 600 }}>
+          {kcalOver ? `+${Math.round(kcal - kcalGoal)} přes` : `${Math.round(kcalGoal - kcal)} zbývá`}
         </span>
       </div>
     </div>
@@ -409,9 +413,9 @@ function MealRecCard({ trainingType, accent, onAddAll }: {
       }}>
         {[
           { label: 'Kcal', value: Math.round(totals.kcal),    color: accent  },
-          { label: 'S',    value: Math.round(totals.carbs),   color: '#f59e0b' },
-          { label: 'B',    value: Math.round(totals.protein), color: '#22c55e' },
-          { label: 'T',    value: Math.round(totals.fat),     color: '#a855f7' },
+          { label: 'S',    value: Math.round(totals.carbs),   color: APPLE.blue   },
+          { label: 'B',    value: Math.round(totals.protein), color: APPLE.green  },
+          { label: 'T',    value: Math.round(totals.fat),     color: APPLE.orange },
         ].map(m => (
           <div key={m.label} style={{ flex: 1, textAlign: 'center' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: m.color }}>{m.value}</div>
@@ -531,22 +535,34 @@ export default function Dashboard() {
       {/* Stretching checklist */}
       <StretchingChecklist userId={userId} today={today} accent={accent} />
 
-      {/* Calories + ring */}
+      {/* Activity rings hero */}
       <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-          <KcalRing consumed={totals.kcal} goal={goals.kcal} accent={accent} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-              Kalorický příjem
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <MiniStat label="Snědeno" value={`${Math.round(totals.kcal)} kcal`} color={accent} />
-              <MiniStat label="Cíl"     value={`${Math.round(goals.kcal)} kcal`}  color={T.muted} />
-              <MiniStat
-                label="Zbývá"
-                value={`${Math.max(0, Math.round(goals.kcal - totals.kcal))} kcal`}
-                color={totals.kcal > goals.kcal ? '#ef4444' : T.text}
-              />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <ActivityRings
+            kcal={totals.kcal}       kcalGoal={goals.kcal}
+            protein={totals.protein} proteinGoal={goals.protein}
+            carbs={totals.carbs}     carbsGoal={goals.carbs}
+          />
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[
+              { label: 'Kalorie',    val: Math.round(totals.kcal),    goal: Math.round(goals.kcal),    unit: 'kcal', color: APPLE.red   },
+              { label: 'Bílkoviny', val: Math.round(totals.protein),  goal: Math.round(goals.protein), unit: 'g',    color: APPLE.green },
+              { label: 'Sacharidy', val: Math.round(totals.carbs),    goal: Math.round(goals.carbs),   unit: 'g',    color: APPLE.blue  },
+            ].map(m => (
+              <div key={m.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0, boxShadow: `0 0 6px ${m.color}` }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                    <span style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{m.label}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: m.color }}>{m.val}<span style={{ fontSize: 9, color: T.muted, marginLeft: 1 }}>{m.unit}</span></span>
+                  </div>
+                  <ProgressBar value={m.val} max={m.goal} color={m.color} height={3} />
+                </div>
+              </div>
+            ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 4, borderTop: `1px solid ${T.border}` }}>
+              <span style={{ fontSize: 10, color: T.muted }}>Cíl dnes</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{Math.round(goals.kcal)} kcal</span>
             </div>
           </div>
         </div>
@@ -555,9 +571,9 @@ export default function Dashboard() {
       {/* Macro cards */}
       <SectionTitle accent={accent}>Makroživiny</SectionTitle>
       <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        <MacroCard label="Sacharidy" value={totals.carbs}   target={goals.carbs}   unit="g" color="#f59e0b" />
-        <MacroCard label="Bílkoviny" value={totals.protein} target={goals.protein} unit="g" color="#22c55e" />
-        <MacroCard label="Tuky"      value={totals.fat}     target={goals.fat}     unit="g" color="#a855f7" />
+        <MacroCard label="Sacharidy" value={totals.carbs}   target={goals.carbs}   unit="g" color={APPLE.blue}   />
+        <MacroCard label="Bílkoviny" value={totals.protein} target={goals.protein} unit="g" color={APPLE.green}  />
+        <MacroCard label="Tuky"      value={totals.fat}     target={goals.fat}     unit="g" color={APPLE.orange} />
       </div>
 
       {/* Fiber bar */}
