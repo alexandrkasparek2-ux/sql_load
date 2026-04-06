@@ -45,13 +45,21 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
     const v = localStorage.getItem(storageKey);
     return v ? Number(v) : Math.max(40, currentWeight - 5);
   });
-  const [startWeight] = useState<number>(() => {
+  const [startWeight, setStartWeight] = useState<number>(() => {
     const v = localStorage.getItem(startKey);
     if (v) return Number(v);
     localStorage.setItem(startKey, String(currentWeight));
     return currentWeight;
   });
   const [saved, setSaved] = useState(false);
+
+  // If user increased weight above stored start, update start weight
+  useEffect(() => {
+    if (currentWeight > startWeight) {
+      localStorage.setItem(startKey, String(currentWeight));
+      setStartWeight(currentWeight);
+    }
+  }, [currentWeight, startWeight, startKey]);
 
   const tolose     = parseFloat((currentWeight - targetWeight).toFixed(1));
   const totalGoal  = parseFloat((startWeight - targetWeight).toFixed(1));
