@@ -3741,4 +3741,22 @@ export const FOODS: Food[] = [
     kcal: 500, carbs: 12.0, protein: 25.0, fat: 38.0, fiber: 6.0, per: 30,
     micros: { na: 120, k: 280, mg: 50, ca: 100, fe: 2.0, vit_c: 0, vit_d: 0, b12: 0, omega3: 60, zn: 1.5 },
   },
+
+  // ── Špecle ───────────────────────────────────────────────
+  {
+    id: 'spaetzle_chicken_mushroom',
+    cat: '🍛 Hlavní jídla',
+    name: 'Špecle s kuřecím masem a smetanovou houbovou omáčkou',
+    // per 100 g: ~55 % špecle, 25 % kuřecí prso, 20 % smetanová houbová omáčka
+    kcal: 155, carbs: 17.0, protein: 10.5, fat: 5.0, fiber: 1.0, per: 380,
+    micros: { na: 370, k: 240, mg: 20, ca: 50, fe: 1.0, vit_c: 2, vit_d: 0.3, b12: 0.4, omega3: 60, zn: 1.3 },
+  },
+  {
+    id: 'spaetzle_chicken_mushroom_cream',
+    cat: '🍛 Hlavní jídla',
+    name: 'Špecle s kuřecím masem – bohatší verze (více smetany)',
+    // více smetany a másla v omáčce
+    kcal: 185, carbs: 16.0, protein: 10.0, fat: 8.5, fiber: 0.8, per: 380,
+    micros: { na: 410, k: 220, mg: 18, ca: 70, fe: 0.9, vit_c: 1, vit_d: 0.4, b12: 0.4, omega3: 80, zn: 1.2 },
+  },
 ];
