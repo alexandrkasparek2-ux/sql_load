@@ -101,15 +101,18 @@ interface ActivityRingsProps {
   kcal: number; kcalGoal: number;
   protein: number; proteinGoal: number;
   carbs: number; carbsGoal: number;
+  fat: number; fatGoal: number;
 }
-function ActivityRings({ kcal, kcalGoal, protein, proteinGoal, carbs, carbsGoal }: ActivityRingsProps) {
-  const cx = 90, cy = 90, sw = 11;
+function ActivityRings({ kcal, kcalGoal, protein, proteinGoal, carbs, carbsGoal, fat, fatGoal }: ActivityRingsProps) {
+  const cx = 90, cy = 90, sw = 8;
   const rings = [
-    { r: 68, value: kcal,    goal: kcalGoal,    color: APPLE.red,   label: 'kcal' },
-    { r: 52, value: protein, goal: proteinGoal, color: APPLE.green, label: 'B' },
-    { r: 36, value: carbs,   goal: carbsGoal,   color: APPLE.blue,  label: 'S' },
+    { r: 68, value: kcal,    goal: kcalGoal,    color: APPLE.red    },
+    { r: 55, value: protein, goal: proteinGoal, color: APPLE.green  },
+    { r: 42, value: carbs,   goal: carbsGoal,   color: APPLE.blue   },
+    { r: 29, value: fat,     goal: fatGoal,     color: APPLE.orange },
   ];
   const kcalOver = kcal > kcalGoal && kcalGoal > 0;
+  const remaining = Math.abs(Math.round(kcalGoal - kcal));
 
   return (
     <div style={{ position: 'relative', width: 180, height: 180, flexShrink: 0 }}>
@@ -120,24 +123,27 @@ function ActivityRings({ kcal, kcalGoal, protein, proteinGoal, carbs, carbsGoal 
           const dash = pct * circ;
           return (
             <g key={ring.r}>
-              <circle cx={cx} cy={cy} r={ring.r} fill="none" stroke={ring.color + '22'} strokeWidth={sw} />
+              <circle cx={cx} cy={cy} r={ring.r} fill="none" stroke={ring.color + '20'} strokeWidth={sw} />
               <circle cx={cx} cy={cy} r={ring.r} fill="none" stroke={ring.color}
                 strokeWidth={sw} strokeLinecap="round"
                 strokeDasharray={`${dash} ${circ}`}
-                style={{ filter: `drop-shadow(0 0 5px ${ring.color}88)`, transition: 'stroke-dasharray 0.6s cubic-bezier(0.4,0,0.2,1)' }}
+                style={{ filter: `drop-shadow(0 0 4px ${ring.color}88)`, transition: 'stroke-dasharray 0.6s cubic-bezier(0.4,0,0.2,1)' }}
               />
             </g>
           );
         })}
       </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 28, fontWeight: 800, color: APPLE.red, lineHeight: 1, letterSpacing: '-0.02em' }}>
-          {Math.round(kcal)}
-        </span>
-        <span style={{ fontSize: 10, color: T.muted, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.08em' }}>kcal</span>
-        <span style={{ fontSize: 10, color: kcalOver ? APPLE.red : T.muted, marginTop: 5, fontWeight: 600 }}>
-          {kcalOver ? `+${Math.round(kcal - kcalGoal)} přes` : `${Math.round(kcalGoal - kcal)} zbývá`}
-        </span>
+      {/* Center text — safe area ~42px radius */}
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+          <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 800, color: APPLE.red, lineHeight: 1, letterSpacing: '-0.02em' }}>
+            {Math.round(kcal)}
+          </span>
+          <span style={{ fontSize: 9, color: T.muted, letterSpacing: '0.06em', textTransform: 'uppercase' }}>kcal</span>
+        </div>
+        <div style={{ fontSize: 9, color: kcalOver ? APPLE.red : T.muted, marginTop: 4, fontWeight: 600, letterSpacing: '0.04em' }}>
+          {kcalOver ? `+${remaining} přes` : `−${remaining} zbývá`}
+        </div>
       </div>
     </div>
   );
@@ -542,12 +548,14 @@ export default function Dashboard() {
             kcal={totals.kcal}       kcalGoal={goals.kcal}
             protein={totals.protein} proteinGoal={goals.protein}
             carbs={totals.carbs}     carbsGoal={goals.carbs}
+            fat={totals.fat}         fatGoal={goals.fat}
           />
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[
-              { label: 'Kalorie',    val: Math.round(totals.kcal),    goal: Math.round(goals.kcal),    unit: 'kcal', color: APPLE.red   },
-              { label: 'Bílkoviny', val: Math.round(totals.protein),  goal: Math.round(goals.protein), unit: 'g',    color: APPLE.green },
-              { label: 'Sacharidy', val: Math.round(totals.carbs),    goal: Math.round(goals.carbs),   unit: 'g',    color: APPLE.blue  },
+              { label: 'Kalorie',   val: Math.round(totals.kcal),    goal: Math.round(goals.kcal),    unit: 'kcal', color: APPLE.red    },
+              { label: 'Bílkoviny', val: Math.round(totals.protein), goal: Math.round(goals.protein), unit: 'g',    color: APPLE.green  },
+              { label: 'Sacharidy', val: Math.round(totals.carbs),   goal: Math.round(goals.carbs),   unit: 'g',    color: APPLE.blue   },
+              { label: 'Tuky',      val: Math.round(totals.fat),     goal: Math.round(goals.fat),     unit: 'g',    color: APPLE.orange },
             ].map(m => (
               <div key={m.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0, boxShadow: `0 0 6px ${m.color}` }} />
