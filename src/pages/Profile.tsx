@@ -173,7 +173,185 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
   );
 }
 
-export default function Profile() {
+// ─── Weight tracker ───────────────────────────────────────────
+interface WeightEntry { date: string; weight: number; }
+
+function WeightTracker({ userId, currentWeight, accent }: { userId: string; currentWeight: number; accent: string }) {
+  const logKey    = `cyclofuel_weight_log_${userId}`;
+  const targetKey = `cyclofuel_target_weight_${userId}`;
+
+  const [entries, setEntries] = useState<WeightEntry[]>(() => {
+    try { return JSON.parse(localStorage.getItem(logKey) ?? '[]'); }
+    catch { return []; }
+  });
+  const [logged, setLogged] = useState(false);
+
+  const today       = new Date().toISOString().split('T')[0];
+  const targetWeight = Number(localStorage.getItem(targetKey) ?? 0) || null;
+
+  const logToday = () => {
+    const existing = entries.filter(e => e.date !== today);
+    const next = [...existing, { date: today, weight: currentWeight }]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-60); // keep last 60 entries
+    localStorage.setItem(logKey, JSON.stringify(next));
+    setEntries(next);
+    setLogged(true);
+    setTimeout(() => setLogged(false), 2000);
+  };
+
+  const todayLogged = entries.some(e => e.date === today);
+
+  // Chart
+  const W = 280, H = 110, padL = 34, padR = 8, padT = 12, padB = 24;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  const weights = entries.map(e => e.weight);
+  if (targetWeight) weights.push(targetWeight);
+
+  const minW = weights.length ? Math.floor(Math.min(...weights) - 1) : currentWeight - 5;
+  const maxW = weights.length ? Math.ceil(Math.max(...weights) + 1)  : currentWeight + 5;
+  const range = maxW - minW || 1;
+
+  const toX = (i: number) => padL + (entries.length < 2 ? chartW / 2 : (i / (entries.length - 1)) * chartW);
+  const toY = (w: number) => padT + chartH - ((w - minW) / range) * chartH;
+
+  const points = entries.map((e, i) => `${toX(i)},${toY(e.weight)}`).join(' ');
+  const areaPoints = entries.length > 0
+    ? `${toX(0)},${padT + chartH} ${points} ${toX(entries.length - 1)},${padT + chartH}`
+    : '';
+
+  // X axis labels — show first, middle, last
+  const labelIdxs = entries.length <= 1 ? [0]
+    : entries.length <= 4 ? entries.map((_, i) => i)
+    : [0, Math.floor((entries.length - 1) / 2), entries.length - 1];
+
+  const fmtDate = (d: string) => {
+    const dt = new Date(d + 'T00:00:00');
+    return `${dt.getDate()}.${dt.getMonth() + 1}.`;
+  };
+
+  return (
+    <Card style={{ marginBottom: 16 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 18 }}>📈</span>
+          <span style={{ fontFamily: 'Syne,sans-serif', fontWeight: 700, color: T.text, fontSize: 14 }}>Vývoj váhy</span>
+        </div>
+        <button
+          onClick={logToday}
+          style={{
+            background: logged ? '#30d15822' : accent + '22',
+            border:     `1px solid ${logged ? '#30d158' : accent}44`,
+            borderRadius: 8, color: logged ? '#30d158' : accent,
+            padding: '5px 12px', fontSize: 12, fontWeight: 700,
+            cursor: 'pointer', letterSpacing: '0.04em',
+          }}
+        >
+          {logged ? '✓ Uloženo' : todayLogged ? `↺ ${currentWeight} kg` : `+ ${currentWeight} kg`}
+        </button>
+      </div>
+
+      {entries.length < 2 ? (
+        <div style={{ textAlign: 'center', padding: '20px 0', color: T.muted, fontSize: 13 }}>
+          {entries.length === 0
+            ? 'Zaznamenej první měření tlačítkem výše'
+            : 'Přidej další měření — graf se zobrazí od 2 záznamů'}
+        </div>
+      ) : (
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ overflow: 'visible', display: 'block' }}>
+          {/* Y axis gridlines + labels */}
+          {[minW, Math.round((minW + maxW) / 2), maxW].map(w => {
+            const y = toY(w);
+            return (
+              <g key={w}>
+                <line x1={padL} y1={y} x2={W - padR} y2={y} stroke={T.border} strokeWidth={1} strokeDasharray="3,3" />
+                <text x={padL - 4} y={y + 4} textAnchor="end" fontSize={8} fill={T.muted}>{w}</text>
+              </g>
+            );
+          })}
+
+          {/* Target weight line */}
+          {targetWeight && targetWeight >= minW && targetWeight <= maxW && (
+            <g>
+              <line x1={padL} y1={toY(targetWeight)} x2={W - padR} y2={toY(targetWeight)}
+                stroke={accent} strokeWidth={1} strokeDasharray="4,3" opacity={0.6} />
+              <text x={W - padR + 2} y={toY(targetWeight) + 4} fontSize={8} fill={accent} opacity={0.8}>cíl</text>
+            </g>
+          )}
+
+          {/* Area fill */}
+          {areaPoints && (
+            <polygon points={areaPoints} fill={`url(#wGrad_${userId})`} opacity={0.25} />
+          )}
+          <defs>
+            <linearGradient id={`wGrad_${userId}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={accent} stopOpacity={0.6} />
+              <stop offset="100%" stopColor={accent} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+
+          {/* Line */}
+          {entries.length >= 2 && (
+            <polyline points={points} fill="none" stroke={accent} strokeWidth={2}
+              strokeLinecap="round" strokeLinejoin="round"
+              style={{ filter: `drop-shadow(0 0 4px ${accent}88)` }}
+            />
+          )}
+
+          {/* Dots */}
+          {entries.map((e, i) => {
+            const isToday = e.date === today;
+            return (
+              <circle key={e.date} cx={toX(i)} cy={toY(e.weight)} r={isToday ? 4 : 3}
+                fill={isToday ? accent : T.card} stroke={accent} strokeWidth={isToday ? 0 : 1.5}
+                style={{ filter: isToday ? `drop-shadow(0 0 4px ${accent})` : undefined }}
+              />
+            );
+          })}
+
+          {/* X axis labels */}
+          {labelIdxs.map(i => {
+            if (!entries[i]) return null;
+            const align = i === 0 ? 'start' : i === entries.length - 1 ? 'end' : 'middle';
+            return (
+              <text key={i} x={toX(i)} y={H - 4} textAnchor={align} fontSize={8} fill={T.muted}>
+                {fmtDate(entries[i].date)}
+              </text>
+            );
+          })}
+        </svg>
+      )}
+
+      {/* Stats row */}
+      {entries.length >= 2 && (() => {
+        const first = entries[0].weight;
+        const last  = entries[entries.length - 1].weight;
+        const diff  = parseFloat((last - first).toFixed(1));
+        const trend = diff < 0 ? '↓' : diff > 0 ? '↑' : '→';
+        const trendColor = diff < 0 ? '#30d158' : diff > 0 ? '#ff375f' : T.muted;
+        return (
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.border}` }}>
+            {[
+              { label: 'Start', val: `${first} kg`, color: T.muted },
+              { label: 'Nyní',  val: `${last} kg`,  color: accent  },
+              { label: 'Změna', val: `${trend} ${Math.abs(diff)} kg`, color: trendColor },
+            ].map(s => (
+              <div key={s.label} style={{ flex: 1, textAlign: 'center', background: T.bg, borderRadius: 8, padding: '8px 4px' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.val}</div>
+                <div style={{ fontSize: 10, color: T.muted, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+    </Card>
+  );
+}
+
+
   const ctx = useContext(AppContext);
   const { userId, accent, profile, saveProfile, signOut, trainingDay } = ctx;
 
@@ -270,6 +448,10 @@ export default function Profile() {
       {/* Weight goal */}
       <SectionTitle accent={accent}>Hubnutí</SectionTitle>
       <WeightGoalCard userId={userId} currentWeight={weight} accent={accent} />
+
+      {/* Weight tracker */}
+      <SectionTitle accent={accent}>Vývoj váhy</SectionTitle>
+      <WeightTracker userId={userId} currentWeight={weight} accent={accent} />
 
       {/* Stats summary */}
       <SectionTitle accent={accent}>Parametry těla</SectionTitle>
