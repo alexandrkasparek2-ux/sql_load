@@ -352,6 +352,7 @@ function WeightTracker({ userId, currentWeight, accent }: { userId: string; curr
 }
 
 
+export default function Profile() {
   const ctx = useContext(AppContext);
   const { userId, accent, profile, saveProfile, signOut, trainingDay } = ctx;
 
