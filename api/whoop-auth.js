@@ -10,7 +10,12 @@ export default async function handler(req, res) {
   const clientId     = process.env.WHOOP_CLIENT_ID ?? process.env.whoop_client_id ?? '15fc9e46-8c11-40ed-afc6-ffebaee89493';
   const clientSecret = process.env.WHOOP_CLIENT_SECRET ?? process.env.whoop_client_secret;
   if (!clientSecret) {
-    return res.status(500).json({ error: 'WHOOP_CLIENT_SECRET not configured in Vercel env variables' });
+    // Debug: show which env vars exist (names only, never values)
+    const envKeys = Object.keys(process.env).filter(k => k.toLowerCase().includes('whoop'));
+    return res.status(500).json({
+      error: 'WHOOP_CLIENT_SECRET not configured in Vercel env variables',
+      debug_whoop_keys_found: envKeys,
+    });
   }
 
   let body = req.body;
