@@ -11,6 +11,7 @@ export default function WhoopCallback() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code   = params.get('code');
+    const state  = params.get('state') ?? undefined;
     const err    = params.get('error');
 
     if (err) {
@@ -27,7 +28,7 @@ export default function WhoopCallback() {
       return;
     }
 
-    handleCallback(code)
+    handleCallback(code, state)
       .then(() => {
         setStatus('success');
         setTimeout(() => navigate('/', { replace: true }), 1500);

@@ -4,8 +4,9 @@ const CLIENT_ID    = import.meta.env.VITE_WHOOP_CLIENT_ID ?? '15fc9e46-8c11-40ed
 const REDIRECT_URI = `${window.location.origin}/whoop/callback`;
 const SCOPES       = 'read:recovery read:cycles read:sleep read:workout read:profile read:body_measurement offline';
 
-const TOKEN_KEY   = 'cyclofuel_whoop_tokens';
+const TOKEN_KEY    = 'cyclofuel_whoop_tokens';
 const VERIFIER_KEY = 'cyclofuel_whoop_verifier';
+const STATE_KEY    = 'cyclofuel_whoop_state';
 
 // ── PKCE helpers ──────────────────────────────────────────────
 function randomBytes(len: number): Uint8Array {
@@ -59,15 +60,19 @@ function isExpired(tokens: WhoopTokens): boolean {
 
 // ── OAuth flow ────────────────────────────────────────────────
 export async function startOAuth() {
-  const verifier   = generateVerifier();
-  const challenge  = await generateChallenge(verifier);
+  const verifier  = generateVerifier();
+  const challenge = await generateChallenge(verifier);
+  const state     = base64url(randomBytes(16)); // CSRF token
+
   sessionStorage.setItem(VERIFIER_KEY, verifier);
+  sessionStorage.setItem(STATE_KEY,    state);
 
   const params = new URLSearchParams({
     client_id:             CLIENT_ID,
     redirect_uri:          REDIRECT_URI,
     response_type:         'code',
     scope:                 SCOPES,
+    state,
     code_challenge:        challenge,
     code_challenge_method: 'S256',
   });
@@ -75,9 +80,14 @@ export async function startOAuth() {
   window.location.href = `https://api.prod.whoop.com/oauth/oauth2/auth?${params}`;
 }
 
-export async function handleCallback(code: string): Promise<WhoopTokens> {
-  const verifier = sessionStorage.getItem(VERIFIER_KEY);
+export async function handleCallback(code: string, returnedState?: string): Promise<WhoopTokens> {
+  const verifier      = sessionStorage.getItem(VERIFIER_KEY);
+  const expectedState = sessionStorage.getItem(STATE_KEY);
+
   if (!verifier) throw new Error('PKCE verifier missing — start OAuth again');
+  if (expectedState && returnedState && expectedState !== returnedState) {
+    throw new Error('State mismatch — possible CSRF attack, try again');
+  }
 
   const res = await fetch('/api/whoop-auth', {
     method: 'POST',
@@ -98,6 +108,7 @@ export async function handleCallback(code: string): Promise<WhoopTokens> {
   };
   saveTokens(tokens);
   sessionStorage.removeItem(VERIFIER_KEY);
+  sessionStorage.removeItem(STATE_KEY);
   return tokens;
 }
 
