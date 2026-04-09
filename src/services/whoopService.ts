@@ -1,6 +1,6 @@
 // ─── Whoop OAuth2 PKCE service ────────────────────────────────────────────────
 
-const CLIENT_ID    = import.meta.env.VITE_WHOOP_CLIENT_ID ?? '';
+const CLIENT_ID    = import.meta.env.VITE_WHOOP_CLIENT_ID ?? '15fc9e46-8c11-40ed-afc6-ffebaee89493';
 const REDIRECT_URI = `${window.location.origin}/whoop/callback`;
 const SCOPES       = 'read:recovery read:cycles read:sleep read:workout read:profile read:body_measurement offline';
 

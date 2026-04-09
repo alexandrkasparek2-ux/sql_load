@@ -7,10 +7,10 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const clientId     = process.env.WHOOP_CLIENT_ID;
+  const clientId     = process.env.WHOOP_CLIENT_ID ?? '15fc9e46-8c11-40ed-afc6-ffebaee89493';
   const clientSecret = process.env.WHOOP_CLIENT_SECRET;
-  if (!clientId || !clientSecret) {
-    return res.status(500).json({ error: 'Whoop credentials not configured' });
+  if (!clientSecret) {
+    return res.status(500).json({ error: 'WHOOP_CLIENT_SECRET not configured in Vercel env variables' });
   }
 
   let body = req.body;
