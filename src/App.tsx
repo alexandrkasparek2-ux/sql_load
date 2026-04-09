@@ -20,14 +20,15 @@ import {
   calcCaloriesMulti, calcMacros, calcWater, calcMicroGoals,
 } from './constants/training';
 
-import Login       from './pages/Login';
-import Dashboard   from './pages/Dashboard';
-import Foods       from './pages/Foods';
-import Micros      from './pages/Micros';
-import Plan        from './pages/Plan';
-import Profile     from './pages/Profile';
-import Supplements from './pages/Supplements';
-import Chat        from './pages/Chat';
+import Login           from './pages/Login';
+import Dashboard       from './pages/Dashboard';
+import Foods           from './pages/Foods';
+import Micros          from './pages/Micros';
+import Plan            from './pages/Plan';
+import Profile         from './pages/Profile';
+import Supplements     from './pages/Supplements';
+import Chat            from './pages/Chat';
+import WhoopCallback   from './pages/WhoopCallback';
 
 import { T, Spinner } from './components/UI';
 
@@ -407,14 +408,15 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
       {/* Page content – flex:1 + minHeight:0 zajistí že main neroste za výšku viewportu */}
       <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: 80 }}>
         <Routes>
-          <Route path="/"            element={<Dashboard />}   />
-          <Route path="/foods"       element={<Foods />}       />
-          <Route path="/chat"        element={<Chat />}        />
-          <Route path="/plan"        element={<Plan />}        />
-          <Route path="/supplements" element={<Supplements />} />
-          <Route path="/micros"      element={<Micros />}      />
-          <Route path="/profile"     element={<Profile />}     />
-          <Route path="*"        element={<Navigate to="/" replace />} />
+          <Route path="/"                element={<Dashboard />}     />
+          <Route path="/foods"           element={<Foods />}         />
+          <Route path="/chat"            element={<Chat />}          />
+          <Route path="/plan"            element={<Plan />}          />
+          <Route path="/supplements"     element={<Supplements />}   />
+          <Route path="/micros"          element={<Micros />}        />
+          <Route path="/profile"         element={<Profile />}       />
+          <Route path="/whoop/callback"  element={<WhoopCallback />} />
+          <Route path="*"            element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 
@@ -507,6 +509,8 @@ function AppRoutes() {
   if (!session) {
     return (
       <Routes>
+        {/* Whoop callback works even before CycloFuel login */}
+        <Route path="/whoop/callback" element={<WhoopCallback />} />
         <Route path="*" element={
           <Login
             onSignIn={async (e, p) => { await signIn(e, p); navigate('/', { replace: true }); }}
