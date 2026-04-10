@@ -181,33 +181,60 @@ export function WhoopCard() {
         </div>
       ) : (
         <>
-          {/* Recovery ring + stats row */}
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-            {score != null
-              ? <RecoveryRing score={score} color={color} />
-              : (
-                <div style={{ width: 100, height: 100, display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', color: T.muted, fontSize: 12 }}>Žádná data</div>
-              )}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <StatPill icon="💓" label="HRV" value={hrv != null ? `${Math.round(hrv)} ms` : '—'} />
-                <StatPill icon="❤️" label="RHR" value={rhr != null ? `${rhr} bpm` : '—'} />
+          {/* Recovery ring OR pending notice */}
+          {score != null ? (
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+              <RecoveryRing score={score} color={color} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <StatPill icon="💓" label="HRV" value={hrv != null ? `${Math.round(hrv)} ms` : '—'} />
+                  <StatPill icon="❤️" label="RHR" value={rhr != null ? `${rhr} bpm` : '—'} />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <StatPill icon="😴" label="Spánek"
+                    value={sleepH != null ? `${sleepH} h` : '—'}
+                    sub={sleepEff != null ? `${Math.round(sleepEff)}% efektivita` : undefined}
+                  />
+                  <StatPill icon="⚡" label="Strain"
+                    value={strain != null ? strain.toFixed(1) : '—'}
+                    sub="0–21 škála"
+                  />
+                </div>
               </div>
+            </div>
+          ) : (
+            <div style={{ marginBottom: 12 }}>
+              {/* Pending recovery notice */}
+              <div style={{
+                background: '#1a1a1a', borderRadius: 12, padding: '12px 14px',
+                display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10,
+              }}>
+                <div style={{ fontSize: 22 }}>🕐</div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 2 }}>
+                    Recovery se počítá
+                  </div>
+                  <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.5 }}>
+                    Whoop dopočítává recovery score ráno po synchronizaci spánku.
+                    Zkus obnovit za chvíli.
+                  </div>
+                </div>
+              </div>
+              {/* Show what we have: strain at least */}
               <div style={{ display: 'flex', gap: 8 }}>
-                <StatPill icon="😴" label="Spánek"
-                  value={sleepH != null ? `${sleepH} h` : '—'}
-                  sub={sleepEff != null ? `${Math.round(sleepEff)}% efektivita` : undefined}
-                />
                 <StatPill icon="⚡" label="Strain"
                   value={strain != null ? strain.toFixed(1) : '—'}
                   sub="0–21 škála"
                 />
+                <StatPill icon="😴" label="Spánek"
+                  value={sleepH != null ? `${sleepH} h` : '—'}
+                  sub={sleepEff != null ? `${Math.round(sleepEff)}% efektivita` : 'Čekám na data'}
+                />
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Recovery message */}
+          {/* Recovery message (only when scored) */}
           {score != null && (
             <div style={{
               background: color + '14', border: `1px solid ${color}33`,
