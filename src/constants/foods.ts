@@ -3759,4 +3759,22 @@ export const FOODS: Food[] = [
     kcal: 185, carbs: 16.0, protein: 10.0, fat: 8.5, fiber: 0.8, per: 380,
     micros: { na: 410, k: 220, mg: 18, ca: 70, fe: 0.9, vit_c: 1, vit_d: 0.4, b12: 0.4, omega3: 80, zn: 1.2 },
   },
+
+  // ── Segedínský guláš ─────────────────────────────────────
+  {
+    id: 'segedinsky_gulas',
+    cat: '🍛 Hlavní jídla',
+    name: 'Segedínský guláš s knedlíkem',
+    // per 100 g: ~65 % guláš (vepřový bůček + zelí + smetanová papriková omáčka), 35 % houskový knedlík
+    kcal: 158, carbs: 11.5, protein: 10.5, fat: 7.5, fiber: 1.2, per: 420,
+    micros: { na: 490, k: 280, mg: 18, ca: 38, fe: 1.8, vit_c: 8, vit_d: 0.2, b12: 0.8, omega3: 65, zn: 2.0 },
+  },
+  {
+    id: 'segedinsky_gulas_samotny',
+    cat: '🍛 Hlavní jídla',
+    name: 'Segedínský guláš (bez knedlíku)',
+    // vepřový bůček, kysané zelí, smetana, paprika, cibule — bez přílohy
+    kcal: 148, carbs: 4.5, protein: 12.5, fat: 9.0, fiber: 1.5, per: 350,
+    micros: { na: 520, k: 300, mg: 20, ca: 35, fe: 2.0, vit_c: 10, vit_d: 0.2, b12: 1.0, omega3: 70, zn: 2.2 },
+  },
 ];
