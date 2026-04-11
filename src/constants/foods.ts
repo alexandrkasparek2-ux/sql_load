@@ -3777,4 +3777,22 @@ export const FOODS: Food[] = [
     kcal: 148, carbs: 4.5, protein: 12.5, fat: 9.0, fiber: 1.5, per: 350,
     micros: { na: 520, k: 300, mg: 20, ca: 35, fe: 2.0, vit_c: 10, vit_d: 0.2, b12: 1.0, omega3: 70, zn: 2.2 },
   },
+
+  // ── Krůtí sekaná ─────────────────────────────────────────
+  {
+    id: 'turkey_meatloaf',
+    cat: '🍛 Hlavní jídla',
+    name: 'Krůtí sekaná (pečená)',
+    // mleté krůtí maso, vejce, cibule, strouhanka, koření
+    kcal: 162, carbs: 5.5, protein: 17.0, fat: 7.5, fiber: 0.5, per: 180,
+    micros: { na: 420, k: 290, mg: 22, ca: 30, fe: 1.2, vit_c: 2, vit_d: 0.4, b12: 0.6, omega3: 80, zn: 2.2 },
+  },
+  {
+    id: 'turkey_meatloaf_egg',
+    cat: '🍛 Hlavní jídla',
+    name: 'Krůtí sekaná s vejcem uvnitř',
+    // klasická česká varianta — celé vejce uvnitř sekanné
+    kcal: 168, carbs: 5.0, protein: 17.5, fat: 8.5, fiber: 0.4, per: 200,
+    micros: { na: 430, k: 280, mg: 22, ca: 38, fe: 1.4, vit_c: 2, vit_d: 0.8, b12: 0.8, omega3: 90, zn: 2.3 },
+  },
 ];
