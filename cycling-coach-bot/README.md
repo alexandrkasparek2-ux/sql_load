@@ -13,6 +13,7 @@ through **Claude Sonnet 4.5**.
 - 🧠 Claude Sonnet 4.5 with a structured coaching prompt (`summary / analysis /
   recommendation / question`).
 - 🗄 SQLite persistence for users, tokens and conversations.
+- 🎙 Voice message support (Telegram audio → OpenAI Whisper → coaching).
 - 🚨 Optional proactive monitoring (WHOOP red streaks, deep TSB).
 - 🛠 Commands: `/start`, `/status`, `/analyze <id>`, `/plan`, `/compare`,
   `/monitor on|off`.
@@ -90,6 +91,18 @@ Telegram long-polling loop. It handles:
 Point your provider redirect URIs at `https://<your-host>/oauth/<provider>/callback`
 and the server exchanges the code for tokens, persists them via `saveToken()`,
 and shows a small "Connected ✅ — back to Telegram" page.
+
+### Voice messages
+
+Send a Telegram voice note (or an audio file) and the bot will:
+
+1. Download the OGG/Opus file from the Telegram Bot API.
+2. Transcribe it with OpenAI Whisper (`whisper-1` by default).
+3. Echo what it heard back to you, then run the transcription through the
+   same Claude coaching pipeline as a text message.
+
+Requires `OPENAI_API_KEY`. Set `WHISPER_LANGUAGE` (e.g. `cs`, `en`) to force a
+specific language; otherwise Whisper auto-detects.
 
 ### Inline quick actions
 

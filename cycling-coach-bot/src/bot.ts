@@ -17,6 +17,7 @@ import {
 } from './utils/claude.js';
 import { startMonitoring } from './utils/monitor.js';
 import { startOAuthCallbackServer } from './utils/oauthCallback.js';
+import { transcribeVoice } from './utils/transcribe.js';
 import { getActivityById } from './data/strava.js';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -237,6 +238,54 @@ bot.on(message('text'), async (ctx) => {
   if (ctx.message.text.startsWith('/')) return; // commands handled above
   const user = upsertUser(ctx.from.id);
   await handleCoachingTurn(ctx, user.id, ctx.message.text);
+});
+
+async function handleAudioMessage(
+  ctx: any,
+  fileId: string,
+  mimeType: string | undefined,
+  filename: string
+): Promise<void> {
+  const user = upsertUser(ctx.from.id);
+  if (!process.env.OPENAI_API_KEY) {
+    await ctx.reply(
+      'Voice messages need OPENAI_API_KEY configured. For now please send text.'
+    );
+    return;
+  }
+  await ctx.sendChatAction('typing');
+  try {
+    const link = await ctx.telegram.getFileLink(fileId);
+    const text = await transcribeVoice(link.toString(), {
+      mimeType,
+      filename,
+      language: process.env.WHISPER_LANGUAGE, // e.g. "en", "cs"; auto-detected if unset
+    });
+    if (!text) {
+      await ctx.reply("I couldn't hear anything clearly — try again?");
+      return;
+    }
+    await ctx.reply(`🎙 _Heard:_ ${text}`, { parse_mode: 'Markdown' });
+    await handleCoachingTurn(ctx, user.id, text);
+  } catch (err) {
+    console.error('[voice]', err);
+    await ctx.reply(`Couldn't transcribe the audio: ${(err as Error).message}`);
+  }
+}
+
+bot.on(message('voice'), async (ctx) => {
+  const v = ctx.message.voice;
+  await handleAudioMessage(ctx, v.file_id, v.mime_type, 'voice.ogg');
+});
+
+bot.on(message('audio'), async (ctx) => {
+  const a = ctx.message.audio;
+  await handleAudioMessage(
+    ctx,
+    a.file_id,
+    a.mime_type,
+    a.file_name || 'audio.mp3'
+  );
 });
 
 // Expose helper so callback handlers (hosted elsewhere) can reuse the same parser.
