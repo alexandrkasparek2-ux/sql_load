@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Telegraf } from 'telegraf';
+import { Markup, Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters';
 import {
   appendMessage,
@@ -16,6 +16,7 @@ import {
   parseCoachResponse,
 } from './utils/claude.js';
 import { startMonitoring } from './utils/monitor.js';
+import { startOAuthCallbackServer } from './utils/oauthCallback.js';
 import { getActivityById } from './data/strava.js';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -35,6 +36,17 @@ function connectionStatus(userId: number): string {
     .map((p) => `${getToken(userId, p) ? '✅' : '⬜️'} ${p}`)
     .join('   ');
 }
+
+const quickActionsKeyboard = Markup.inlineKeyboard([
+  [
+    Markup.button.callback('📊 Status', 'qa:status'),
+    Markup.button.callback('🗓 Plan', 'qa:plan'),
+  ],
+  [
+    Markup.button.callback('✅ Should I train?', 'qa:ready'),
+    Markup.button.callback('💀 Rest day?', 'qa:rest'),
+  ],
+]);
 
 bot.start(async (ctx) => {
   const tgId = ctx.from.id;
@@ -60,15 +72,63 @@ bot.start(async (ctx) => {
       '/monitor on|off — toggle proactive alerts',
       '',
       'Or just send me a message and I\'ll coach you.',
-    ].join('\n')
+    ].join('\n'),
+    quickActionsKeyboard
   );
 });
 
-bot.command('status', async (ctx) => {
-  const user = upsertUser(ctx.from.id);
+async function handleCoachingTurn(
+  ctx: any,
+  userId: number,
+  prompt: string
+): Promise<void> {
+  await ctx.sendChatAction('typing');
+  appendMessage({
+    user_id: userId,
+    role: 'user',
+    content: prompt,
+    created_at: now(),
+  });
+  try {
+    const data = await fetchAllData(userId);
+    const history = getRecentMessages(userId, 10);
+    const response = await getCoachingResponse(prompt, data, history);
+    appendMessage({
+      user_id: userId,
+      role: 'assistant',
+      content: JSON.stringify(response),
+      created_at: now(),
+    });
+    await ctx.replyWithMarkdown(formatForTelegram(response), quickActionsKeyboard);
+  } catch (err) {
+    console.error(err);
+    await ctx.reply(
+      `Sorry — I hit an error: ${(err as Error).message}. Try again in a moment.`
+    );
+  }
+}
+
+bot.action(/^qa:(status|plan|ready|rest)$/, async (ctx) => {
+  const action = ctx.match[1];
+  await ctx.answerCbQuery();
+  const user = upsertUser(ctx.from!.id);
+  if (action === 'status') {
+    await sendStatus(ctx, user.id);
+    return;
+  }
+  const prompts: Record<string, string> = {
+    plan: 'Build a concise 7-day training plan based on my current form and recovery.',
+    ready:
+      'Based on my current recovery, form and recent load, should I do a hard workout today? Be decisive (Yes / No / Modify).',
+    rest: 'Do I need a rest day today? Use WHOOP recovery, TSB, and recent TSS trend.',
+  };
+  await handleCoachingTurn(ctx, user.id, prompts[action]);
+});
+
+async function sendStatus(ctx: any, userId: number): Promise<void> {
   await ctx.sendChatAction('typing');
   try {
-    const data = await fetchAllData(user.id);
+    const data = await fetchAllData(userId);
     const lines: string[] = ['📊 *Current metrics*'];
     if ('unavailable' in data.trainingpeaks) {
       lines.push(`TrainingPeaks: unavailable (${data.trainingpeaks.reason})`);
@@ -97,11 +157,16 @@ bot.command('status', async (ctx) => {
         `Strava 7d: ${data.strava.total_distance_km} km across ${data.strava.last_7_days.length} activities`
       );
     }
-    await ctx.replyWithMarkdown(lines.join('\n'));
+    await ctx.replyWithMarkdown(lines.join('\n'), quickActionsKeyboard);
   } catch (err) {
     console.error(err);
     await ctx.reply(`Failed to fetch data: ${(err as Error).message}`);
   }
+}
+
+bot.command('status', async (ctx) => {
+  const user = upsertUser(ctx.from.id);
+  await sendStatus(ctx, user.id);
 });
 
 bot.command('monitor', async (ctx) => {
@@ -171,42 +236,14 @@ bot.command('compare', async (ctx) => {
 bot.on(message('text'), async (ctx) => {
   if (ctx.message.text.startsWith('/')) return; // commands handled above
   const user = upsertUser(ctx.from.id);
-  const text = ctx.message.text;
-
-  await ctx.sendChatAction('typing');
-  appendMessage({
-    user_id: user.id,
-    role: 'user',
-    content: text,
-    created_at: now(),
-  });
-
-  try {
-    const data = await fetchAllData(user.id);
-    const history = getRecentMessages(user.id, 10);
-    const response = await getCoachingResponse(text, data, history);
-    const reply = formatForTelegram(response);
-
-    appendMessage({
-      user_id: user.id,
-      role: 'assistant',
-      content: JSON.stringify(response),
-      created_at: now(),
-    });
-
-    await ctx.replyWithMarkdown(reply);
-  } catch (err) {
-    console.error(err);
-    await ctx.reply(
-      `Sorry — I hit an error: ${(err as Error).message}. Try again in a moment.`
-    );
-  }
+  await handleCoachingTurn(ctx, user.id, ctx.message.text);
 });
 
 // Expose helper so callback handlers (hosted elsewhere) can reuse the same parser.
 export { parseCoachResponse };
 
 async function main() {
+  startOAuthCallbackServer();
   startMonitoring(bot);
   await bot.launch();
   console.log('[bot] running');

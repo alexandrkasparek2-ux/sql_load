@@ -80,10 +80,35 @@ See `.env.example`. The most important ones:
 
 ### OAuth callbacks
 
-Each provider needs a callback URL that exchanges `code` for tokens and stores
-them via `saveToken()` in `src/db/schema.ts`. The simplest way is to host a
-tiny Express/Vercel function alongside the bot; the state parameter carries
-the Telegram user id (`tg:<id>`) emitted by `buildAuthUrls()`.
+Set `OAUTH_CALLBACK_PORT` and the bot boots a small HTTP server alongside the
+Telegram long-polling loop. It handles:
+
+- `GET /oauth/strava/callback?code=…&state=tg:<telegram_id>`
+- `GET /oauth/trainingpeaks/callback?…`
+- `GET /oauth/whoop/callback?…`
+
+Point your provider redirect URIs at `https://<your-host>/oauth/<provider>/callback`
+and the server exchanges the code for tokens, persists them via `saveToken()`,
+and shows a small "Connected ✅ — back to Telegram" page.
+
+### Inline quick actions
+
+The `/start` reply and every coaching answer ship with an inline keyboard:
+
+```
+[ 📊 Status ] [ 🗓 Plan ]
+[ ✅ Should I train? ] [ 💀 Rest day? ]
+```
+
+### Deployment
+
+- **Docker** — `Dockerfile` is included; mount a volume at `/data` to persist
+  the SQLite DB across deploys.
+- **Fly.io** — `fly.toml` declares a 256 MB shared VM, a `coach_data` volume
+  mounted at `/data`, and exposes port 3000 for OAuth callbacks.
+  `fly launch --copy-config && fly secrets set …`.
+- **Railway** — `railway.json` points at the Dockerfile; set env vars in
+  the dashboard, attach a volume at `/data`.
 
 ## MVP priorities
 
@@ -120,8 +145,8 @@ bot:  WHOOP recovery 42% and TSB -34 suggest you're overreaching.
 - Exponential backoff on Strava / TP / WHOOP / Claude.
 - User-visible error messages are short and actionable.
 
-## Deployment
+## Webhooks vs long polling
 
-Any long-running Node host works (Railway, Fly.io, a Vercel Background
-Worker). The worker must hold an open long-poll connection; if you prefer
-webhooks, swap `bot.launch()` for `bot.launch({ webhook: { ... } })`.
+The bot uses long polling by default (`bot.launch()`). For webhook-based
+deployment, swap to `bot.launch({ webhook: { domain, hookPath, port } })`
+and terminate TLS at your load balancer or reverse proxy.
