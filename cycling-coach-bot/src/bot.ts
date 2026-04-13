@@ -347,7 +347,7 @@ bot.on(message('audio'), async (ctx) => {
 export { parseCoachResponse };
 
 async function main() {
-  startOAuthCallbackServer();
+  startOAuthCallbackServer(bot);
   startMonitoring(bot);
   await bot.launch();
   console.log('[bot] running');

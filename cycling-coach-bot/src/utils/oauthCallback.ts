@@ -1,7 +1,9 @@
 import http from 'node:http';
 import { URL } from 'node:url';
+import type { Telegraf } from 'telegraf';
 import { getUserByTelegramId, saveToken, upsertUser } from '../db/schema.js';
 import type { OAuthTokenRow, Provider } from '../types/index.js';
+import { handleStravaWebhookRequest } from './stravaWebhook.js';
 
 /**
  * Minimal OAuth2 callback server. Each provider redirects the athlete back to
@@ -109,8 +111,18 @@ function htmlPage(title: string, body: string): string {
   </head><body><h1>${title}</h1>${body}</body></html>`;
 }
 
-async function handle(req: http.IncomingMessage, res: http.ServerResponse) {
+async function handle(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  bot: Telegraf | null
+) {
   const url = new URL(req.url || '/', `http://${req.headers.host}`);
+
+  if (url.pathname === '/webhooks/strava' && bot) {
+    handleStravaWebhookRequest(req, res, bot);
+    return;
+  }
+
   const match = /^\/oauth\/(strava|trainingpeaks|whoop)\/callback$/.exec(
     url.pathname
   );
@@ -164,11 +176,13 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse) {
   }
 }
 
-export function startOAuthCallbackServer(): http.Server | null {
+export function startOAuthCallbackServer(
+  bot: Telegraf | null = null
+): http.Server | null {
   const port = Number(process.env.OAUTH_CALLBACK_PORT || 0);
   if (!port) return null;
   const server = http.createServer((req, res) => {
-    handle(req, res).catch((e) => {
+    handle(req, res, bot).catch((e) => {
       console.error('[oauth] handler error:', e);
       res.writeHead(500).end('error');
     });
