@@ -3,11 +3,15 @@ import { Markup, Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters';
 import {
   appendMessage,
+  deleteToken,
   getRecentMessages,
+  saveToken,
   setMonitoring,
   upsertUser,
   getToken,
 } from './db/schema.js';
+import { checkRateLimit } from './utils/rateLimit.js';
+import type { Provider } from './types/index.js';
 import { buildAuthUrls } from './utils/auth.js';
 import { fetchAllData } from './utils/aggregateData.js';
 import {
@@ -83,6 +87,14 @@ async function handleCoachingTurn(
   userId: number,
   prompt: string
 ): Promise<void> {
+  const rl = checkRateLimit(userId);
+  if (!rl.allowed) {
+    const secs = Math.ceil(rl.retryAfterMs / 1000);
+    await ctx.reply(
+      `⏳ Rate limit hit. Give me ~${secs}s before the next question.`
+    );
+    return;
+  }
   await ctx.sendChatAction('typing');
   appendMessage({
     user_id: userId,
@@ -168,6 +180,49 @@ async function sendStatus(ctx: any, userId: number): Promise<void> {
 bot.command('status', async (ctx) => {
   const user = upsertUser(ctx.from.id);
   await sendStatus(ctx, user.id);
+});
+
+const VALID_PROVIDERS: Provider[] = ['strava', 'trainingpeaks', 'whoop'];
+
+bot.command('disconnect', async (ctx) => {
+  const user = upsertUser(ctx.from.id);
+  const arg = ctx.message.text.split(/\s+/)[1]?.toLowerCase();
+  if (!arg || !VALID_PROVIDERS.includes(arg as Provider)) {
+    return ctx.reply(
+      `Usage: /disconnect strava | /disconnect trainingpeaks | /disconnect whoop`
+    );
+  }
+  deleteToken(user.id, arg as Provider);
+  await ctx.reply(`🔌 Disconnected ${arg}.`);
+});
+
+bot.command('seedtoken', async (ctx) => {
+  // Admin-only helper for local / CI testing without going through a real
+  // OAuth redirect. Set ADMIN_TELEGRAM_ID to your own Telegram id to unlock.
+  const adminId = Number(process.env.ADMIN_TELEGRAM_ID || 0);
+  if (!adminId || ctx.from.id !== adminId) {
+    return ctx.reply('Not authorised.');
+  }
+  const parts = ctx.message.text.split(/\s+/);
+  const provider = parts[1]?.toLowerCase() as Provider | undefined;
+  const accessToken = parts[2];
+  const refreshToken = parts[3];
+  const expiresIn = parts[4] ? Number(parts[4]) : 3600;
+  if (!provider || !VALID_PROVIDERS.includes(provider) || !accessToken) {
+    return ctx.reply(
+      `Usage: /seedtoken <strava|trainingpeaks|whoop> <access> [refresh] [expires_in_seconds]`
+    );
+  }
+  const user = upsertUser(ctx.from.id);
+  saveToken({
+    user_id: user.id,
+    provider,
+    access_token: accessToken,
+    refresh_token: refreshToken ?? null,
+    expires_at: Math.floor(Date.now() / 1000) + expiresIn,
+    extra_json: null,
+  });
+  await ctx.reply(`✅ Seeded ${provider} token for this account.`);
 });
 
 bot.command('monitor', async (ctx) => {

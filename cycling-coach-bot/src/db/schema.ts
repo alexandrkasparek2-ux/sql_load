@@ -133,6 +133,12 @@ export function getToken(
     .get(userId, provider) as OAuthTokenRow | undefined;
 }
 
+export function deleteToken(userId: number, provider: Provider): void {
+  db.prepare(
+    `DELETE FROM oauth_tokens WHERE user_id = ? AND provider = ?`
+  ).run(userId, provider);
+}
+
 export function appendMessage(msg: ConversationMessage): void {
   db.prepare(
     `INSERT INTO conversations (user_id, role, content, created_at)

@@ -27,16 +27,34 @@ export async function getCoachingResponse(
 
   const userTurn = `${dataBlock}\n\nATHLETE_QUESTION: ${userMessage}`;
 
+  // Prompt caching: the coaching system prompt is static across every call,
+  // so we mark it as a cache breakpoint. Anthropic returns cached tokens at
+  // ~10% of the input cost, which dominates spend on a chatty bot.
   const resp = await withRetry(
     () =>
       client.messages.create({
         model: MODEL,
         max_tokens: 800,
-        system: COACH_SYSTEM_PROMPT,
+        system: [
+          {
+            type: 'text',
+            text: COACH_SYSTEM_PROMPT,
+            cache_control: { type: 'ephemeral' },
+          },
+        ],
         messages: [...history, { role: 'user', content: userTurn }],
       }),
     { label: 'claude', retries: 2, baseMs: 700 }
   );
+
+  const usage = resp.usage as any;
+  if (usage) {
+    console.log(
+      `[claude] in=${usage.input_tokens} out=${usage.output_tokens} ` +
+        `cache_read=${usage.cache_read_input_tokens ?? 0} ` +
+        `cache_write=${usage.cache_creation_input_tokens ?? 0}`
+    );
+  }
 
   const text = resp.content
     .filter((c): c is Anthropic.TextBlock => c.type === 'text')

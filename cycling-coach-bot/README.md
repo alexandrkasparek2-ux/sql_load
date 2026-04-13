@@ -15,8 +15,10 @@ through **Claude Sonnet 4.5**.
 - 🗄 SQLite persistence for users, tokens and conversations.
 - 🎙 Voice message support (Telegram audio → OpenAI Whisper → coaching).
 - 🚨 Optional proactive monitoring (WHOOP red streaks, deep TSB).
+- 💸 Prompt caching on the coaching system prompt (cuts Claude input cost by ~90%).
+- 🛡 Per-user in-memory rate limiting.
 - 🛠 Commands: `/start`, `/status`, `/analyze <id>`, `/plan`, `/compare`,
-  `/monitor on|off`.
+  `/monitor on|off`, `/disconnect <provider>`, `/seedtoken` (admin).
 
 ## Tech stack
 
