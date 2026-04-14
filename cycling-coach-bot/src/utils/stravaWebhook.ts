@@ -9,6 +9,7 @@ import {
   getCoachingResponse,
 } from './claude.js';
 import { getRecentMessages, appendMessage } from '../db/schema.js';
+import { logger } from './logger.js';
 
 /**
  * Strava webhook spec: https://developers.strava.com/docs/webhooks/
@@ -54,10 +55,10 @@ export function handleStravaWebhookRequest(
         const event = JSON.parse(body);
         res.writeHead(200).end('ok'); // ack fast — Strava expects <2s
         await processEvent(event, bot).catch((e) =>
-          console.error('[strava-webhook] process error:', e)
+          logger.error({ err: String(e) }, 'strava-webhook process error')
         );
       } catch (e) {
-        console.error('[strava-webhook] bad payload:', e);
+        logger.error({ err: String(e) }, 'strava-webhook bad payload');
         res.writeHead(400).end('bad');
       }
     });
@@ -100,7 +101,7 @@ async function processEvent(event: StravaEvent, bot: Telegraf): Promise<void> {
     }
   });
   if (!match) {
-    console.warn(`[strava-webhook] no user for athlete ${event.owner_id}`);
+    logger.warn({ athlete: event.owner_id }, 'strava-webhook: no user for athlete');
     return;
   }
 
@@ -128,6 +129,6 @@ async function processEvent(event: StravaEvent, bot: Telegraf): Promise<void> {
       { parse_mode: 'Markdown' }
     );
   } catch (err) {
-    console.error('[strava-webhook] coaching failed:', err);
+    logger.error({ err: String(err) }, 'strava-webhook coaching failed');
   }
 }

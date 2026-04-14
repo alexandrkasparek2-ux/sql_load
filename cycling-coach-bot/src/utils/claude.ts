@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { COACH_SYSTEM_PROMPT } from '../prompts/coach.js';
+import { logger } from './logger.js';
 import { withRetry } from './retry.js';
 import type { AthleteData, CoachResponse, ConversationMessage } from '../types/index.js';
 
@@ -49,10 +50,14 @@ export async function getCoachingResponse(
 
   const usage = resp.usage as any;
   if (usage) {
-    console.log(
-      `[claude] in=${usage.input_tokens} out=${usage.output_tokens} ` +
-        `cache_read=${usage.cache_read_input_tokens ?? 0} ` +
-        `cache_write=${usage.cache_creation_input_tokens ?? 0}`
+    logger.info(
+      {
+        input: usage.input_tokens,
+        output: usage.output_tokens,
+        cache_read: usage.cache_read_input_tokens ?? 0,
+        cache_write: usage.cache_creation_input_tokens ?? 0,
+      },
+      'claude tokens'
     );
   }
 

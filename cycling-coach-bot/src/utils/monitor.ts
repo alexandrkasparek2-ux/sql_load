@@ -6,6 +6,7 @@ import {
   db,
 } from '../db/schema.js';
 import { fetchAllData } from './aggregateData.js';
+import { logger } from './logger.js';
 
 const ALERT_DEDUP_SECONDS = 24 * 3600;
 
@@ -63,7 +64,7 @@ export async function checkAthleteHealth(bot: Telegraf): Promise<void> {
         logAlert(user.id, 'tsb_deep');
       }
     } catch (err) {
-      console.error(`[monitor] user ${user.id} failed:`, err);
+      logger.error({ userId: user.id, err: String(err) }, 'monitor user failed');
     }
   }
 }
@@ -72,8 +73,10 @@ export function startMonitoring(bot: Telegraf): void {
   if (process.env.ENABLE_PROACTIVE_MONITORING !== 'true') return;
   const hours = Number(process.env.MONITORING_INTERVAL_HOURS || 6);
   const intervalMs = hours * 3600 * 1000;
-  console.log(`[monitor] starting, interval=${hours}h`);
+  logger.info({ intervalHours: hours }, 'monitor starting');
   setInterval(() => {
-    checkAthleteHealth(bot).catch((e) => console.error('[monitor]', e));
+    checkAthleteHealth(bot).catch((e) =>
+      logger.error({ err: String(e) }, 'monitor tick failed')
+    );
   }, intervalMs);
 }

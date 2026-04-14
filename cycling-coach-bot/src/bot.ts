@@ -12,6 +12,7 @@ import {
 } from './db/schema.js';
 import { checkRateLimit } from './utils/rateLimit.js';
 import { isUserBusy, withUserLock } from './utils/sessionLock.js';
+import { logger } from './utils/logger.js';
 import { maybeSummarize } from './utils/summarize.js';
 import type { Provider } from './types/index.js';
 import { buildAuthUrls } from './utils/auth.js';
@@ -127,10 +128,10 @@ async function handleCoachingTurn(
       );
       // Fire-and-forget rolling summary. Never block the user on it.
       maybeSummarize(userId).catch((e) =>
-        console.error('[summary] background failure:', e)
+        logger.error({ userId, err: String(e) }, 'summary background failure')
       );
     } catch (err) {
-      console.error(err);
+      logger.error({ userId, err: String(err) }, 'coaching turn failed');
       await ctx.reply(
         `Sorry — I hit an error: ${(err as Error).message}. Try again in a moment.`
       );
@@ -189,7 +190,7 @@ async function sendStatus(ctx: any, userId: number): Promise<void> {
     }
     await ctx.replyWithMarkdown(lines.join('\n'), quickActionsKeyboard);
   } catch (err) {
-    console.error(err);
+    logger.error({ userId, err: String(err) }, 'status fetch failed');
     await ctx.reply(`Failed to fetch data: ${(err as Error).message}`);
   }
 }
@@ -340,7 +341,7 @@ async function handleAudioMessage(
     await ctx.reply(`🎙 _Heard:_ ${text}`, { parse_mode: 'Markdown' });
     await handleCoachingTurn(ctx, user.id, text);
   } catch (err) {
-    console.error('[voice]', err);
+    logger.error({ err: String(err) }, 'voice transcription failed');
     await ctx.reply(`Couldn't transcribe the audio: ${(err as Error).message}`);
   }
 }
@@ -367,12 +368,12 @@ async function main() {
   startOAuthCallbackServer(bot);
   startMonitoring(bot);
   await bot.launch();
-  console.log('[bot] running');
+  logger.info('bot running');
 }
 
 if (process.argv[1] && process.argv[1].endsWith('bot.js')) {
   main().catch((e) => {
-    console.error(e);
+    logger.fatal({ err: String(e) }, 'bot failed to start');
     process.exit(1);
   });
 }

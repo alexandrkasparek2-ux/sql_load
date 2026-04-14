@@ -3,6 +3,7 @@ import { URL } from 'node:url';
 import type { Telegraf } from 'telegraf';
 import { getUserByTelegramId, saveToken, upsertUser } from '../db/schema.js';
 import type { OAuthTokenRow, Provider } from '../types/index.js';
+import { logger } from './logger.js';
 import { handleStravaWebhookRequest } from './stravaWebhook.js';
 
 /**
@@ -118,6 +119,17 @@ async function handle(
 ) {
   const url = new URL(req.url || '/', `http://${req.headers.host}`);
 
+  if (url.pathname === '/healthz') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        ok: true,
+        uptime_seconds: Math.floor(process.uptime()),
+      })
+    );
+    return;
+  }
+
   if (url.pathname === '/webhooks/strava' && bot) {
     handleStravaWebhookRequest(req, res, bot);
     return;
@@ -165,7 +177,7 @@ async function handle(
       )
     );
   } catch (err) {
-    console.error(`[oauth] ${provider} exchange failed:`, err);
+    logger.error({ provider, err: String(err) }, 'oauth exchange failed');
     res.writeHead(500, { 'content-type': 'text/html' });
     res.end(
       htmlPage(
@@ -183,12 +195,12 @@ export function startOAuthCallbackServer(
   if (!port) return null;
   const server = http.createServer((req, res) => {
     handle(req, res, bot).catch((e) => {
-      console.error('[oauth] handler error:', e);
+      logger.error({ err: String(e) }, 'oauth handler error');
       res.writeHead(500).end('error');
     });
   });
   server.listen(port, () => {
-    console.log(`[oauth] callback server listening on :${port}`);
+    logger.info({ port }, 'oauth/http server listening');
   });
   return server;
 }

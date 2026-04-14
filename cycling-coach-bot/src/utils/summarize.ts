@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { db } from '../db/schema.js';
 import type { ConversationMessage } from '../types/index.js';
+import { logger } from './logger.js';
 import { withRetry } from './retry.js';
 
 /**
@@ -94,7 +95,7 @@ export async function maybeSummarize(userId: number): Promise<void> {
     );
   });
   tx();
-  console.log(`[summary] compressed ${older.length} msgs for user ${userId}`);
+  logger.info({ userId, compressed: older.length }, 'conversation summarized');
 }
 
 export function isSummaryMessage(m: ConversationMessage): boolean {
