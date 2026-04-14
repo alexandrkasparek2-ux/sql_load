@@ -26,6 +26,7 @@ import { startMonitoring } from './utils/monitor.js';
 import { startOAuthCallbackServer } from './utils/oauthCallback.js';
 import { transcribeVoice } from './utils/transcribe.js';
 import { getActivityById } from './data/strava.js';
+import { detectIntervals, getActivityStreams } from './data/streams.js';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 if (!BOT_TOKEN) {
@@ -262,8 +263,27 @@ bot.command('analyze', async (ctx) => {
   try {
     const act = await getActivityById(user.id, id);
     const data = await fetchAllData(user.id);
+
+    // Best-effort: pull streams and detect intervals. If the activity has no
+    // power data (or Strava 404s) we skip silently and still run a top-level
+    // debrief, so indoor HR-only rides still get coaching.
+    let intervals: ReturnType<typeof detectIntervals> = [];
+    try {
+      const streams = await getActivityStreams(user.id, id);
+      intervals = detectIntervals(streams);
+    } catch (err) {
+      logger.warn({ id, err: String(err) }, 'streams unavailable');
+    }
+
+    const intervalBlock = intervals.length
+      ? `\n\nDETECTED_INTERVALS (threshold = top-decile * 0.85):\n` +
+        JSON.stringify(intervals, null, 2)
+      : '\n\n(No power intervals detected — either no power meter or a steady effort.)';
+
     const response = await getCoachingResponse(
-      `Analyze this specific activity in depth:\n${JSON.stringify(act, null, 2)}`,
+      `Analyze this specific activity in depth. Review each interval, compare fade from first to last, and flag pacing mistakes.\n\n` +
+        JSON.stringify(act, null, 2) +
+        intervalBlock,
       data,
       getRecentMessages(user.id, 10)
     );
