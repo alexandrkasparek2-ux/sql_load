@@ -48,13 +48,39 @@ export function handleStravaWebhookRequest(
 
   if (req.method === 'POST') {
     let body = '';
+    let tooBig = false;
     req.setEncoding('utf8');
-    req.on('data', (chunk) => (body += chunk));
+    req.on('data', (chunk) => {
+      body += chunk;
+      // Strava events are small (<1 KB). Cap at 10 KB to defuse a flood.
+      if (body.length > 10_000) {
+        tooBig = true;
+        req.destroy();
+      }
+    });
     req.on('end', async () => {
+      if (tooBig) {
+        logger.warn('strava-webhook: payload too large, rejected');
+        res.writeHead(413).end('too large');
+        return;
+      }
       try {
-        const event = JSON.parse(body);
+        const parsed = JSON.parse(body);
+        if (!isStravaEventShape(parsed)) {
+          logger.warn({ body: body.slice(0, 200) }, 'strava-webhook: shape mismatch');
+          res.writeHead(400).end('bad shape');
+          return;
+        }
+        if (!isValidSubscription(parsed.subscription_id)) {
+          logger.warn(
+            { subscription: parsed.subscription_id },
+            'strava-webhook: wrong subscription id'
+          );
+          res.writeHead(403).end('forbidden');
+          return;
+        }
         res.writeHead(200).end('ok'); // ack fast — Strava expects <2s
-        await processEvent(event, bot).catch((e) =>
+        await processEvent(parsed, bot).catch((e) =>
           logger.error({ err: String(e) }, 'strava-webhook process error')
         );
       } catch (e) {
@@ -75,6 +101,30 @@ interface StravaEvent {
   owner_id: number; // strava athlete id
   subscription_id: number;
   updates?: Record<string, string>;
+}
+
+function isValidSubscription(subscriptionId: number): boolean {
+  const allowed = process.env.STRAVA_WEBHOOK_SUBSCRIPTION_ID;
+  if (!allowed) {
+    // Not configured — accept but warn once. Operators should set this after
+    // creating the subscription via the Strava webhook API.
+    return true;
+  }
+  return String(subscriptionId) === String(allowed);
+}
+
+function isStravaEventShape(v: unknown): v is StravaEvent {
+  if (!v || typeof v !== 'object') return false;
+  const o = v as Record<string, unknown>;
+  return (
+    (o.object_type === 'activity' || o.object_type === 'athlete') &&
+    typeof o.object_id === 'number' &&
+    typeof o.owner_id === 'number' &&
+    typeof o.subscription_id === 'number' &&
+    (o.aspect_type === 'create' ||
+      o.aspect_type === 'update' ||
+      o.aspect_type === 'delete')
+  );
 }
 
 async function processEvent(event: StravaEvent, bot: Telegraf): Promise<void> {
