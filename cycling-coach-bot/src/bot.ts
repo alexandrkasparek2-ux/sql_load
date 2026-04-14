@@ -11,6 +11,7 @@ import {
   getToken,
 } from './db/schema.js';
 import { checkRateLimit } from './utils/rateLimit.js';
+import { isUserBusy, withUserLock } from './utils/sessionLock.js';
 import { maybeSummarize } from './utils/summarize.js';
 import type { Provider } from './types/index.js';
 import { buildAuthUrls } from './utils/auth.js';
@@ -96,34 +97,45 @@ async function handleCoachingTurn(
     );
     return;
   }
-  await ctx.sendChatAction('typing');
-  appendMessage({
-    user_id: userId,
-    role: 'user',
-    content: prompt,
-    created_at: now(),
-  });
-  try {
-    const data = await fetchAllData(userId);
-    const history = getRecentMessages(userId, 10);
-    const response = await getCoachingResponse(prompt, data, history);
+  if (isUserBusy(userId)) {
+    await ctx.reply(
+      '⏳ Still working on your previous message — hang on a sec.'
+    );
+    // Fall through: the lock will serialise this turn after the previous one.
+  }
+  await withUserLock(userId, async () => {
+    await ctx.sendChatAction('typing');
     appendMessage({
       user_id: userId,
-      role: 'assistant',
-      content: JSON.stringify(response),
+      role: 'user',
+      content: prompt,
       created_at: now(),
     });
-    await ctx.replyWithMarkdown(formatForTelegram(response), quickActionsKeyboard);
-    // Fire-and-forget rolling summary. Never block the user on it.
-    maybeSummarize(userId).catch((e) =>
-      console.error('[summary] background failure:', e)
-    );
-  } catch (err) {
-    console.error(err);
-    await ctx.reply(
-      `Sorry — I hit an error: ${(err as Error).message}. Try again in a moment.`
-    );
-  }
+    try {
+      const data = await fetchAllData(userId);
+      const history = getRecentMessages(userId, 10);
+      const response = await getCoachingResponse(prompt, data, history);
+      appendMessage({
+        user_id: userId,
+        role: 'assistant',
+        content: JSON.stringify(response),
+        created_at: now(),
+      });
+      await ctx.replyWithMarkdown(
+        formatForTelegram(response),
+        quickActionsKeyboard
+      );
+      // Fire-and-forget rolling summary. Never block the user on it.
+      maybeSummarize(userId).catch((e) =>
+        console.error('[summary] background failure:', e)
+      );
+    } catch (err) {
+      console.error(err);
+      await ctx.reply(
+        `Sorry — I hit an error: ${(err as Error).message}. Try again in a moment.`
+      );
+    }
+  });
 }
 
 bot.action(/^qa:(status|plan|ready|rest)$/, async (ctx) => {
