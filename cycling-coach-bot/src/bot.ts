@@ -241,6 +241,47 @@ bot.command('connect', async (ctx) => {
 
 const VALID_PROVIDERS: Provider[] = ['strava', 'trainingpeaks', 'whoop'];
 
+// Non-secret diagnostic command: prints first 8 chars + length of each OAuth
+// env var so we can tell whether the running container actually sees values
+// configured in the hosting dashboard. Never prints the full secret.
+bot.command('diag', async (ctx) => {
+  const keys = [
+    'STRAVA_CLIENT_ID',
+    'STRAVA_CLIENT_SECRET',
+    'STRAVA_REDIRECT_URI',
+    'WHOOP_CLIENT_ID',
+    'WHOOP_CLIENT_SECRET',
+    'WHOOP_REDIRECT_URI',
+    'TP_API_KEY',
+    'TP_API_SECRET',
+    'TP_REDIRECT_URI',
+  ];
+  const lines = keys.map((k) => {
+    const v = process.env[k] ?? '';
+    if (!v) return `⬜️ ${k}: (unset)`;
+    const prefix = v.slice(0, 8);
+    const hasAngle = v.includes('<') || v.includes('>');
+    const hasSpace = /\s/.test(v);
+    const flags = [
+      hasAngle ? '⚠️<>' : null,
+      hasSpace ? '⚠️whitespace' : null,
+    ]
+      .filter(Boolean)
+      .join(' ');
+    return `✅ ${k}: ${prefix}… (len=${v.length})${flags ? ' ' + flags : ''}`;
+  });
+  const urls = buildAuthUrls(ctx.from.id);
+  await ctx.reply(
+    [
+      '🔧 Runtime env diagnostic:',
+      ...lines,
+      '',
+      'Generated WHOOP authorize URL:',
+      urls.whoop,
+    ].join('\n')
+  );
+});
+
 bot.command('disconnect', async (ctx) => {
   const user = upsertUser(ctx.from.id);
   const arg = ctx.message.text.split(/\s+/)[1]?.toLowerCase();
