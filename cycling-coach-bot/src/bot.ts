@@ -361,11 +361,56 @@ bot.on(message('audio'), async (ctx) => {
   );
 });
 
+// Global Telegraf error boundary — runs for any exception thrown out of a
+// handler. We log it, tell the user something went wrong, and *don't* crash.
+bot.catch((err, ctx) => {
+  logger.error(
+    {
+      err: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      update: ctx.updateType,
+      from: ctx.from?.id,
+    },
+    'unhandled bot error'
+  );
+  ctx
+    .reply('Something went wrong on my side. Please try again in a moment.')
+    .catch(() => {
+      /* user may have blocked the bot, ignore */
+    });
+});
+
 // Expose helper so callback handlers (hosted elsewhere) can reuse the same parser.
 export { parseCoachResponse };
 
+let httpServer: import('node:http').Server | null = null;
+
+async function shutdown(signal: string): Promise<void> {
+  logger.info({ signal }, 'shutting down');
+  try {
+    bot.stop(signal);
+  } catch (e) {
+    logger.warn({ err: String(e) }, 'bot.stop threw');
+  }
+  if (httpServer) {
+    await new Promise<void>((resolve) => {
+      httpServer!.close(() => resolve());
+      // Safety: force close after 8s so a stuck keep-alive doesn't block exit.
+      setTimeout(() => resolve(), 8000).unref();
+    });
+  }
+  try {
+    const { db } = await import('./db/schema.js');
+    db.close();
+  } catch (e) {
+    logger.warn({ err: String(e) }, 'db.close threw');
+  }
+  logger.info('shutdown complete');
+  process.exit(0);
+}
+
 async function main() {
-  startOAuthCallbackServer(bot);
+  httpServer = startOAuthCallbackServer(bot);
   startMonitoring(bot);
   await bot.launch();
   logger.info('bot running');
@@ -378,5 +423,14 @@ if (process.argv[1] && process.argv[1].endsWith('bot.js')) {
   });
 }
 
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+process.once('SIGINT', () => void shutdown('SIGINT'));
+process.once('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('unhandledRejection', (reason) => {
+  logger.error({ err: String(reason) }, 'unhandled rejection');
+});
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err: err.message, stack: err.stack }, 'uncaught exception');
+  // Don't auto-exit: the process manager (Fly/Railway) will restart us if we do.
+  // We want to log-then-die so state is not left inconsistent.
+  process.exit(1);
+});
