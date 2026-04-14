@@ -2,7 +2,12 @@ import Anthropic from '@anthropic-ai/sdk';
 import { COACH_SYSTEM_PROMPT } from '../prompts/coach.js';
 import { logger } from './logger.js';
 import { withRetry } from './retry.js';
-import type { AthleteData, CoachResponse, ConversationMessage } from '../types/index.js';
+import type {
+  AthleteData,
+  AthleteProfile,
+  CoachResponse,
+  ConversationMessage,
+} from '../types/index.js';
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -13,12 +18,23 @@ const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5';
 export async function getCoachingResponse(
   userMessage: string,
   athleteData: AthleteData,
-  conversationHistory: ConversationMessage[]
+  conversationHistory: ConversationMessage[],
+  profile?: AthleteProfile
 ): Promise<CoachResponse> {
   const history = conversationHistory.slice(-10).map((m) => ({
     role: m.role,
     content: m.content,
   }));
+
+  const profileBlock =
+    profile &&
+    (profile.ftp_watts || profile.weight_kg || profile.max_hr || profile.goal)
+      ? `ATHLETE_PROFILE (self-reported):\n\`\`\`json\n${JSON.stringify(
+          profile,
+          null,
+          2
+        )}\n\`\`\`\n\n`
+      : '';
 
   const dataBlock = `ATHLETE_DATA (JSON):\n\`\`\`json\n${JSON.stringify(
     athleteData,
@@ -26,7 +42,7 @@ export async function getCoachingResponse(
     2
   )}\n\`\`\``;
 
-  const userTurn = `${dataBlock}\n\nATHLETE_QUESTION: ${userMessage}`;
+  const userTurn = `${profileBlock}${dataBlock}\n\nATHLETE_QUESTION: ${userMessage}`;
 
   // Prompt caching: the coaching system prompt is static across every call,
   // so we mark it as a cache breakpoint. Anthropic returns cached tokens at

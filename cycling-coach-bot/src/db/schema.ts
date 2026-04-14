@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'node:path';
 import fs from 'node:fs';
 import type {
+  AthleteProfile,
   ConversationMessage,
   OAuthTokenRow,
   Provider,
@@ -62,6 +63,16 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_conversations_user_created
     ON conversations(user_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS athlete_profiles (
+    user_id INTEGER PRIMARY KEY,
+    ftp_watts INTEGER,
+    weight_kg REAL,
+    max_hr INTEGER,
+    goal TEXT,
+    updated_at INTEGER,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
 
   CREATE TABLE IF NOT EXISTS alert_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -144,6 +155,57 @@ export function deleteToken(userId: number, provider: Provider): void {
   db.prepare(
     `DELETE FROM oauth_tokens WHERE user_id = ? AND provider = ?`
   ).run(userId, provider);
+}
+
+export function getProfile(userId: number): AthleteProfile {
+  const row = db
+    .prepare(
+      `SELECT ftp_watts, weight_kg, max_hr, goal, updated_at
+       FROM athlete_profiles WHERE user_id = ?`
+    )
+    .get(userId) as AthleteProfile | undefined;
+  return (
+    row ?? {
+      ftp_watts: null,
+      weight_kg: null,
+      max_hr: null,
+      goal: null,
+      updated_at: null,
+    }
+  );
+}
+
+export function setProfile(
+  userId: number,
+  patch: Partial<AthleteProfile>
+): AthleteProfile {
+  const current = getProfile(userId);
+  const next: AthleteProfile = {
+    ftp_watts: patch.ftp_watts ?? current.ftp_watts,
+    weight_kg: patch.weight_kg ?? current.weight_kg,
+    max_hr: patch.max_hr ?? current.max_hr,
+    goal: patch.goal ?? current.goal,
+    updated_at: Math.floor(Date.now() / 1000),
+  };
+  db.prepare(
+    `INSERT INTO athlete_profiles
+       (user_id, ftp_watts, weight_kg, max_hr, goal, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET
+       ftp_watts = excluded.ftp_watts,
+       weight_kg = excluded.weight_kg,
+       max_hr = excluded.max_hr,
+       goal = excluded.goal,
+       updated_at = excluded.updated_at`
+  ).run(
+    userId,
+    next.ftp_watts,
+    next.weight_kg,
+    next.max_hr,
+    next.goal,
+    next.updated_at
+  );
+  return next;
 }
 
 export function appendMessage(msg: ConversationMessage): void {

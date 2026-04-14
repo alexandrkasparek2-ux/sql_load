@@ -18,8 +18,11 @@ through **Claude Sonnet 4.5**.
 - 💸 Prompt caching on the coaching system prompt (cuts Claude input cost by ~90%).
 - 🛡 Per-user in-memory rate limiting.
 - 🛠 Commands: `/start`, `/help`, `/connect`, `/status`, `/analyze <id>`,
-  `/plan`, `/compare`, `/monitor on|off`, `/disconnect <provider>`,
+  `/plan`, `/compare`, `/profile`, `/monitor on|off`, `/disconnect <provider>`,
   `/seedtoken` (admin). A slash-command menu is auto-registered on launch.
+- 👤 Athlete profile (FTP / weight / maxHR / goal). When FTP is set, the
+  activity interval detector uses `FTP * 0.88` as the sweet-spot threshold
+  instead of the top-decile fallback, and Claude sees the profile in-context.
 
 ## Tech stack
 

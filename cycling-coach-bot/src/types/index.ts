@@ -93,6 +93,14 @@ export interface UserRow {
   monitoring_enabled: number; // 0/1
 }
 
+export interface AthleteProfile {
+  ftp_watts: number | null;
+  weight_kg: number | null;
+  max_hr: number | null;
+  goal: string | null;
+  updated_at: number | null;
+}
+
 export interface ConversationMessage {
   id?: number;
   user_id: number;

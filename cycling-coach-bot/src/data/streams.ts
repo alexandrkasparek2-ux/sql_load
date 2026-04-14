@@ -54,14 +54,16 @@ export async function getActivityStreams(
 }
 
 /**
- * Detect effort intervals. Threshold defaults to 85% of the top-decile power
- * seen in the ride (a rough proxy for "the athlete meant to go hard here")
- * so it works without requiring FTP to be configured.
+ * Detect effort intervals. Threshold priority:
+ *   1. opts.thresholdWatts — explicit override.
+ *   2. opts.ftpWatts * 0.88 — sweet-spot floor when FTP is known.
+ *   3. top-decile * 0.85 — FTP-free fallback ("athlete meant to go hard here").
  */
 export function detectIntervals(
   streams: StreamSet,
   opts: {
     thresholdWatts?: number;
+    ftpWatts?: number;
     minDurationSeconds?: number;
     smoothingWindow?: number;
   } = {}
@@ -70,7 +72,10 @@ export function detectIntervals(
   if (watts.length < 30) return [];
 
   const threshold =
-    opts.thresholdWatts ?? Math.round(topDecile(watts) * 0.85);
+    opts.thresholdWatts ??
+    (opts.ftpWatts
+      ? Math.round(opts.ftpWatts * 0.88)
+      : Math.round(topDecile(watts) * 0.85));
   const minDuration = opts.minDurationSeconds ?? 45;
   const smoothing = opts.smoothingWindow ?? 10;
 

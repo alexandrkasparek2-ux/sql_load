@@ -4,12 +4,15 @@ import { message } from 'telegraf/filters';
 import {
   appendMessage,
   deleteToken,
+  getProfile,
   getRecentMessages,
   saveToken,
   setMonitoring,
+  setProfile,
   upsertUser,
   getToken,
 } from './db/schema.js';
+import { formatProfile, parseProfileArgs } from './utils/profileArgs.js';
 import { checkRateLimit } from './utils/rateLimit.js';
 import { isUserBusy, withUserLock } from './utils/sessionLock.js';
 import { logger } from './utils/logger.js';
@@ -116,7 +119,8 @@ async function handleCoachingTurn(
     try {
       const data = await fetchAllData(userId);
       const history = getRecentMessages(userId, 10);
-      const response = await getCoachingResponse(prompt, data, history);
+      const profile = getProfile(userId);
+      const response = await getCoachingResponse(prompt, data, history, profile);
       appendMessage({
         user_id: userId,
         role: 'assistant',
@@ -211,6 +215,7 @@ const HELP_TEXT = [
   '/connect — (re)show OAuth links for Strava / TP / WHOOP',
   '/disconnect `<provider>` — revoke a connection',
   '/monitor on|off — toggle proactive alerts',
+  '/profile — show athlete profile; `/profile ftp=285 weight=72` to update',
   '',
   'Or just send a text or voice message and I will coach you.',
 ].join('\n');
@@ -300,16 +305,22 @@ bot.command('analyze', async (ctx) => {
     // Best-effort: pull streams and detect intervals. If the activity has no
     // power data (or Strava 404s) we skip silently and still run a top-level
     // debrief, so indoor HR-only rides still get coaching.
+    const profile = getProfile(user.id);
     let intervals: ReturnType<typeof detectIntervals> = [];
     try {
       const streams = await getActivityStreams(user.id, id);
-      intervals = detectIntervals(streams);
+      intervals = detectIntervals(streams, {
+        ftpWatts: profile.ftp_watts ?? undefined,
+      });
     } catch (err) {
       logger.warn({ id, err: String(err) }, 'streams unavailable');
     }
 
+    const thresholdLabel = profile.ftp_watts
+      ? `FTP ${profile.ftp_watts}W * 0.88`
+      : 'top-decile * 0.85';
     const intervalBlock = intervals.length
-      ? `\n\nDETECTED_INTERVALS (threshold = top-decile * 0.85):\n` +
+      ? `\n\nDETECTED_INTERVALS (threshold = ${thresholdLabel}):\n` +
         JSON.stringify(intervals, null, 2)
       : '\n\n(No power intervals detected — either no power meter or a steady effort.)';
 
@@ -318,7 +329,8 @@ bot.command('analyze', async (ctx) => {
         JSON.stringify(act, null, 2) +
         intervalBlock,
       data,
-      getRecentMessages(user.id, 10)
+      getRecentMessages(user.id, 10),
+      profile
     );
     await ctx.replyWithMarkdown(formatForTelegram(response));
   } catch (err) {
@@ -334,7 +346,8 @@ bot.command('plan', async (ctx) => {
     const response = await getCoachingResponse(
       'Build a 7-day training plan based on my current form, recovery and planned workouts. Include day-by-day intent, target TSS, and key sessions.',
       data,
-      getRecentMessages(user.id, 10)
+      getRecentMessages(user.id, 10),
+      getProfile(user.id)
     );
     await ctx.replyWithMarkdown(formatForTelegram(response));
   } catch (err) {
@@ -352,12 +365,32 @@ bot.command('compare', async (ctx) => {
     const response = await getCoachingResponse(
       `Compare my training and recovery metrics between ${a} and ${b}. Highlight trends in fitness (CTL), fatigue (ATL), form (TSB), and recovery.`,
       data,
-      getRecentMessages(user.id, 10)
+      getRecentMessages(user.id, 10),
+      getProfile(user.id)
     );
     await ctx.replyWithMarkdown(formatForTelegram(response));
   } catch (err) {
     await ctx.reply(`Could not compare: ${(err as Error).message}`);
   }
+});
+
+bot.command('profile', async (ctx) => {
+  const user = upsertUser(ctx.from.id);
+  const raw = ctx.message.text.replace(/^\/profile(?:@\S+)?\s*/i, '').trim();
+  if (!raw) {
+    const p = getProfile(user.id);
+    await ctx.replyWithMarkdown(
+      `👤 *Your athlete profile*\n\n${formatProfile(p)}\n\n` +
+        '_To update:_ `/profile ftp=285 weight=72.5 maxhr=195 goal="Haute Route"`'
+    );
+    return;
+  }
+  const parsed = parseProfileArgs(raw);
+  if (!parsed.ok) {
+    return ctx.reply(`⚠️ ${parsed.error}`);
+  }
+  const updated = setProfile(user.id, parsed.patch);
+  await ctx.replyWithMarkdown(`✅ *Profile updated*\n\n${formatProfile(updated)}`);
 });
 
 bot.on(message('text'), async (ctx) => {
@@ -473,6 +506,7 @@ async function registerCommandMenu(): Promise<void> {
       { command: 'connect', description: 'Link Strava / TP / WHOOP' },
       { command: 'disconnect', description: 'Unlink a provider' },
       { command: 'monitor', description: 'Proactive alerts on/off' },
+      { command: 'profile', description: 'Show / update FTP, weight, maxHR, goal' },
       { command: 'help', description: 'List all commands' },
     ]);
   } catch (e) {
