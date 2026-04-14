@@ -11,6 +11,7 @@ import {
   getToken,
 } from './db/schema.js';
 import { checkRateLimit } from './utils/rateLimit.js';
+import { maybeSummarize } from './utils/summarize.js';
 import type { Provider } from './types/index.js';
 import { buildAuthUrls } from './utils/auth.js';
 import { fetchAllData } from './utils/aggregateData.js';
@@ -113,6 +114,10 @@ async function handleCoachingTurn(
       created_at: now(),
     });
     await ctx.replyWithMarkdown(formatForTelegram(response), quickActionsKeyboard);
+    // Fire-and-forget rolling summary. Never block the user on it.
+    maybeSummarize(userId).catch((e) =>
+      console.error('[summary] background failure:', e)
+    );
   } catch (err) {
     console.error(err);
     await ctx.reply(
