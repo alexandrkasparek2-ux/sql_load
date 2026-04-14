@@ -146,7 +146,7 @@ export function buildAuthUrls(telegramUserId: number): Record<Provider, string> 
       client_id: process.env.STRAVA_CLIENT_ID || '',
       redirect_uri: process.env.STRAVA_REDIRECT_URI || '',
       response_type: 'code',
-      approval_prompt: 'auto',
+      approval_prompt: 'force',
       scope: 'activity:read_all,profile:read_all',
       state,
     }).toString();

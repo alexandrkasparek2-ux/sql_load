@@ -144,14 +144,50 @@ async function handle(
   }
   const provider = match[1] as Provider;
   const code = url.searchParams.get('code');
-  const telegramId = parseState(url.searchParams.get('state'));
+  const stateRaw = url.searchParams.get('state');
+  const telegramId = parseState(stateRaw);
+  const errorParam = url.searchParams.get('error');
+  const errorDescription = url.searchParams.get('error_description');
+
+  // Log every callback hit so we can diagnose missing-param situations in
+  // production (Railway logs).
+  logger.info(
+    {
+      provider,
+      hasCode: Boolean(code),
+      stateRaw,
+      telegramId,
+      error: errorParam,
+      errorDescription,
+      query: Object.fromEntries(url.searchParams.entries()),
+    },
+    'oauth callback received'
+  );
+
+  if (errorParam) {
+    res.writeHead(400, { 'content-type': 'text/html' });
+    res.end(
+      htmlPage(
+        `${provider} authorization denied`,
+        `<p>Provider returned <code>${errorParam}</code>${
+          errorDescription ? `: ${errorDescription}` : ''
+        }.</p><p>Go back to Telegram and try <code>/connect</code> again.</p>`
+      )
+    );
+    return;
+  }
 
   if (!code || !telegramId) {
+    const paramsDump = Array.from(url.searchParams.entries())
+      .map(([k, v]) => `${k}=${v}`)
+      .join('&');
     res.writeHead(400, { 'content-type': 'text/html' });
     res.end(
       htmlPage(
         'Missing parameters',
-        '<p>OAuth callback is missing <code>code</code> or <code>state</code>.</p>'
+        `<p>OAuth callback is missing <code>code</code> or <code>state</code>.</p>
+         <p><strong>Received query:</strong> <code>${paramsDump || '(empty)'}</code></p>
+         <p>Open the <code>/connect</code> link in a regular browser (Safari / Chrome), not the in-app browser.</p>`
       )
     );
     return;
