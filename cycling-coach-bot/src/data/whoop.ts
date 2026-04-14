@@ -4,6 +4,13 @@ import type { WhoopRecovery, WhoopSleep } from '../types/index.js';
 
 const WHOOP_API = 'https://api.prod.whoop.com/developer';
 
+// WHOOP migrated from v1 to v2. The endpoint names and response shapes
+// changed. We still use `records[]` for list endpoints. Keys we rely on:
+//   - score.recovery_score / hrv_rmssd_milli / resting_heart_rate
+//   - score.sleep_performance_percentage
+//   - score.stage_summary.total_in_bed_time_milli / disturbance_count
+// These are preserved in v2.
+
 async function call<T>(userId: number, path: string): Promise<T> {
   const token = await getValidAccessToken(userId, 'whoop');
   return withRetry(
@@ -11,7 +18,12 @@ async function call<T>(userId: number, path: string): Promise<T> {
       const res = await fetch(`${WHOOP_API}${path}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error(`WHOOP ${path} -> ${res.status}`);
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(
+          `WHOOP ${path} -> ${res.status}${body ? ` ${body.slice(0, 200)}` : ''}`
+        );
+      }
       return (await res.json()) as T;
     },
     { label: `whoop ${path}` }
@@ -23,7 +35,7 @@ export async function getTodayRecovery(userId: number): Promise<WhoopRecovery> {
   const end = new Date().toISOString();
   const res = await call<{ records: any[] }>(
     userId,
-    `/v1/recovery?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=5`
+    `/v2/recovery?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=5`
   );
   const latest = res.records?.[0];
   if (!latest) {
@@ -47,7 +59,7 @@ export async function getSleepHistory(
   const end = new Date().toISOString();
   const res = await call<{ records: any[] }>(
     userId,
-    `/v1/activity/sleep?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=25`
+    `/v2/activity/sleep?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&limit=25`
   );
   return (res.records ?? []).map((r: any) => ({
     date: r.start ?? r.created_at,
