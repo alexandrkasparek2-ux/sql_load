@@ -201,6 +201,39 @@ bot.command('status', async (ctx) => {
   await sendStatus(ctx, user.id);
 });
 
+const HELP_TEXT = [
+  '🚴 *Cycling Coach — commands*',
+  '',
+  '/status — current fitness / recovery snapshot',
+  '/plan — AI-generated 7-day plan',
+  '/analyze `<activity_id>` — deep debrief of a Strava activity',
+  '/compare `<YYYY-MM-DD> <YYYY-MM-DD>` — period-vs-period review',
+  '/connect — (re)show OAuth links for Strava / TP / WHOOP',
+  '/disconnect `<provider>` — revoke a connection',
+  '/monitor on|off — toggle proactive alerts',
+  '',
+  'Or just send a text or voice message and I will coach you.',
+].join('\n');
+
+bot.command('help', async (ctx) => {
+  await ctx.replyWithMarkdown(HELP_TEXT, quickActionsKeyboard);
+});
+
+bot.command('connect', async (ctx) => {
+  const user = upsertUser(ctx.from.id);
+  const urls = buildAuthUrls(ctx.from.id);
+  await ctx.reply(
+    [
+      'Authorise the coach to read your data:',
+      `• Strava: ${urls.strava}`,
+      `• TrainingPeaks: ${urls.trainingpeaks}`,
+      `• WHOOP: ${urls.whoop}`,
+      '',
+      `Current status: ${connectionStatus(user.id)}`,
+    ].join('\n')
+  );
+});
+
 const VALID_PROVIDERS: Provider[] = ['strava', 'trainingpeaks', 'whoop'];
 
 bot.command('disconnect', async (ctx) => {
@@ -429,9 +462,28 @@ async function shutdown(signal: string): Promise<void> {
   process.exit(0);
 }
 
+async function registerCommandMenu(): Promise<void> {
+  // Published to the client so users see a slash-command autocomplete menu.
+  try {
+    await bot.telegram.setMyCommands([
+      { command: 'status', description: 'Current fitness + recovery snapshot' },
+      { command: 'plan', description: '7-day AI training plan' },
+      { command: 'analyze', description: 'Deep debrief of a Strava activity' },
+      { command: 'compare', description: 'Compare two date ranges' },
+      { command: 'connect', description: 'Link Strava / TP / WHOOP' },
+      { command: 'disconnect', description: 'Unlink a provider' },
+      { command: 'monitor', description: 'Proactive alerts on/off' },
+      { command: 'help', description: 'List all commands' },
+    ]);
+  } catch (e) {
+    logger.warn({ err: String(e) }, 'setMyCommands failed');
+  }
+}
+
 async function main() {
   httpServer = startOAuthCallbackServer(bot);
   startMonitoring(bot);
+  await registerCommandMenu();
   await bot.launch();
   logger.info('bot running');
 }

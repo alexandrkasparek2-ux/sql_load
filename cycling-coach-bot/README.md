@@ -17,8 +17,9 @@ through **Claude Sonnet 4.5**.
 - 🚨 Optional proactive monitoring (WHOOP red streaks, deep TSB).
 - 💸 Prompt caching on the coaching system prompt (cuts Claude input cost by ~90%).
 - 🛡 Per-user in-memory rate limiting.
-- 🛠 Commands: `/start`, `/status`, `/analyze <id>`, `/plan`, `/compare`,
-  `/monitor on|off`, `/disconnect <provider>`, `/seedtoken` (admin).
+- 🛠 Commands: `/start`, `/help`, `/connect`, `/status`, `/analyze <id>`,
+  `/plan`, `/compare`, `/monitor on|off`, `/disconnect <provider>`,
+  `/seedtoken` (admin). A slash-command menu is auto-registered on launch.
 
 ## Tech stack
 
