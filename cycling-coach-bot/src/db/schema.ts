@@ -7,6 +7,7 @@ import type {
   Provider,
   UserRow,
 } from '../types/index.js';
+import { decrypt, encrypt } from '../utils/crypto.js';
 
 const DB_URL = process.env.DATABASE_URL || './data/coach.sqlite';
 
@@ -115,10 +116,10 @@ export function saveToken(row: OAuthTokenRow): void {
   ).run(
     row.user_id,
     row.provider,
-    row.access_token,
-    row.refresh_token,
+    encrypt(row.access_token)!,
+    encrypt(row.refresh_token),
     row.expires_at,
-    row.extra_json
+    row.extra_json // not encrypted — only profile metadata (athlete id, etc.)
   );
 }
 
@@ -126,11 +127,17 @@ export function getToken(
   userId: number,
   provider: Provider
 ): OAuthTokenRow | undefined {
-  return db
+  const raw = db
     .prepare(
       `SELECT * FROM oauth_tokens WHERE user_id = ? AND provider = ?`
     )
     .get(userId, provider) as OAuthTokenRow | undefined;
+  if (!raw) return undefined;
+  return {
+    ...raw,
+    access_token: decrypt(raw.access_token)!,
+    refresh_token: decrypt(raw.refresh_token),
+  };
 }
 
 export function deleteToken(userId: number, provider: Provider): void {
