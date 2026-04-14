@@ -100,7 +100,18 @@ function must(name: string): string {
 
 function parseState(state: string | null): number | null {
   if (!state) return null;
-  const m = /^tg:(\d+)$/.exec(state);
+  // Tolerate a double-encoded `tg%3A<id>` as well as the normal `tg:<id>`.
+  // Some providers (Strava in particular) round-trip the `state` literally,
+  // so if we accidentally sent it already-encoded they send it back encoded.
+  let candidate = state;
+  if (candidate.startsWith('tg%3A') || candidate.startsWith('tg%3a')) {
+    try {
+      candidate = decodeURIComponent(candidate);
+    } catch {
+      // fall through — regex will fail and we'll return null
+    }
+  }
+  const m = /^tg:(\d+)$/.exec(candidate);
   return m ? Number(m[1]) : null;
 }
 

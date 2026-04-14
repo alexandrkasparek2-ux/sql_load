@@ -138,7 +138,11 @@ export async function getValidAccessToken(
  * exchanges the `code` for tokens and persists them via `saveToken`.
  */
 export function buildAuthUrls(telegramUserId: number): Record<Provider, string> {
-  const state = encodeURIComponent(`tg:${telegramUserId}`);
+  // Plain value — URLSearchParams below percent-encodes it exactly once.
+  // Do NOT call encodeURIComponent here or the `%` itself gets re-encoded to
+  // `%25`, which some providers round-trip literally and the callback parser
+  // then fails to match `tg:<id>`.
+  const state = `tg:${telegramUserId}`;
 
   const stravaUrl =
     `https://www.strava.com/oauth/authorize?` +
