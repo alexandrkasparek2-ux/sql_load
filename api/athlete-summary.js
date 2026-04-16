@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
       supabase
         .from('training_days')
-        .select('date, training_type, ride_hours, water_glasses')
+        .select('date, training_type, ride_hours, water_glasses, coffee_cups')
         .eq('user_id', userId)
         .gte('date', since)
         .order('date', { ascending: false }),

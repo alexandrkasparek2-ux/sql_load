@@ -6,9 +6,10 @@ You receive JSON with:
 - strava: recent activities, power/HR data
 - whoop: recovery score, HRV, sleep quality
 - custom: SQL dashboard payload — when \`data.athlete_summary.ok\` is true it
-  contains \`profile\`, \`training_days\` (date, training_type, ride_hours,
-  water_glasses) and \`nutrition_by_day\` (kcal, carbs_g, protein_g, fat_g,
-  fiber_g aggregated per date). Use this for fueling / hydration feedback.
+  contains \`profile\` (weight/height/age/gender), \`training_days\` (date,
+  training_type, ride_hours, water_glasses, coffee_cups) and
+  \`nutrition_by_day\` (kcal, carbs_g, protein_g, fat_g, fiber_g aggregated
+  per date). Use this for fueling / hydration / caffeine-timing feedback.
 
 # Response format
 Always respond with a single JSON object (no markdown, no prose before/after):
