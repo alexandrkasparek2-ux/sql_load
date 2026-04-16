@@ -3548,6 +3548,36 @@ export const FOODS: Food[] = [
     micros: { na: 650, k: 140, mg: 12, ca: 20, fe: 4.5, vit_c: 1.0, vit_d: 0.5, b12: 8.0, omega3: 120, zn: 1.8 },
   },
 
+  // ── Pomazánková másla ─────────────────────
+  {
+    id: 'lucina_classic',
+    cat: '🥪 Pomazánky',
+    name: 'Lučina (klasická smetanová)',
+    kcal: 255, carbs: 4.0, protein: 7.5, fat: 23.0, fiber: 0, per: 30,
+    micros: { na: 310, k: 75, mg: 7, ca: 85, fe: 0.1, vit_c: 0, vit_d: 0.1, b12: 0.2, omega3: 40, zn: 0.5 },
+  },
+  {
+    id: 'lucina_skyr',
+    cat: '🥪 Pomazánky',
+    name: 'Lučina Skyr (vysokoproteinová)',
+    kcal: 165, carbs: 5.5, protein: 13.5, fat: 10.0, fiber: 0, per: 100,
+    micros: { na: 290, k: 100, mg: 10, ca: 120, fe: 0.1, vit_c: 0, vit_d: 0.1, b12: 0.5, omega3: 30, zn: 0.7 },
+  },
+  {
+    id: 'zerve_classic',
+    cat: '🥪 Pomazánky',
+    name: 'Žervé (Gervais, klasický)',
+    kcal: 290, carbs: 3.5, protein: 7.0, fat: 27.0, fiber: 0, per: 30,
+    micros: { na: 280, k: 65, mg: 6, ca: 80, fe: 0.1, vit_c: 0, vit_d: 0.1, b12: 0.2, omega3: 45, zn: 0.4 },
+  },
+  {
+    id: 'zerve_fit',
+    cat: '🥪 Pomazánky',
+    name: 'Žervé Fit (nízkotučný)',
+    kcal: 130, carbs: 4.5, protein: 9.5, fat: 9.0, fiber: 0, per: 100,
+    micros: { na: 320, k: 85, mg: 9, ca: 110, fe: 0.1, vit_c: 0, vit_d: 0.1, b12: 0.4, omega3: 25, zn: 0.6 },
+  },
+
   // ──────────────────────────────────────────
   // 🍕 Těsta
   // ──────────────────────────────────────────

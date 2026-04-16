@@ -5,7 +5,7 @@ import { T, APPLE, MacroCard, ProgressBar, SectionTitle, Card, Btn } from '../co
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
 import { FOODS } from '../constants/foods';
 import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
-import { WhoopCard } from '../components/WhoopCard';
+import { AppleHealthCard } from '../components/AppleHealthCard';
 
 // ─── Stretching checklist ─────────────────────────────────────
 interface StoredStretch { name: string; duration: string; desc: string; checked: boolean; }
@@ -577,9 +577,9 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* Whoop card */}
-      <SectionTitle accent={accent}>Whoop</SectionTitle>
-      <WhoopCard />
+      {/* Apple Health card */}
+      <SectionTitle accent={accent}>Apple Health</SectionTitle>
+      <AppleHealthCard />
 
       {/* Macro cards */}
       <SectionTitle accent={accent}>Makroživiny</SectionTitle>
