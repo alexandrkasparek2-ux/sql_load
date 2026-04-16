@@ -51,7 +51,7 @@ export async function getCoachingResponse(
     () =>
       client.messages.create({
         model: MODEL,
-        max_tokens: 800,
+        max_tokens: 1500,
         system: [
           {
             type: 'text',
@@ -104,13 +104,62 @@ export function parseCoachResponse(text: string): CoachResponse {
       question: parsed.question ? String(parsed.question) : undefined,
     };
   } catch {
-    // Fallback: dump raw text as summary so we never hard-fail on the user.
+    // JSON.parse failed — typically because the response was truncated at
+    // max_tokens mid-string. Try to rescue the partial fields with a regex
+    // before giving up and dumping raw text.
+    const rescued = rescuePartialCoachJson(cleaned);
+    if (rescued) return rescued;
+    // Final fallback: dump raw text as summary so we never hard-fail.
     return {
       summary: cleaned.slice(0, 400),
       analysis: [],
       recommendation: '',
     };
   }
+}
+
+/**
+ * Best-effort extraction of summary / analysis / recommendation / question
+ * from a malformed Claude response. Handles truncation at max_tokens: we
+ * may have a valid opening `{` but the closing `}` never arrived.
+ */
+function rescuePartialCoachJson(text: string): CoachResponse | null {
+  if (!text.trimStart().startsWith('{')) return null;
+
+  const unescape = (raw: string): string => {
+    try {
+      return JSON.parse('"' + raw + '"');
+    } catch {
+      return raw;
+    }
+  };
+
+  const stringField = (key: string): string | undefined => {
+    const re = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`);
+    const m = text.match(re);
+    return m ? unescape(m[1]) : undefined;
+  };
+
+  const summary = stringField('summary');
+  const recommendation = stringField('recommendation');
+  const question = stringField('question');
+
+  const analysis: string[] = [];
+  const arrM = text.match(/"analysis"\s*:\s*\[([\s\S]*?)(?:\]|$)/);
+  if (arrM) {
+    const re = /"((?:[^"\\]|\\.)*)"/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(arrM[1]))) analysis.push(unescape(m[1]));
+  }
+
+  if (!summary && analysis.length === 0 && !recommendation) return null;
+
+  return {
+    summary: summary ?? '',
+    analysis,
+    recommendation: recommendation ?? '',
+    question,
+  };
 }
 
 /**
@@ -123,22 +172,32 @@ export function escapeHtml(s: string): string {
 }
 
 /**
+ * Escape for HTML, then convert Claude's Markdown-style `**bold**` into
+ * `<b>…</b>`. Claude occasionally slips Markdown syntax into JSON field
+ * values despite the system prompt; rendering it instead of showing literal
+ * stars is nicer than fighting the model.
+ */
+function renderInline(s: string): string {
+  return escapeHtml(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+}
+
+/**
  * Render a CoachResponse for Telegram. Returned string is safe to send with
  * `parse_mode: 'HTML'`. Callers MUST use HTML parse mode (not Markdown).
  */
 export function formatForTelegram(r: CoachResponse): string {
   const parts: string[] = [];
-  if (r.summary) parts.push(escapeHtml(r.summary));
+  if (r.summary) parts.push(renderInline(r.summary));
   if (r.analysis.length) {
     parts.push('\n📊 <b>Analysis</b>');
-    for (const a of r.analysis) parts.push(`• ${escapeHtml(a)}`);
+    for (const a of r.analysis) parts.push(`• ${renderInline(a)}`);
   }
   if (r.recommendation) {
     parts.push('\n✅ <b>Recommendation</b>');
-    parts.push(escapeHtml(r.recommendation));
+    parts.push(renderInline(r.recommendation));
   }
   if (r.question) {
-    parts.push(`\n❓ ${escapeHtml(r.question)}`);
+    parts.push(`\n❓ ${renderInline(r.question)}`);
   }
   return parts.join('\n');
 }

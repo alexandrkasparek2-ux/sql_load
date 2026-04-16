@@ -19,6 +19,11 @@ Always respond with a single JSON object (no markdown, no prose before/after):
   "question": "optional follow-up question"
 }
 
+Inside the JSON string values use PLAIN TEXT only — no Markdown syntax
+(no \`**bold**\`, no \`*italic*\`, no \`_underline_\`, no backticks, no links).
+Keep the whole response under ~900 tokens; brevity beats completeness.
+Analysis should be 3–5 short bullets max.
+
 # Rules
 - Never invent data — if a metric is missing, state "Data unavailable for [X]".
 - No medical advice — redirect injuries to professionals.

@@ -48,6 +48,27 @@ describe('parseCoachResponse', () => {
     );
     expect(r.analysis).toEqual(['1', 'true']);
   });
+
+  it('rescues a JSON response truncated mid-analysis', () => {
+    // Claude ran out of max_tokens halfway through the second analysis item.
+    const truncated =
+      '{"summary":"Recovery low.","analysis":["WHOOP 42%","TSB -34 — overreach';
+    const r = parseCoachResponse(truncated);
+    expect(r.summary).toBe('Recovery low.');
+    expect(r.analysis).toEqual(['WHOOP 42%']);
+    expect(r.recommendation).toBe('');
+  });
+
+  it('rescues a JSON response truncated inside recommendation', () => {
+    const truncated =
+      '{"summary":"ok","analysis":["a1","a2"],"recommendation":"rest today';
+    const r = parseCoachResponse(truncated);
+    expect(r.summary).toBe('ok');
+    expect(r.analysis).toEqual(['a1', 'a2']);
+    // recommendation itself wasn't closed so it stays empty — better than
+    // leaking the raw JSON blob at the user.
+    expect(r.recommendation).toBe('');
+  });
 });
 
 describe('formatForTelegram', () => {
@@ -84,5 +105,17 @@ describe('formatForTelegram', () => {
     expect(out).toContain('• power &lt; FTP');
     expect(out).toContain('avoid &gt; zone 4');
     expect(out).not.toContain('TSS <300');
+  });
+
+  it('converts **bold** inside Claude output to <b> tags', () => {
+    const out = formatForTelegram({
+      summary: 'Target zones: **Z2 @ 60-75%** this week',
+      analysis: ['**4h sobota** (Z2)'],
+      recommendation: 'Keep **intensity low**',
+    });
+    expect(out).toContain('<b>Z2 @ 60-75%</b>');
+    expect(out).toContain('<b>4h sobota</b>');
+    expect(out).toContain('<b>intensity low</b>');
+    expect(out).not.toContain('**');
   });
 });
