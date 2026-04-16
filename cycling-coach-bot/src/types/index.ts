@@ -15,24 +15,6 @@ export interface StravaActivity {
   type?: string;
 }
 
-export interface TPWorkout {
-  id: string;
-  date: string;
-  title: string;
-  description?: string;
-  planned_tss?: number;
-  planned_duration_seconds?: number;
-  workout_type?: string;
-}
-
-export interface TPMetrics {
-  ctl: number; // Chronic Training Load (Fitness)
-  atl: number; // Acute Training Load (Fatigue)
-  tsb: number; // Training Stress Balance (Form)
-  tss_7day: number;
-  as_of: string;
-}
-
 export interface WhoopRecovery {
   recovery_score: number; // 0-100
   hrv: number;
@@ -63,8 +45,6 @@ export interface AthleteData {
     avg_heartrate?: number;
   } | { unavailable: true; reason: string };
 
-  trainingpeaks: TPMetrics | { unavailable: true; reason: string };
-
   whoop:
     | {
         today: WhoopRecovery;
@@ -75,7 +55,7 @@ export interface AthleteData {
   custom: CustomDashboardPayload;
 }
 
-export type Provider = 'strava' | 'trainingpeaks' | 'whoop';
+export type Provider = 'strava' | 'whoop';
 
 export interface OAuthTokenRow {
   user_id: number;

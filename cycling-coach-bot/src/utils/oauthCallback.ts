@@ -69,27 +69,6 @@ const exchangers: Record<Provider, Exchanger> = {
     };
   },
 
-  trainingpeaks: async (code) => {
-    const host = process.env.TP_API_HOST || 'https://oauth.trainingpeaks.com';
-    const res = await fetch(`${host}/oauth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        client_id: must('TP_API_KEY'),
-        client_secret: must('TP_API_SECRET'),
-        redirect_uri: must('TP_REDIRECT_URI'),
-      }),
-    });
-    if (!res.ok) throw new Error(`TrainingPeaks token exchange ${res.status}`);
-    const j = (await res.json()) as any;
-    return {
-      access_token: j.access_token,
-      refresh_token: j.refresh_token,
-      expires_at: Math.floor(Date.now() / 1000) + (j.expires_in ?? 3600),
-    };
-  },
 };
 
 function must(name: string): string {
@@ -146,9 +125,7 @@ async function handle(
     return;
   }
 
-  const match = /^\/oauth\/(strava|trainingpeaks|whoop)\/callback$/.exec(
-    url.pathname
-  );
+  const match = /^\/oauth\/(strava|whoop)\/callback$/.exec(url.pathname);
   if (!match) {
     res.writeHead(404).end('not found');
     return;

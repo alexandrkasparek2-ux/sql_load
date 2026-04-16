@@ -43,7 +43,7 @@ function now(): number {
 }
 
 function connectionStatus(userId: number): string {
-  const providers = ['strava', 'trainingpeaks', 'whoop'] as const;
+  const providers = ['strava', 'whoop'] as const;
   return providers
     .map((p) => `${getToken(userId, p) ? '✅' : '⬜️'} ${p}`)
     .join('   ');
@@ -71,7 +71,6 @@ bot.start(async (ctx) => {
       '',
       'Connect your accounts to get personalised coaching:',
       `• Strava: ${urls.strava}`,
-      `• TrainingPeaks: ${urls.trainingpeaks}`,
       `• WHOOP: ${urls.whoop}`,
       '',
       `Current status: ${connectionStatus(user.id)}`,
@@ -166,16 +165,6 @@ async function sendStatus(ctx: any, userId: number): Promise<void> {
   try {
     const data = await fetchAllData(userId);
     const lines: string[] = ['📊 *Current metrics*'];
-    if ('unavailable' in data.trainingpeaks) {
-      lines.push(`TrainingPeaks: unavailable (${data.trainingpeaks.reason})`);
-    } else {
-      const tp = data.trainingpeaks;
-      lines.push(
-        `CTL ${tp.ctl.toFixed(1)} · ATL ${tp.atl.toFixed(1)} · TSB ${tp.tsb.toFixed(
-          1
-        )} · 7d TSS ${tp.tss_7day.toFixed(0)}`
-      );
-    }
     if ('unavailable' in data.whoop) {
       lines.push(`WHOOP: unavailable (${data.whoop.reason})`);
     } else {
@@ -231,7 +220,6 @@ bot.command('connect', async (ctx) => {
     [
       'Authorise the coach to read your data:',
       `• Strava: ${urls.strava}`,
-      `• TrainingPeaks: ${urls.trainingpeaks}`,
       `• WHOOP: ${urls.whoop}`,
       '',
       `Current status: ${connectionStatus(user.id)}`,
@@ -239,7 +227,7 @@ bot.command('connect', async (ctx) => {
   );
 });
 
-const VALID_PROVIDERS: Provider[] = ['strava', 'trainingpeaks', 'whoop'];
+const VALID_PROVIDERS: Provider[] = ['strava', 'whoop'];
 
 // Non-secret diagnostic command: prints first 8 chars + length of each OAuth
 // env var so we can tell whether the running container actually sees values
@@ -252,9 +240,6 @@ bot.command('diag', async (ctx) => {
     'WHOOP_CLIENT_ID',
     'WHOOP_CLIENT_SECRET',
     'WHOOP_REDIRECT_URI',
-    'TP_API_KEY',
-    'TP_API_SECRET',
-    'TP_REDIRECT_URI',
   ];
   const lines = keys.map((k) => {
     const v = process.env[k] ?? '';
@@ -287,7 +272,7 @@ bot.command('disconnect', async (ctx) => {
   const arg = ctx.message.text.split(/\s+/)[1]?.toLowerCase();
   if (!arg || !VALID_PROVIDERS.includes(arg as Provider)) {
     return ctx.reply(
-      `Usage: /disconnect strava | /disconnect trainingpeaks | /disconnect whoop`
+      `Usage: /disconnect strava | /disconnect whoop`
     );
   }
   deleteToken(user.id, arg as Provider);
@@ -308,7 +293,7 @@ bot.command('seedtoken', async (ctx) => {
   const expiresIn = parts[4] ? Number(parts[4]) : 3600;
   if (!provider || !VALID_PROVIDERS.includes(provider) || !accessToken) {
     return ctx.reply(
-      `Usage: /seedtoken <strava|trainingpeaks|whoop> <access> [refresh] [expires_in_seconds]`
+      `Usage: /seedtoken <strava|whoop> <access> [refresh] [expires_in_seconds]`
     );
   }
   const user = upsertUser(ctx.from.id);

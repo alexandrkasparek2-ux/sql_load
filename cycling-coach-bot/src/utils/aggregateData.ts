@@ -1,5 +1,4 @@
 import { getRecentActivities } from '../data/strava.js';
-import { getMetrics } from '../data/trainingpeaks.js';
 import { getTodayRecovery, getSleepHistory } from '../data/whoop.js';
 import { getCustomDashboardData } from '../data/custom.js';
 import { getToken } from '../db/schema.js';
@@ -14,9 +13,8 @@ function unavailable(reason: string) {
  * independently — a WHOOP outage will not poison the Strava answer.
  */
 export async function fetchAllData(userId: number): Promise<AthleteData> {
-  const [stravaRes, tpRes, whoopRes, customRes] = await Promise.allSettled([
+  const [stravaRes, whoopRes, customRes] = await Promise.allSettled([
     fetchStrava(userId),
-    fetchTP(userId),
     fetchWhoop(userId),
     getCustomDashboardData(),
   ]);
@@ -26,10 +24,6 @@ export async function fetchAllData(userId: number): Promise<AthleteData> {
       stravaRes.status === 'fulfilled'
         ? stravaRes.value
         : unavailable(String(stravaRes.reason)),
-    trainingpeaks:
-      tpRes.status === 'fulfilled'
-        ? tpRes.value
-        : unavailable(String(tpRes.reason)),
     whoop:
       whoopRes.status === 'fulfilled'
         ? whoopRes.value
@@ -71,16 +65,6 @@ async function fetchStrava(userId: number) {
           )
         : undefined,
   };
-}
-
-async function fetchTP(userId: number) {
-  const tokenRow = getToken(userId, 'trainingpeaks');
-  if (!tokenRow) throw new Error('TrainingPeaks not connected');
-  const athleteId =
-    (tokenRow.extra_json && (JSON.parse(tokenRow.extra_json).athlete_id as string)) ||
-    process.env.TP_DEFAULT_ATHLETE_ID;
-  if (!athleteId) throw new Error('Missing TrainingPeaks athlete id');
-  return getMetrics(userId, athleteId);
 }
 
 async function fetchWhoop(userId: number) {

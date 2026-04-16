@@ -1,7 +1,7 @@
 {
   "name": "cycling-coach-bot",
   "version": "0.1.0",
-  "description": "Telegram bot acting as a cycling performance coach powered by Claude, Strava, TrainingPeaks, WHOOP and a custom SQL dashboard.",
+  "description": "Telegram bot acting as a cycling performance coach powered by Claude, Strava, WHOOP and a custom SQL dashboard.",
   "main": "dist/bot.js",
   "type": "module",
   "scripts": {

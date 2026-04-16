@@ -3,8 +3,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { saveToken, upsertUser } from '../src/db/schema.js';
 
 // Mock fetch before we import any module that might use it. We only stub
-// Strava endpoints here; TP and WHOOP have no tokens so they fall through to
-// the graceful-degradation path.
+// Strava endpoints here; WHOOP has no token so it falls through to the
+// graceful-degradation path.
 const originalFetch = globalThis.fetch;
 
 describe('aggregateData', () => {
@@ -24,7 +24,6 @@ describe('aggregateData', () => {
     const user = upsertUser(9001);
     const data = await fetchAllData(user.id);
     expect('unavailable' in data.strava).toBe(true);
-    expect('unavailable' in data.trainingpeaks).toBe(true);
     expect('unavailable' in data.whoop).toBe(true);
     expect(data.custom).toBeDefined();
     globalThis.fetch = originalFetch;
@@ -61,7 +60,7 @@ describe('aggregateData', () => {
           { status: 200, headers: { 'content-type': 'application/json' } }
         );
       }
-      // Everything else (custom dashboard probes, TP, WHOOP): 404-equivalent.
+      // Everything else (custom dashboard probes, WHOOP): 404-equivalent.
       return new Response('', { status: 404 });
     }) as any;
 

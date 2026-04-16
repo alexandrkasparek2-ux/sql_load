@@ -13,8 +13,6 @@ process.env.STRAVA_CLIENT_ID ||= 'strava-id';
 process.env.STRAVA_CLIENT_SECRET ||= 'strava-secret';
 process.env.WHOOP_CLIENT_ID ||= 'whoop-id';
 process.env.WHOOP_CLIENT_SECRET ||= 'whoop-secret';
-process.env.TP_API_KEY ||= 'tp-key';
-process.env.TP_API_SECRET ||= 'tp-secret';
 
 export function tmpDir(): string {
   return tmpRoot;

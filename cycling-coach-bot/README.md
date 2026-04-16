@@ -1,20 +1,20 @@
 # Cycling Coach Telegram Bot
 
 Telegram bot acting as an elite cycling performance coach. It pulls training
-data from **Strava**, **TrainingPeaks**, **WHOOP** and the custom SQL dashboard
-at <https://sql-load-xnhd.vercel.app>, and turns it into actionable coaching
+data from **Strava**, **WHOOP** and the custom SQL dashboard at
+<https://sql-load-xnhd.vercel.app>, and turns it into actionable coaching
 through **Claude Sonnet 4.5**.
 
 ## Features
 
 - 🤖 Conversational coaching via Telegram.
-- 🔐 OAuth2 for Strava / TrainingPeaks / WHOOP with automatic refresh.
-- 📊 Data aggregation from 4 independent sources with graceful degradation.
+- 🔐 OAuth2 for Strava / WHOOP with automatic refresh.
+- 📊 Data aggregation from 3 independent sources with graceful degradation.
 - 🧠 Claude Sonnet 4.5 with a structured coaching prompt (`summary / analysis /
   recommendation / question`).
 - 🗄 SQLite persistence for users, tokens and conversations.
 - 🎙 Voice message support (Telegram audio → OpenAI Whisper → coaching).
-- 🚨 Optional proactive monitoring (WHOOP red streaks, deep TSB).
+- 🚨 Optional proactive monitoring (WHOOP red streaks).
 - 💸 Prompt caching on the coaching system prompt (cuts Claude input cost by ~90%).
 - 🛡 Per-user in-memory rate limiting.
 - 🛠 Commands: `/start`, `/help`, `/connect`, `/status`, `/analyze <id>`,
@@ -42,7 +42,6 @@ cycling-coach-bot/
 │   ├── bot.ts                 # Telegram bot entry point
 │   ├── data/
 │   │   ├── strava.ts
-│   │   ├── trainingpeaks.ts
 │   │   ├── whoop.ts
 │   │   └── custom.ts
 │   ├── prompts/
@@ -81,7 +80,7 @@ See `.env.example`. The most important ones:
 
 - `TELEGRAM_BOT_TOKEN` – from BotFather.
 - `ANTHROPIC_API_KEY` – Claude API key (uses `claude-sonnet-4-5` by default).
-- `STRAVA_*`, `WHOOP_*`, `TP_*` – OAuth app credentials.
+- `STRAVA_*`, `WHOOP_*` – OAuth app credentials.
 - `CUSTOM_DASHBOARD_URL` – defaults to the provided SQL dashboard.
 - `DATABASE_URL` – SQLite path (e.g. `./data/coach.sqlite`).
 
@@ -91,7 +90,6 @@ Set `OAUTH_CALLBACK_PORT` and the bot boots a small HTTP server alongside the
 Telegram long-polling loop. It handles:
 
 - `GET /oauth/strava/callback?code=…&state=tg:<telegram_id>`
-- `GET /oauth/trainingpeaks/callback?…`
 - `GET /oauth/whoop/callback?…`
 
 Point your provider redirect URIs at `https://<your-host>/oauth/<provider>/callback`
@@ -135,7 +133,7 @@ The `/start` reply and every coaching answer ship with an inline keyboard:
 2. ✅ Strava integration.
 3. ✅ Claude coaching call with structured prompt.
 4. ✅ SQLite persistence.
-5. ⏸ TrainingPeaks / WHOOP OAuth (scaffolding included, needs app credentials).
+5. ✅ WHOOP OAuth + v2 API integration.
 6. ⏸ Proactive monitoring (flag-gated via `ENABLE_PROACTIVE_MONITORING`).
 
 ## Example conversation

@@ -50,19 +50,6 @@ export async function checkAthleteHealth(bot: Telegraf): Promise<void> {
         }
       }
 
-      if (
-        !('unavailable' in data.trainingpeaks) &&
-        data.trainingpeaks.tsb < -30 &&
-        !wasAlertSentRecently(user.id, 'tsb_deep', ALERT_DEDUP_SECONDS)
-      ) {
-        await bot.telegram.sendMessage(
-          user.telegram_id,
-          `📉 High fatigue detected (TSB ${data.trainingpeaks.tsb.toFixed(
-            1
-          )}). Consider recovery.`
-        );
-        logAlert(user.id, 'tsb_deep');
-      }
     } catch (err) {
       logger.error({ userId: user.id, err: String(err) }, 'monitor user failed');
     }

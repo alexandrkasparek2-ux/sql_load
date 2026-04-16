@@ -67,33 +67,6 @@ const refreshers: Record<Provider, RefreshFn> = {
     };
   },
 
-  trainingpeaks: async (refreshToken) => {
-    // TrainingPeaks uses a standard OAuth2 flow; host depends on whether the
-    // account is on the public API or a partner endpoint. We default to the
-    // public host and let TP_API_HOST override for partner deployments.
-    const host = process.env.TP_API_HOST || 'https://oauth.trainingpeaks.com';
-    const res = await fetch(`${host}/oauth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: refreshToken,
-        client_id: required('TP_API_KEY'),
-        client_secret: required('TP_API_SECRET'),
-      }),
-    });
-    if (!res.ok) throw new Error(`TrainingPeaks refresh failed: ${res.status}`);
-    const j = (await res.json()) as {
-      access_token: string;
-      refresh_token?: string;
-      expires_in: number;
-    };
-    return {
-      access_token: j.access_token,
-      refresh_token: j.refresh_token ?? refreshToken,
-      expires_at: Math.floor(Date.now() / 1000) + j.expires_in,
-    };
-  },
 };
 
 function required(name: string): string {
@@ -165,16 +138,5 @@ export function buildAuthUrls(telegramUserId: number): Record<Provider, string> 
       state,
     }).toString();
 
-  const tpHost = process.env.TP_API_HOST || 'https://oauth.trainingpeaks.com';
-  const tpUrl =
-    `${tpHost}/OAuth/Authorize?` +
-    new URLSearchParams({
-      client_id: process.env.TP_API_KEY || '',
-      redirect_uri: process.env.TP_REDIRECT_URI || '',
-      response_type: 'code',
-      scope: 'athlete:profile workouts:read metrics:read',
-      state,
-    }).toString();
-
-  return { strava: stravaUrl, whoop: whoopUrl, trainingpeaks: tpUrl };
+  return { strava: stravaUrl, whoop: whoopUrl };
 }
