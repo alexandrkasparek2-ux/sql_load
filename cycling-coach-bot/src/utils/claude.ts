@@ -113,19 +113,32 @@ export function parseCoachResponse(text: string): CoachResponse {
   }
 }
 
+/**
+ * Escape a user-provided string for Telegram's HTML parse mode. HTML mode
+ * only needs `<`, `>`, `&` escaped — much more forgiving than legacy Markdown,
+ * which blows up on a single unbalanced `*` / `_` / `` ` ``.
+ */
+export function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Render a CoachResponse for Telegram. Returned string is safe to send with
+ * `parse_mode: 'HTML'`. Callers MUST use HTML parse mode (not Markdown).
+ */
 export function formatForTelegram(r: CoachResponse): string {
   const parts: string[] = [];
-  if (r.summary) parts.push(r.summary);
+  if (r.summary) parts.push(escapeHtml(r.summary));
   if (r.analysis.length) {
-    parts.push('\n📊 *Analysis*');
-    for (const a of r.analysis) parts.push(`• ${a}`);
+    parts.push('\n📊 <b>Analysis</b>');
+    for (const a of r.analysis) parts.push(`• ${escapeHtml(a)}`);
   }
   if (r.recommendation) {
-    parts.push('\n✅ *Recommendation*');
-    parts.push(r.recommendation);
+    parts.push('\n✅ <b>Recommendation</b>');
+    parts.push(escapeHtml(r.recommendation));
   }
   if (r.question) {
-    parts.push(`\n❓ ${r.question}`);
+    parts.push(`\n❓ ${escapeHtml(r.question)}`);
   }
   return parts.join('\n');
 }

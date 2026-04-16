@@ -51,7 +51,7 @@ describe('parseCoachResponse', () => {
 });
 
 describe('formatForTelegram', () => {
-  it('renders all sections with Markdown headers', () => {
+  it('renders all sections with HTML tags', () => {
     const out = formatForTelegram({
       summary: 'OK',
       analysis: ['a1', 'a2'],
@@ -59,9 +59,9 @@ describe('formatForTelegram', () => {
       question: 'y?',
     });
     expect(out).toContain('OK');
-    expect(out).toContain('📊 *Analysis*');
+    expect(out).toContain('📊 <b>Analysis</b>');
     expect(out).toContain('• a1');
-    expect(out).toContain('✅ *Recommendation*');
+    expect(out).toContain('✅ <b>Recommendation</b>');
     expect(out).toContain('❓ y?');
   });
 
@@ -72,5 +72,17 @@ describe('formatForTelegram', () => {
       recommendation: '',
     });
     expect(out.trim()).toBe('only summary');
+  });
+
+  it('escapes < > & in user-provided fields', () => {
+    const out = formatForTelegram({
+      summary: 'TSS <300 & HR >150',
+      analysis: ['power < FTP'],
+      recommendation: 'avoid > zone 4',
+    });
+    expect(out).toContain('TSS &lt;300 &amp; HR &gt;150');
+    expect(out).toContain('• power &lt; FTP');
+    expect(out).toContain('avoid &gt; zone 4');
+    expect(out).not.toContain('TSS <300');
   });
 });

@@ -126,10 +126,10 @@ async function handleCoachingTurn(
         content: JSON.stringify(response),
         created_at: now(),
       });
-      await ctx.replyWithMarkdown(
-        formatForTelegram(response),
-        quickActionsKeyboard
-      );
+      await ctx.reply(formatForTelegram(response), {
+        parse_mode: 'HTML',
+        ...quickActionsKeyboard,
+      });
       // Fire-and-forget rolling summary. Never block the user on it.
       maybeSummarize(userId).catch((e) =>
         logger.error({ userId, err: String(e) }, 'summary background failure')
@@ -358,7 +358,7 @@ bot.command('analyze', async (ctx) => {
       getRecentMessages(user.id, 10),
       profile
     );
-    await ctx.replyWithMarkdown(formatForTelegram(response));
+    await ctx.reply(formatForTelegram(response), { parse_mode: 'HTML' });
   } catch (err) {
     await ctx.reply(`Could not analyze activity: ${(err as Error).message}`);
   }
@@ -375,7 +375,7 @@ bot.command('plan', async (ctx) => {
       getRecentMessages(user.id, 10),
       getProfile(user.id)
     );
-    await ctx.replyWithMarkdown(formatForTelegram(response));
+    await ctx.reply(formatForTelegram(response), { parse_mode: 'HTML' });
   } catch (err) {
     await ctx.reply(`Could not build plan: ${(err as Error).message}`);
   }
@@ -394,7 +394,7 @@ bot.command('compare', async (ctx) => {
       getRecentMessages(user.id, 10),
       getProfile(user.id)
     );
-    await ctx.replyWithMarkdown(formatForTelegram(response));
+    await ctx.reply(formatForTelegram(response), { parse_mode: 'HTML' });
   } catch (err) {
     await ctx.reply(`Could not compare: ${(err as Error).message}`);
   }

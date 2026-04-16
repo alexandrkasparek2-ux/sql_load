@@ -5,6 +5,7 @@ import { db } from '../db/schema.js';
 import { getActivityById } from '../data/strava.js';
 import { fetchAllData } from './aggregateData.js';
 import {
+  escapeHtml,
   formatForTelegram,
   getCoachingResponse,
 } from './claude.js';
@@ -175,8 +176,8 @@ async function processEvent(event: StravaEvent, bot: Telegraf): Promise<void> {
 
     await bot.telegram.sendMessage(
       match.telegram_id,
-      `🚴 *Activity debrief: ${activity.name}*\n\n${formatForTelegram(response)}`,
-      { parse_mode: 'Markdown' }
+      `🚴 <b>Activity debrief: ${escapeHtml(activity.name)}</b>\n\n${formatForTelegram(response)}`,
+      { parse_mode: 'HTML' }
     );
   } catch (err) {
     logger.error({ err: String(err) }, 'strava-webhook coaching failed');
