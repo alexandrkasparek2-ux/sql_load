@@ -3,27 +3,34 @@ import type { CustomDashboardPayload } from '../types/index.js';
 
 const BASE = process.env.CUSTOM_DASHBOARD_URL || 'https://sql-load-xnhd.vercel.app';
 const TOKEN = process.env.CUSTOM_DASHBOARD_TOKEN;
+const USER_ID = process.env.DASHBOARD_USER_ID;
 
 /**
  * The custom SQL dashboard at https://sql-load-xnhd.vercel.app exposes an
- * `api/*` endpoint surface (see repository /api folder). We optimistically try
- * a few likely endpoints and fall back to empty data if none are reachable.
+ * `/api/athlete-summary` endpoint (see /api/athlete-summary.js at the repo
+ * root). When `CUSTOM_DASHBOARD_TOKEN` (== server-side BOT_API_TOKEN) and
+ * `DASHBOARD_USER_ID` are both set, we call it and return the nutrition +
+ * training bundle. Otherwise we sniff a few legacy paths for backward
+ * compatibility and return an "ok: false" payload if nothing answers.
  *
  * This is intentionally forgiving: the coaching engine treats the returned
  * payload as opaque context, and flags any missing data to Claude so it can
  * say "Data unavailable" instead of inventing values.
  */
-const CANDIDATE_PATHS = [
+const FALLBACK_PATHS = [
   '/api/metrics',
   '/api/summary',
   '/api/athlete',
   '/api/latest',
 ];
 
-async function tryFetch(path: string): Promise<unknown | null> {
+async function tryFetch(
+  path: string,
+  auth = true
+): Promise<unknown | null> {
   try {
     const res = await fetch(`${BASE}${path}`, {
-      headers: TOKEN ? { Authorization: `Bearer ${TOKEN}` } : undefined,
+      headers: auth && TOKEN ? { Authorization: `Bearer ${TOKEN}` } : undefined,
     });
     if (!res.ok) return null;
     const ct = res.headers.get('content-type') || '';
@@ -34,14 +41,24 @@ async function tryFetch(path: string): Promise<unknown | null> {
   }
 }
 
+async function fetchAthleteSummary(): Promise<unknown | null> {
+  if (!TOKEN || !USER_ID) return null;
+  const qs = new URLSearchParams({ user_id: USER_ID, days: '7' });
+  return tryFetch(`/api/athlete-summary?${qs.toString()}`);
+}
+
 export async function getCustomDashboardData(): Promise<CustomDashboardPayload> {
   try {
     const results = await withRetry(
       async () => {
         const out: Record<string, unknown> = {};
-        for (const p of CANDIDATE_PATHS) {
-          const data = await tryFetch(p);
-          if (data !== null) out[p] = data;
+        const summary = await fetchAthleteSummary();
+        if (summary !== null) out['athlete_summary'] = summary;
+        if (Object.keys(out).length === 0) {
+          for (const p of FALLBACK_PATHS) {
+            const data = await tryFetch(p);
+            if (data !== null) out[p] = data;
+          }
         }
         return out;
       },
@@ -52,7 +69,9 @@ export async function getCustomDashboardData(): Promise<CustomDashboardPayload> 
       return {
         fetched_at: new Date().toISOString(),
         ok: false,
-        error: 'No reachable JSON endpoints on custom dashboard',
+        error:
+          'No reachable JSON endpoints on custom dashboard ' +
+          '(set CUSTOM_DASHBOARD_TOKEN + DASHBOARD_USER_ID to enable /api/athlete-summary)',
       };
     }
     return {
