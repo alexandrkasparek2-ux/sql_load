@@ -4,6 +4,10 @@ import type { CustomDashboardPayload } from '../types/index.js';
 const BASE = process.env.CUSTOM_DASHBOARD_URL || 'https://sql-load-xnhd.vercel.app';
 const TOKEN = process.env.CUSTOM_DASHBOARD_TOKEN;
 const USER_ID = process.env.DASHBOARD_USER_ID;
+// Full URL override — set this when using Supabase Edge Functions directly
+// (e.g. https://xxx.supabase.co/functions/v1/athlete-summary).
+// If not set, the path /api/athlete-summary is appended to CUSTOM_DASHBOARD_URL.
+const SUMMARY_URL = process.env.ATHLETE_SUMMARY_URL;
 
 /**
  * The custom SQL dashboard at https://sql-load-xnhd.vercel.app exposes an
@@ -44,7 +48,20 @@ async function tryFetch(
 async function fetchAthleteSummary(): Promise<unknown | null> {
   if (!TOKEN || !USER_ID) return null;
   const qs = new URLSearchParams({ user_id: USER_ID, days: '7' });
-  return tryFetch(`/api/athlete-summary?${qs.toString()}`);
+  const fullUrl = SUMMARY_URL
+    ? `${SUMMARY_URL}?${qs.toString()}`
+    : `${BASE}/api/athlete-summary?${qs.toString()}`;
+  try {
+    const res = await fetch(fullUrl, {
+      headers: { Authorization: `Bearer ${TOKEN}` },
+    });
+    if (!res.ok) return null;
+    const ct = res.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 export async function getCustomDashboardData(): Promise<CustomDashboardPayload> {
