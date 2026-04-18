@@ -1,6 +1,6 @@
 // ─── Strava OAuth2 service ────────────────────────────────────────────────────
 
-const CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID ?? '';
+const CLIENT_ID = import.meta.env.VITE_STRAVA_CLIENT_ID ?? '149536';
 
 // Strava callback is registered under Railway domain.
 // StravaCallback on Railway immediately bounces to Vercel with the same params.
