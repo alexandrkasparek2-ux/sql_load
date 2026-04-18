@@ -87,6 +87,20 @@ function todayISO() {
   return new Date().toISOString().split('T')[0];
 }
 
+function kcalFromActivity(a: {
+  calories?: number | null;
+  icu_joules?: number | null;
+  average_watts?: number | null;
+  moving_time?: number;
+}): number {
+  if (a.calories && a.calories > 0) return Math.round(a.calories);
+  if (a.icu_joules && a.icu_joules > 0) return Math.round(a.icu_joules / 1000);
+  if (a.average_watts && a.average_watts > 0 && (a.moving_time ?? 0) > 0) {
+    return Math.round(a.average_watts * (a.moving_time ?? 0) / 1000);
+  }
+  return 0;
+}
+
 function readIntervalsKcalToday(today: string): number {
   try {
     const raw = localStorage.getItem('cyclofuel_intervals_cache');
@@ -94,7 +108,7 @@ function readIntervalsKcalToday(today: string): number {
     const cache = JSON.parse(raw);
     return (cache.activities ?? [])
       .filter((a: { start_date_local: string }) => a.start_date_local.startsWith(today))
-      .reduce((s: number, a: { calories?: number | null }) => s + (a.calories ?? 0), 0);
+      .reduce((s: number, a: Parameters<typeof kcalFromActivity>[0]) => s + kcalFromActivity(a), 0);
   } catch { return 0; }
 }
 
