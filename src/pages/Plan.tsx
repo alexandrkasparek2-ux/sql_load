@@ -87,7 +87,7 @@ function ActivityCard({ a }: { a: IntervalsActivity }) {
           {km && <span>📍 {km} km</span>}
           {el && <span>⛰ +{el} m</span>}
           {a.average_heartrate && <span>❤️ {Math.round(a.average_heartrate)} bpm</span>}
-          {a.weighted_average_watts && <span>⚡ {Math.round(a.weighted_average_watts)} W</span>}
+          {a.icu_weighted_avg_watts && <span>⚡ {Math.round(a.icu_weighted_avg_watts)} W</span>}
         </div>
       </div>
       {kcal > 0 && (
