@@ -5,7 +5,7 @@ import { T, APPLE, MacroCard, ProgressBar, SectionTitle, Card, Btn } from '../co
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
 import { FOODS } from '../constants/foods';
 import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
-import { StravaCard } from '../components/StravaCard';
+import { IntervalsCard } from '../components/IntervalsCard';
 
 // ─── Stretching checklist ─────────────────────────────────────
 interface StoredStretch { name: string; duration: string; desc: string; checked: boolean; }
@@ -577,8 +577,8 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      {/* Strava card */}
-      <StravaCard />
+      {/* Intervals.icu card */}
+      <IntervalsCard />
 
       {/* Macro cards */}
       <SectionTitle accent={accent}>Makroživiny</SectionTitle>
