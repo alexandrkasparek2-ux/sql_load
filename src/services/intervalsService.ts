@@ -27,7 +27,7 @@ export interface IntervalsActivity {
   id:                    string;
   name:                  string;
   type:                  string;
-  start_date_local:      string; // ISO local
+  start_date_local:      string;
   moving_time:           number; // seconds
   distance:              number; // meters
   total_elevation_gain:  number;
@@ -38,10 +38,19 @@ export interface IntervalsActivity {
   weighted_average_watts: number | null;
   icu_training_load:     number | null; // TSS
   icu_intensity:         number | null; // IF
+  icu_joules:            number | null; // total mechanical work in joules
 }
 
 export function activityKcal(a: IntervalsActivity): number {
-  return a.calories && a.calories > 0 ? Math.round(a.calories) : 0;
+  // 1. přímé kalorie z přístroje
+  if (a.calories && a.calories > 0) return Math.round(a.calories);
+  // 2. z celkové mechanické práce (joules → kJ ≈ kcal pro cyklistiku)
+  if (a.icu_joules && a.icu_joules > 0) return Math.round(a.icu_joules / 1000);
+  // 3. z průměrného výkonu × čas (kJ = W × s / 1000, kJ ≈ kcal)
+  if (a.average_watts && a.average_watts > 0 && a.moving_time > 0) {
+    return Math.round(a.average_watts * a.moving_time / 1000);
+  }
+  return 0;
 }
 
 export function sportIcon(type: string): string {
