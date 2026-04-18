@@ -781,11 +781,6 @@ export default function Foods() {
   const [editGrams,     setEditGrams]     = useState(100);
   const [editMealSlot,  setEditMealSlot]  = useState('');
   const [savingEdit,    setSavingEdit]    = useState(false);
-  const [macroEditMode, setMacroEditMode] = useState(false);
-  const [editKcal,      setEditKcal]      = useState('');
-  const [editCarbs,     setEditCarbs]     = useState('');
-  const [editProtein,   setEditProtein]   = useState('');
-  const [editFat,       setEditFat]       = useState('');
   const [editIngredients, setEditIngredients] = useState<{name:string;grams:number;kcalPer100g:number}[]>([]);
   const [hasIngredients,  setHasIngredients]  = useState(false);
   const [customFoods,   setCustomFoods]   = useState<Food[]>(() => {
@@ -814,11 +809,6 @@ export default function Foods() {
     setEditingEntry(id);
     setEditGrams(currentGrams);
     setEditMealSlot(currentMealSlot);
-    setMacroEditMode(false);
-    setEditKcal(entry.kcal.toFixed(0));
-    setEditCarbs(entry.carbs.toFixed(0));
-    setEditProtein(entry.protein.toFixed(0));
-    setEditFat(entry.fat.toFixed(0));
     setConfirmDel(null);
     try {
       const raw = localStorage.getItem(`cfi_${entry.food_id}`);
@@ -826,7 +816,7 @@ export default function Foods() {
       else      { setEditIngredients([]); setHasIngredients(false); }
     } catch    { setEditIngredients([]); setHasIngredients(false); }
   };
-  const cancelEdit = () => { setEditingEntry(null); setMacroEditMode(false); setHasIngredients(false); };
+  const cancelEdit = () => { setEditingEntry(null); setHasIngredients(false); };
   const saveIngredientEdit = async (id: string) => {
     const entry = entries.find(e => e.id === id);
     if (!entry) return;
@@ -850,19 +840,6 @@ export default function Foods() {
     setSavingEdit(false);
     setEditingEntry(null);
   };
-  const saveMacroEdit = async (id: string) => {
-    setSavingEdit(true);
-    await updateEntryMacros(id, {
-      kcal:    parseFloat(editKcal)    || 0,
-      carbs:   parseFloat(editCarbs)   || 0,
-      protein: parseFloat(editProtein) || 0,
-      fat:     parseFloat(editFat)     || 0,
-    }, editMealSlot);
-    setSavingEdit(false);
-    setEditingEntry(null);
-    setMacroEditMode(false);
-  };
-
   const slotLabel = MEAL_SLOTS.find(s => s.id === activePicker)?.label ?? '';
 
   const entriesForSlot = (slotId: string) =>
