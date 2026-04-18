@@ -188,6 +188,9 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
   const updateGrams = (idx: number, grams: number) =>
     setIngredients(prev => prev.map((ing, i) => i === idx ? { ...ing, currentGrams: grams } : ing));
 
+  const removeIngredient = (idx: number) =>
+    setIngredients(prev => prev.filter((_, i) => i !== idx));
+
   const updateRecipeGrams = (idx: number, grams: number) =>
     setRecipeIngredients(prev => prev.map((ing, i) => i === idx ? { ...ing, currentGrams: grams } : ing));
 
@@ -393,20 +396,23 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
                     const cc = CAT_COLOR[ing.category] ?? C.muted;
                     return (
                       <div key={i} style={{ background: T.bg, borderRadius: 12, padding: '12px 14px', border: `1px solid ${T.border}` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <span style={{ fontSize: 18 }}>{CAT_EMOJI[ing.category] ?? '🍽️'}</span>
-                            <div>
-                              <div style={{ fontSize: 14, color: T.text, fontWeight: 600 }}>{ing.name}</div>
-                              <span style={{ fontSize: 11, color: cc, background: `${cc}18`, padding: '1px 7px', borderRadius: 20, display: 'inline-block', marginTop: 2 }}>
-                                {CAT_LABEL[ing.category] ?? ing.category}
-                              </span>
-                            </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 18, flexShrink: 0 }}>{CAT_EMOJI[ing.category] ?? '🍽️'}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 14, color: T.text, fontWeight: 600 }}>{ing.name}</div>
+                            <span style={{ fontSize: 11, color: cc, background: `${cc}18`, padding: '1px 7px', borderRadius: 20, display: 'inline-block', marginTop: 2 }}>
+                              {CAT_LABEL[ing.category] ?? ing.category}
+                            </span>
                           </div>
-                          <div style={{ textAlign: 'right' }}>
+                          <div style={{ textAlign: 'right', flexShrink: 0, marginRight: 4 }}>
                             <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>{ing.currentGrams} g</div>
                             <div style={{ fontSize: 11, color: T.muted }}>{scaledKcal} kcal</div>
                           </div>
+                          <button
+                            onClick={() => removeIngredient(i)}
+                            style={{ background: '#ff6b6b22', border: '1px solid #ff6b6b44', borderRadius: 8, color: '#ff6b6b', width: 28, height: 28, cursor: 'pointer', fontSize: 14, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Odebrat ingredienci"
+                          >×</button>
                         </div>
                         <input type="range" min={5} max={Math.max(500, ing.originalGrams * 3)} step={5}
                           value={ing.currentGrams} onChange={e => updateGrams(i, Number(e.target.value))}
