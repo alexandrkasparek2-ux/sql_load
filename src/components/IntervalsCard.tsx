@@ -87,7 +87,7 @@ function SetupForm({ onConnect, loading, error }: {
 }
 
 // ── Activity row ──────────────────────────────────────────────
-function ActivityRow({ a }: { a: Parameters<typeof activityKcal>[0] & { name: string; type: string; moving_time: number; distance: number; icu_training_load: number | null } }) {
+function ActivityRow({ a }: { a: Parameters<typeof activityKcal>[0] }) {
   const kcal = activityKcal(a);
   const km   = a.distance > 0 ? (a.distance / 1000).toFixed(1) : null;
   return (
@@ -184,17 +184,6 @@ export function IntervalsCard() {
           ) : (
             <div style={{ marginBottom: 12 }}>
               {todayActs.map(a => <ActivityRow key={a.id} a={a} />)}
-            </div>
-          )}
-
-          {/* DEBUG – remove after calorie issue is resolved */}
-          {activities.length > 0 && (
-            <div style={{ fontSize: 9, color: T.muted, background: '#1a1a2e', borderRadius: 8,
-              padding: '6px 8px', marginBottom: 8, wordBreak: 'break-all', overflowX: 'auto' }}>
-              <div style={{ fontWeight: 700, marginBottom: 4, color: '#f59e0b' }}>DEBUG – all fields</div>
-              <pre style={{ margin: 0, fontSize: 9, whiteSpace: 'pre-wrap', color: T.muted }}>
-                {JSON.stringify(activities[0], null, 1)}
-              </pre>
             </div>
           )}
 

@@ -24,32 +24,42 @@ export function clearCreds() {
 
 // ── Data types ────────────────────────────────────────────────
 export interface IntervalsActivity {
-  id:                    string;
-  name:                  string;
-  type:                  string;
-  start_date_local:      string;
-  moving_time:           number; // seconds
-  distance:              number; // meters
-  total_elevation_gain:  number;
-  average_heartrate:     number | null;
-  max_heartrate:         number | null;
-  calories:              number | null;
-  average_watts:         number | null;
-  weighted_average_watts: number | null;
-  icu_training_load:     number | null; // TSS
-  icu_intensity:         number | null; // IF
-  icu_joules:            number | null; // total mechanical work in joules
+  id:                      string;
+  name:                    string;
+  type:                    string;
+  start_date_local:        string;
+  moving_time:             number; // seconds
+  distance:                number; // meters
+  total_elevation_gain:    number;
+  average_heartrate:       number | null;
+  max_heartrate:           number | null;
+  calories:                number | null;
+  icu_average_watts:       number | null; // API field name
+  icu_weighted_avg_watts:  number | null; // normalized power
+  icu_training_load:       number | null; // TSS / HRSS
+  icu_intensity:           number | null; // IF × 100 (or HR-based IF × 100)
+  icu_joules:              number | null; // total mechanical work in joules
+  icu_ftp:                 number | null; // athlete FTP at activity time
+  trimp:                   number | null; // Banister TRIMP
 }
 
 export function activityKcal(a: IntervalsActivity): number {
-  // 1. přímé kalorie z přístroje
+  // 1. direct calories from device
   if (a.calories && a.calories > 0) return Math.round(a.calories);
-  // 2. z celkové mechanické práce (joules → kJ ≈ kcal pro cyklistiku)
+  // 2. from total mechanical work (joules → kJ ≈ kcal for cycling)
   if (a.icu_joules && a.icu_joules > 0) return Math.round(a.icu_joules / 1000);
-  // 3. z průměrného výkonu × čas (kJ = W × s / 1000, kJ ≈ kcal)
-  if (a.average_watts && a.average_watts > 0 && a.moving_time > 0) {
-    return Math.round(a.average_watts * a.moving_time / 1000);
+  // 3. from recorded average power × time
+  if (a.icu_average_watts && a.icu_average_watts > 0 && a.moving_time > 0) {
+    return Math.round(a.icu_average_watts * a.moving_time / 1000);
   }
+  // 4. estimate from FTP × HR-intensity factor (GPX rides without power meter)
+  //    icu_intensity is IF × 100; estimated avg watts = IF × FTP; kJ ≈ kcal
+  if (a.icu_ftp && a.icu_ftp > 0 && a.icu_intensity && a.icu_intensity > 0 && a.moving_time > 0) {
+    const estWatts = (a.icu_intensity / 100) * a.icu_ftp;
+    return Math.round(estWatts * a.moving_time / 1000);
+  }
+  // 5. last resort: TRIMP × 8 kcal (rough HR-based estimate)
+  if (a.trimp && a.trimp > 0) return Math.round(a.trimp * 8);
   return 0;
 }
 

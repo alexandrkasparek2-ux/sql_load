@@ -90,14 +90,20 @@ function todayISO() {
 function kcalFromActivity(a: {
   calories?: number | null;
   icu_joules?: number | null;
-  average_watts?: number | null;
+  icu_average_watts?: number | null;
+  icu_intensity?: number | null;
+  icu_ftp?: number | null;
+  trimp?: number | null;
   moving_time?: number;
 }): number {
+  const t = a.moving_time ?? 0;
   if (a.calories && a.calories > 0) return Math.round(a.calories);
   if (a.icu_joules && a.icu_joules > 0) return Math.round(a.icu_joules / 1000);
-  if (a.average_watts && a.average_watts > 0 && (a.moving_time ?? 0) > 0) {
-    return Math.round(a.average_watts * (a.moving_time ?? 0) / 1000);
-  }
+  if (a.icu_average_watts && a.icu_average_watts > 0 && t > 0)
+    return Math.round(a.icu_average_watts * t / 1000);
+  if (a.icu_ftp && a.icu_ftp > 0 && a.icu_intensity && a.icu_intensity > 0 && t > 0)
+    return Math.round((a.icu_intensity / 100) * a.icu_ftp * t / 1000);
+  if (a.trimp && a.trimp > 0) return Math.round(a.trimp * 8);
   return 0;
 }
 
