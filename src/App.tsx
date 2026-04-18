@@ -29,6 +29,7 @@ import Profile         from './pages/Profile';
 import Supplements     from './pages/Supplements';
 import Chat            from './pages/Chat';
 import WhoopCallback   from './pages/WhoopCallback';
+import StravaCallback  from './pages/StravaCallback';
 
 import { T, Spinner } from './components/UI';
 
@@ -415,7 +416,8 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
           <Route path="/supplements"     element={<Supplements />}   />
           <Route path="/micros"          element={<Micros />}        />
           <Route path="/profile"         element={<Profile />}       />
-          <Route path="/whoop/callback"  element={<WhoopCallback />} />
+          <Route path="/whoop/callback"  element={<WhoopCallback />}  />
+          <Route path="/strava/callback" element={<StravaCallback />} />
           <Route path="*"            element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -509,8 +511,9 @@ function AppRoutes() {
   if (!session) {
     return (
       <Routes>
-        {/* Whoop callback works even before CycloFuel login */}
-        <Route path="/whoop/callback" element={<WhoopCallback />} />
+        {/* OAuth callbacks work even before CycloFuel login */}
+        <Route path="/whoop/callback"  element={<WhoopCallback />}  />
+        <Route path="/strava/callback" element={<StravaCallback />} />
         <Route path="*" element={
           <Login
             onSignIn={async (e, p) => { await signIn(e, p); navigate('/', { replace: true }); }}
