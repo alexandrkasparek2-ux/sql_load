@@ -9,6 +9,14 @@ export default function StravaCallback() {
   const [msg,    setMsg]    = useState('');
 
   useEffect(() => {
+    // Cross-domain bounce: Railway → Vercel
+    if (window.location.hostname.includes('railway.app')) {
+      window.location.replace(
+        `https://sql-load.vercel.app/strava/callback${window.location.search}`,
+      );
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const code   = params.get('code');
     const state  = params.get('state') ?? undefined;
