@@ -27,6 +27,7 @@ function loadCache(daysBack: number): Cache | null {
 
 function saveCache(activities: IntervalsActivity[], daysBack: number) {
   localStorage.setItem(CACHE_KEY, JSON.stringify({ activities, daysBack, fetchedAt: Date.now() }));
+  window.dispatchEvent(new CustomEvent('intervals-cache-updated'));
 }
 
 export interface UseIntervalsResult {

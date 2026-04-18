@@ -19,7 +19,6 @@ import {
   TRAINING_TYPES,
   calcCaloriesMulti, calcCalories, calcMacros, calcWater, calcMicroGoals,
 } from './constants/training';
-import { useIntervalsData } from './hooks/useIntervalsData';
 
 import Login           from './pages/Login';
 import Dashboard       from './pages/Dashboard';
@@ -88,6 +87,17 @@ function todayISO() {
   return new Date().toISOString().split('T')[0];
 }
 
+function readIntervalsKcalToday(today: string): number {
+  try {
+    const raw = localStorage.getItem('cyclofuel_intervals_cache');
+    if (!raw) return 0;
+    const cache = JSON.parse(raw);
+    return (cache.activities ?? [])
+      .filter((a: { start_date_local: string }) => a.start_date_local.startsWith(today))
+      .reduce((s: number, a: { calories?: number | null }) => s + (a.calories ?? 0), 0);
+  } catch { return 0; }
+}
+
 // ──────────────────────────────────────────────────────────
 // Authenticated shell
 // ──────────────────────────────────────────────────────────
@@ -149,12 +159,15 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   }, [profile, trainingType, rideHours, training.microMul, trainingDay, deficitLevel, userId]);
 
   // ── Intervals.icu: přidat spálené kalorie k dennímu cíli ──
-  const { activities: intervalsActs } = useIntervalsData(1);
-  const intervalsKcalToday = useMemo(() => {
-    return intervalsActs
-      .filter(a => a.start_date_local.startsWith(today))
-      .reduce((s, a) => s + (a.calories ?? 0), 0);
-  }, [intervalsActs, today]);
+  const [intervalsKcalToday, setIntervalsKcalToday] = useState(
+    () => readIntervalsKcalToday(today),
+  );
+  useEffect(() => {
+    setIntervalsKcalToday(readIntervalsKcalToday(today));
+    const handler = () => setIntervalsKcalToday(readIntervalsKcalToday(today));
+    window.addEventListener('intervals-cache-updated', handler);
+    return () => window.removeEventListener('intervals-cache-updated', handler);
+  }, [today]);
 
   const goalsWithIntervals = useMemo<Goals>(() => {
     if (!intervalsKcalToday || !profile) return goals;
