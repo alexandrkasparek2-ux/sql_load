@@ -169,7 +169,10 @@ export default function Plan() {
     <div style={{ padding: '16px 16px 100px' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-        <SectionTitle accent={STRAVA_ORANGE} style={{ margin: 0 }}>Aktivity</SectionTitle>
+        <div style={{ fontFamily: 'Syne,sans-serif', fontWeight: 700, fontSize: 13,
+          color: STRAVA_ORANGE, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          Aktivity
+        </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {cacheAge && <span style={{ fontSize: 10, color: T.muted }}>{cacheAge}</span>}
           <button onClick={sync} disabled={loading} style={{
