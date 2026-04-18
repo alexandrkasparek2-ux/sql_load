@@ -189,12 +189,12 @@ export function IntervalsCard() {
 
           {/* DEBUG – remove after calorie issue is resolved */}
           {activities.length > 0 && (
-            <div style={{ fontSize: 10, color: T.muted, background: '#1a1a2e', borderRadius: 8,
-              padding: '6px 8px', marginBottom: 8, wordBreak: 'break-all' }}>
-              <div style={{ fontWeight: 700, marginBottom: 4, color: '#f59e0b' }}>DEBUG – 1. aktivita</div>
-              {(['calories','icu_joules','average_watts','weighted_average_watts','moving_time','icu_training_load','icu_intensity'] as const).map(k => (
-                <div key={k}><span style={{ color: T.text }}>{k}:</span> {String((activities[0] as any)[k] ?? 'null')}</div>
-              ))}
+            <div style={{ fontSize: 9, color: T.muted, background: '#1a1a2e', borderRadius: 8,
+              padding: '6px 8px', marginBottom: 8, wordBreak: 'break-all', overflowX: 'auto' }}>
+              <div style={{ fontWeight: 700, marginBottom: 4, color: '#f59e0b' }}>DEBUG – all fields</div>
+              <pre style={{ margin: 0, fontSize: 9, whiteSpace: 'pre-wrap', color: T.muted }}>
+                {JSON.stringify(activities[0], null, 1)}
+              </pre>
             </div>
           )}
 
