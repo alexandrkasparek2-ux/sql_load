@@ -103,6 +103,24 @@ export function useFoodEntries(userId: string | undefined, date: string) {
     setEntries(prev => prev.filter(e => e.id !== id));
   };
 
+  const updateEntryMacros = async (
+    id: string,
+    macros: { kcal: number; carbs: number; protein: number; fat: number },
+    newMealSlot?: string,
+  ): Promise<void> => {
+    const entry = entries.find(e => e.id === id);
+    if (!entry) return;
+    const updated: Partial<FoodEntry> = {
+      kcal:    parseFloat(macros.kcal.toFixed(1)),
+      carbs:   parseFloat(macros.carbs.toFixed(1)),
+      protein: parseFloat(macros.protein.toFixed(1)),
+      fat:     parseFloat(macros.fat.toFixed(1)),
+      ...(newMealSlot ? { meal_slot: newMealSlot } : {}),
+    };
+    await supabase.from('food_entries').update(updated).eq('id', id);
+    setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e));
+  };
+
   const updateEntry = async (id: string, newGrams: number, newMealSlot?: string): Promise<void> => {
     const entry = entries.find(e => e.id === id);
     if (!entry || entry.grams === 0) return;
@@ -132,5 +150,5 @@ export function useFoodEntries(userId: string | undefined, date: string) {
 
   const totals = sumEntries(entries);
 
-  return { entries, totals, loading, addEntry, removeEntry, updateEntry, reload: load };
+  return { entries, totals, loading, addEntry, removeEntry, updateEntry, updateEntryMacros, reload: load };
 }

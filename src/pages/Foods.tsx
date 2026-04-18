@@ -773,7 +773,7 @@ function MacroLine({ label, value, color, unit }: { label: string; value: number
 // ─── Main Foods page ─────────────────────────────────────────
 export default function Foods() {
   const ctx = useContext(AppContext);
-  const { accent, entries, addEntry, removeEntry, updateEntry, userId, today, goals } = ctx;
+  const { accent, entries, addEntry, removeEntry, updateEntry, updateEntryMacros, userId, today, goals } = ctx;
 
   const [activePicker,  setActivePicker]  = useState<string | null>(null);
   const [confirmDel,    setConfirmDel]    = useState<string | null>(null);
@@ -781,6 +781,11 @@ export default function Foods() {
   const [editGrams,     setEditGrams]     = useState(100);
   const [editMealSlot,  setEditMealSlot]  = useState('');
   const [savingEdit,    setSavingEdit]    = useState(false);
+  const [macroEditMode, setMacroEditMode] = useState(false);
+  const [editKcal,      setEditKcal]      = useState('');
+  const [editCarbs,     setEditCarbs]     = useState('');
+  const [editProtein,   setEditProtein]   = useState('');
+  const [editFat,       setEditFat]       = useState('');
   const [customFoods,   setCustomFoods]   = useState<Food[]>(() => {
     try { return JSON.parse(localStorage.getItem('cyclofuel_custom_foods') ?? '[]'); }
     catch { return []; }
@@ -803,18 +808,35 @@ export default function Foods() {
     setCustomFoods(updated);
   };
 
-  const startEdit = (id: string, currentGrams: number, currentMealSlot: string) => {
+  const startEdit = (id: string, currentGrams: number, currentMealSlot: string, entry: FoodEntry) => {
     setEditingEntry(id);
     setEditGrams(currentGrams);
     setEditMealSlot(currentMealSlot);
+    setMacroEditMode(false);
+    setEditKcal(entry.kcal.toFixed(0));
+    setEditCarbs(entry.carbs.toFixed(0));
+    setEditProtein(entry.protein.toFixed(0));
+    setEditFat(entry.fat.toFixed(0));
     setConfirmDel(null);
   };
-  const cancelEdit = () => setEditingEntry(null);
+  const cancelEdit = () => { setEditingEntry(null); setMacroEditMode(false); };
   const saveEdit   = async (id: string) => {
     setSavingEdit(true);
     await updateEntry(id, editGrams, editMealSlot);
     setSavingEdit(false);
     setEditingEntry(null);
+  };
+  const saveMacroEdit = async (id: string) => {
+    setSavingEdit(true);
+    await updateEntryMacros(id, {
+      kcal:    parseFloat(editKcal)    || 0,
+      carbs:   parseFloat(editCarbs)   || 0,
+      protein: parseFloat(editProtein) || 0,
+      fat:     parseFloat(editFat)     || 0,
+    }, editMealSlot);
+    setSavingEdit(false);
+    setEditingEntry(null);
+    setMacroEditMode(false);
   };
 
   const slotLabel = MEAL_SLOTS.find(s => s.id === activePicker)?.label ?? '';
@@ -937,7 +959,7 @@ export default function Foods() {
                         ) : (
                           <>
                             <button
-                              onClick={() => startEdit(entry.id!, entry.grams, entry.meal_slot)}
+                              onClick={() => startEdit(entry.id!, entry.grams, entry.meal_slot, entry)}
                               title="Upravit gramáž"
                               style={{ background: 'none', border: 'none', color: T.muted, fontSize: 14, cursor: 'pointer', padding: 2, opacity: 0.7 }}
                             >✏️</button>
@@ -1001,10 +1023,39 @@ export default function Foods() {
                           }}
                         />
 
+                        {/* Macro edit toggle */}
+                        <button
+                          onClick={() => setMacroEditMode(m => !m)}
+                          style={{ background: 'none', border: 'none', color: T.muted, fontSize: 11, cursor: 'pointer', padding: '2px 0 8px', textDecoration: 'underline', display: 'block' }}
+                        >
+                          {macroEditMode ? '▲ Skrýt ruční úpravu maker' : '▼ Ručně upravit makra'}
+                        </button>
+
+                        {/* Macro edit fields */}
+                        {macroEditMode && (
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                            {([
+                              { label: 'kcal', value: editKcal, set: setEditKcal, color: accent },
+                              { label: 'Sacharidy (g)', value: editCarbs, set: setEditCarbs, color: '#f59e0b' },
+                              { label: 'Bílkoviny (g)', value: editProtein, set: setEditProtein, color: '#22c55e' },
+                              { label: 'Tuky (g)', value: editFat, set: setEditFat, color: '#a855f7' },
+                            ] as const).map(({ label, value, set, color }) => (
+                              <div key={label}>
+                                <div style={{ fontSize: 10, color: T.muted, marginBottom: 3 }}>{label}</div>
+                                <input
+                                  type="number" inputMode="decimal" value={value}
+                                  onChange={e => (set as (v: string) => void)(e.target.value)}
+                                  style={{ width: '100%', background: T.bg, border: `1px solid ${color}55`, borderRadius: 8, padding: '7px 10px', color, fontSize: 14, fontWeight: 600, outline: 'none', boxSizing: 'border-box' }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                         {/* Save / Cancel */}
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button
-                            onClick={() => saveEdit(entry.id!)}
+                            onClick={() => macroEditMode ? saveMacroEdit(entry.id!) : saveEdit(entry.id!)}
                             disabled={savingEdit}
                             style={{
                               flex: 1, padding: '7px 0', borderRadius: 8,

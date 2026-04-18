@@ -67,6 +67,7 @@ export interface AppCtx {
   addEntry:          (e: Omit<FoodEntry, 'id'>) => Promise<void>;
   removeEntry:       (id: string) => Promise<void>;
   updateEntry:       (id: string, newGrams: number, newMealSlot?: string) => Promise<void>;
+  updateEntryMacros: (id: string, macros: { kcal: number; carbs: number; protein: number; fat: number }, newMealSlot?: string) => Promise<void>;
   signOut:           () => Promise<void>;
   deficitLevel:      DeficitLevel;
   setDeficitLevel:   (v: DeficitLevel) => void;
@@ -132,7 +133,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 
   const { profile,     save: saveProfile    } = useProfile(userId);
   const { trainingDay, upsert              } = useTrainingDay(userId, today);
-  const { entries, totals, addEntry, removeEntry, updateEntry } = useFoodEntries(userId, today);
+  const { entries, totals, addEntry, removeEntry, updateEntry, updateEntryMacros } = useFoodEntries(userId, today);
 
   const [deficitLevel, setDeficitLevelState] = useState<DeficitLevel>(() => {
     const v = localStorage.getItem(`cyclofuel_deficit_level_${userId}`);
@@ -220,6 +221,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     addEntry,
     removeEntry,
     updateEntry,
+    updateEntryMacros,
     signOut:           onSignOut,
     deficitLevel,
     setDeficitLevel,
