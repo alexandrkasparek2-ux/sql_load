@@ -786,6 +786,8 @@ export default function Foods() {
   const [editCarbs,     setEditCarbs]     = useState('');
   const [editProtein,   setEditProtein]   = useState('');
   const [editFat,       setEditFat]       = useState('');
+  const [editIngredients, setEditIngredients] = useState<{name:string;grams:number;kcalPer100g:number}[]>([]);
+  const [hasIngredients,  setHasIngredients]  = useState(false);
   const [customFoods,   setCustomFoods]   = useState<Food[]>(() => {
     try { return JSON.parse(localStorage.getItem('cyclofuel_custom_foods') ?? '[]'); }
     catch { return []; }
@@ -818,8 +820,30 @@ export default function Foods() {
     setEditProtein(entry.protein.toFixed(0));
     setEditFat(entry.fat.toFixed(0));
     setConfirmDel(null);
+    try {
+      const raw = localStorage.getItem(`cfi_${entry.food_id}`);
+      if (raw) { setEditIngredients(JSON.parse(raw)); setHasIngredients(true); }
+      else      { setEditIngredients([]); setHasIngredients(false); }
+    } catch    { setEditIngredients([]); setHasIngredients(false); }
   };
-  const cancelEdit = () => { setEditingEntry(null); setMacroEditMode(false); };
+  const cancelEdit = () => { setEditingEntry(null); setMacroEditMode(false); setHasIngredients(false); };
+  const saveIngredientEdit = async (id: string) => {
+    const entry = entries.find(e => e.id === id);
+    if (!entry) return;
+    setSavingEdit(true);
+    const newKcal = editIngredients.reduce((s, ing) => s + ing.kcalPer100g * ing.grams / 100, 0);
+    const ratio = entry.kcal > 0 ? newKcal / entry.kcal : 1;
+    localStorage.setItem(`cfi_${entry.food_id}`, JSON.stringify(editIngredients));
+    await updateEntryMacros(id, {
+      kcal:    Math.round(newKcal),
+      carbs:   parseFloat((entry.carbs   * ratio).toFixed(1)),
+      protein: parseFloat((entry.protein * ratio).toFixed(1)),
+      fat:     parseFloat((entry.fat     * ratio).toFixed(1)),
+    }, editMealSlot);
+    setSavingEdit(false);
+    setEditingEntry(null);
+    setHasIngredients(false);
+  };
   const saveEdit   = async (id: string) => {
     setSavingEdit(true);
     await updateEntry(id, editGrams, editMealSlot);
@@ -972,13 +996,9 @@ export default function Foods() {
                       </div>
                     </div>
 
-                    {/* Inline gram editor */}
+                    {/* Inline editor */}
                     {isEditing && (
-                      <div style={{
-                        padding:      '10px 14px 14px',
-                        borderBottom: `1px solid ${T.border}`,
-                        background:   accent + '06',
-                      }}>
+                      <div style={{ padding: '10px 14px 14px', borderBottom: `1px solid ${T.border}`, background: accent + '06' }}>
                         {/* Meal slot selector */}
                         <div style={{ marginBottom: 10 }}>
                           <div style={{ fontSize: 11, color: T.muted, marginBottom: 6 }}>Přesunout do:</div>
@@ -992,90 +1012,65 @@ export default function Foods() {
                           </div>
                         </div>
 
-                        {/* +/- counter + live kcal */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                          <button
-                            onClick={() => setEditGrams(g => Math.max(5, g - 5))}
-                            style={{ width: 28, height: 28, borderRadius: 6, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 16, flexShrink: 0 }}
-                          >−</button>
-                          <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 16, fontWeight: 700, color: T.text, minWidth: 54, textAlign: 'center' }}>
-                            {editGrams} g
-                          </span>
-                          <button
-                            onClick={() => setEditGrams(g => Math.min(600, g + 5))}
-                            style={{ width: 28, height: 28, borderRadius: 6, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 16, flexShrink: 0 }}
-                          >+</button>
-                          <span style={{ flex: 1, textAlign: 'right', fontSize: 13, fontWeight: 600, color: accent }}>
-                            → {previewKcal} kcal
-                          </span>
-                        </div>
-
-                        {/* Slider */}
-                        <input
-                          type="range"
-                          min={5} max={600} step={5}
-                          value={editGrams}
-                          onChange={e => setEditGrams(Number(e.target.value))}
-                          style={{
-                            width: '100%', marginBottom: 10,
-                            background: `linear-gradient(to right, ${accent} ${((editGrams - 5) / 595) * 100}%, ${T.border} 0%)`,
-                            borderRadius: 3,
-                          }}
-                        />
-
-                        {/* Macro edit toggle */}
-                        <button
-                          onClick={() => setMacroEditMode(m => !m)}
-                          style={{ background: 'none', border: 'none', color: T.muted, fontSize: 11, cursor: 'pointer', padding: '2px 0 8px', textDecoration: 'underline', display: 'block' }}
-                        >
-                          {macroEditMode ? '▲ Skrýt ruční úpravu maker' : '▼ Ručně upravit makra'}
-                        </button>
-
-                        {/* Macro edit fields */}
-                        {macroEditMode && (
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                            {([
-                              { label: 'kcal', value: editKcal, set: setEditKcal, color: accent },
-                              { label: 'Sacharidy (g)', value: editCarbs, set: setEditCarbs, color: '#f59e0b' },
-                              { label: 'Bílkoviny (g)', value: editProtein, set: setEditProtein, color: '#22c55e' },
-                              { label: 'Tuky (g)', value: editFat, set: setEditFat, color: '#a855f7' },
-                            ] as const).map(({ label, value, set, color }) => (
-                              <div key={label}>
-                                <div style={{ fontSize: 10, color: T.muted, marginBottom: 3 }}>{label}</div>
-                                <input
-                                  type="number" inputMode="decimal" value={value}
-                                  onChange={e => (set as (v: string) => void)(e.target.value)}
-                                  style={{ width: '100%', background: T.bg, border: `1px solid ${color}55`, borderRadius: 8, padding: '7px 10px', color, fontSize: 14, fontWeight: 600, outline: 'none', boxSizing: 'border-box' }}
-                                />
+                        {hasIngredients ? (
+                          /* ── Ingredient editor ── */
+                          <>
+                            <div style={{ fontSize: 11, color: T.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ingredience</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                              {editIngredients.map((ing, i) => {
+                                const ingKcal = Math.round(ing.kcalPer100g * ing.grams / 100);
+                                return (
+                                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, background: T.bg, borderRadius: 8, padding: '6px 10px' }}>
+                                    <span style={{ flex: 1, fontSize: 12, color: T.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ing.name}</span>
+                                    <button onClick={() => setEditIngredients(p => p.map((x, j) => j === i ? { ...x, grams: Math.max(5, x.grams - 5) } : x))}
+                                      style={{ width: 22, height: 22, borderRadius: 5, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 13, flexShrink: 0 }}>−</button>
+                                    <input
+                                      type="number" inputMode="numeric" value={ing.grams} min={5}
+                                      onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v > 0) setEditIngredients(p => p.map((x, j) => j === i ? { ...x, grams: v } : x)); }}
+                                      style={{ width: 44, textAlign: 'center', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 6, padding: '2px 3px', color: T.text, fontSize: 12, fontWeight: 600, outline: 'none' }}
+                                    />
+                                    <span style={{ fontSize: 10, color: T.muted, flexShrink: 0 }}>g</span>
+                                    <button onClick={() => setEditIngredients(p => p.map((x, j) => j === i ? { ...x, grams: x.grams + 5 } : x))}
+                                      style={{ width: 22, height: 22, borderRadius: 5, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 13, flexShrink: 0 }}>+</button>
+                                    <span style={{ fontSize: 11, color: accent, fontWeight: 600, width: 48, textAlign: 'right', flexShrink: 0 }}>{ingKcal} kcal</span>
+                                    <button onClick={() => setEditIngredients(p => p.filter((_, j) => j !== i))}
+                                      style={{ background: '#ff6b6b22', border: '1px solid #ff6b6b44', borderRadius: 6, color: '#ff6b6b', width: 22, height: 22, cursor: 'pointer', fontSize: 13, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {editIngredients.length > 0 && (
+                              <div style={{ fontSize: 12, color: accent, fontWeight: 700, textAlign: 'right', marginBottom: 10 }}>
+                                Celkem: {Math.round(editIngredients.reduce((s, ing) => s + ing.kcalPer100g * ing.grams / 100, 0))} kcal
                               </div>
-                            ))}
-                          </div>
+                            )}
+                          </>
+                        ) : (
+                          /* ── Gram editor ── */
+                          <>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                              <button onClick={() => setEditGrams(g => Math.max(5, g - 5))}
+                                style={{ width: 28, height: 28, borderRadius: 6, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 16, flexShrink: 0 }}>−</button>
+                              <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 16, fontWeight: 700, color: T.text, minWidth: 54, textAlign: 'center' }}>{editGrams} g</span>
+                              <button onClick={() => setEditGrams(g => Math.min(600, g + 5))}
+                                style={{ width: 28, height: 28, borderRadius: 6, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 16, flexShrink: 0 }}>+</button>
+                              <span style={{ flex: 1, textAlign: 'right', fontSize: 13, fontWeight: 600, color: accent }}>→ {previewKcal} kcal</span>
+                            </div>
+                            <input type="range" min={5} max={600} step={5} value={editGrams}
+                              onChange={e => setEditGrams(Number(e.target.value))}
+                              style={{ width: '100%', marginBottom: 10, background: `linear-gradient(to right, ${accent} ${((editGrams - 5) / 595) * 100}%, ${T.border} 0%)`, borderRadius: 3 }} />
+                          </>
                         )}
 
                         {/* Save / Cancel */}
                         <div style={{ display: 'flex', gap: 8 }}>
                           <button
-                            onClick={() => macroEditMode ? saveMacroEdit(entry.id!) : saveEdit(entry.id!)}
-                            disabled={savingEdit}
-                            style={{
-                              flex: 1, padding: '7px 0', borderRadius: 8,
-                              background: accent, border: 'none', color: '#fff',
-                              fontSize: 13, fontWeight: 600, cursor: savingEdit ? 'default' : 'pointer',
-                              opacity: savingEdit ? 0.7 : 1,
-                            }}
-                          >
-                            {savingEdit ? 'Ukládám…' : 'Uložit'}
-                          </button>
-                          <button
-                            onClick={cancelEdit}
-                            style={{
-                              flex: 1, padding: '7px 0', borderRadius: 8,
-                              background: T.border, border: 'none', color: T.muted,
-                              fontSize: 13, cursor: 'pointer',
-                            }}
-                          >
-                            Zrušit
-                          </button>
+                            onClick={() => hasIngredients ? saveIngredientEdit(entry.id!) : saveEdit(entry.id!)}
+                            disabled={savingEdit || (hasIngredients && editIngredients.length === 0)}
+                            style={{ flex: 1, padding: '7px 0', borderRadius: 8, background: accent, border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: savingEdit ? 'default' : 'pointer', opacity: savingEdit || (hasIngredients && editIngredients.length === 0) ? 0.6 : 1 }}
+                          >{savingEdit ? 'Ukládám…' : 'Uložit'}</button>
+                          <button onClick={cancelEdit}
+                            style={{ flex: 1, padding: '7px 0', borderRadius: 8, background: T.border, border: 'none', color: T.muted, fontSize: 13, cursor: 'pointer' }}>Zrušit</button>
                         </div>
                       </div>
                     )}

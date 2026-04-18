@@ -237,9 +237,16 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
   const handleAddFood = async () => {
     if (!scanResult || !scaledMacros) return;
     setAdding(true);
+    const scanId = `ai_scan_${Date.now()}`;
+    const ingData = ingredients.map(ing => ({
+      name: ing.name,
+      grams: ing.currentGrams,
+      kcalPer100g: ing.originalGrams > 0 ? Math.round(ing.kcal_estimate * 100 / ing.originalGrams) : 0,
+    }));
+    if (ingData.length > 0) localStorage.setItem(`cfi_${scanId}`, JSON.stringify(ingData));
     onResult({
       user_id: userId, date, meal_slot: mealSlot,
-      food_id: `ai_scan_${Date.now()}`, food_name: scanResult.dish_name,
+      food_id: scanId, food_name: scanResult.dish_name,
       grams: scaledMacros.grams, kcal: scaledMacros.kcal,
       carbs: scaledMacros.carbs, protein: scaledMacros.protein,
       fat: scaledMacros.fat, fiber: 0,
@@ -251,10 +258,17 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
   const handleAddRecipe = async () => {
     if (!recipeResult || !recipeMacros) return;
     setAdding(true);
+    const scanId = `ai_recipe_${Date.now()}`;
     const totalGrams = recipeIngredients.reduce((s, i) => s + i.currentGrams, 0) * servings;
+    const ingData = recipeIngredients.map(ing => ({
+      name: ing.name,
+      grams: Math.round(ing.currentGrams * servings),
+      kcalPer100g: ing.originalGrams > 0 ? Math.round(ing.kcal_total * 100 / ing.originalGrams) : 0,
+    }));
+    if (ingData.length > 0) localStorage.setItem(`cfi_${scanId}`, JSON.stringify(ingData));
     onResult({
       user_id: userId, date, meal_slot: mealSlot,
-      food_id: `ai_recipe_${Date.now()}`,
+      food_id: scanId,
       food_name: `${recipeResult.recipe_name}${servings > 1 ? ` (${servings} porce)` : ''}`,
       grams: Math.round(totalGrams), kcal: recipeMacros.kcal,
       carbs: recipeMacros.carbs, protein: recipeMacros.protein,
