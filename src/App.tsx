@@ -17,8 +17,9 @@ import type { FoodEntry, MacroTotals } from './hooks/useFoodEntries';
 
 import {
   TRAINING_TYPES,
-  calcCaloriesMulti, calcMacros, calcWater, calcMicroGoals,
+  calcCaloriesMulti, calcCalories, calcMacros, calcWater, calcMicroGoals,
 } from './constants/training';
+import { useIntervalsData } from './hooks/useIntervalsData';
 
 import Login           from './pages/Login';
 import Dashboard       from './pages/Dashboard';
@@ -147,11 +148,28 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     };
   }, [profile, trainingType, rideHours, training.microMul, trainingDay, deficitLevel, userId]);
 
+  // ── Intervals.icu: přidat spálené kalorie k dennímu cíli ──
+  const { activities: intervalsActs } = useIntervalsData(1);
+  const intervalsKcalToday = useMemo(() => {
+    return intervalsActs
+      .filter(a => a.start_date_local.startsWith(today))
+      .reduce((s, a) => s + (a.calories ?? 0), 0);
+  }, [intervalsActs, today]);
+
+  const goalsWithIntervals = useMemo<Goals>(() => {
+    if (!intervalsKcalToday || !profile) return goals;
+    // Základní metabolismus (klidový den) + co spálil Intervals
+    const baseBMR  = calcCalories(profile, 'rest', 0);
+    const kcalNew  = Math.round(baseBMR + intervalsKcalToday);
+    const fiberNew = Math.min(45, Math.max(25, Math.round(kcalNew * 0.014)));
+    return { ...goals, kcal: kcalNew, fiber: fiberNew };
+  }, [goals, intervalsKcalToday, profile]);
+
   // Uložit cíl kalorií pro aktuální den, aby ho historie zobrazila správně
   const { saveGoalForDate } = useDailyGoals();
   useEffect(() => {
-    if (goals.kcal > 0) saveGoalForDate(today, goals.kcal);
-  }, [today, goals.kcal, saveGoalForDate]);
+    if (goalsWithIntervals.kcal > 0) saveGoalForDate(today, goalsWithIntervals.kcal);
+  }, [today, goalsWithIntervals.kcal, saveGoalForDate]);
 
   const ctx: AppCtx = {
     userId,
@@ -165,7 +183,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     upsertTrainingDay: upsert,
     entries,
     totals,
-    goals,
+    goals: goalsWithIntervals,
     addEntry,
     removeEntry,
     updateEntry,

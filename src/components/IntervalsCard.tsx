@@ -1,8 +1,7 @@
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import { T, Card, Spinner } from './UI';
 import { activityKcal, sportIcon, formatDuration } from '../services/intervalsService';
 import { useIntervalsData } from '../hooks/useIntervalsData';
-import { AppContext } from '../App';
 
 const ICU_COLOR = '#0088ff';
 
@@ -117,24 +116,8 @@ function ActivityRow({ a }: { a: Parameters<typeof activityKcal>[0] & { name: st
   );
 }
 
-// ── Macro pill ────────────────────────────────────────────────
-function MacroPill({ label, value, unit, color }: { label: string; value: number; unit: string; color: string }) {
-  return (
-    <div style={{ flex: 1, background: T.bg, borderRadius: 10, padding: '8px 10px',
-      display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color, fontFamily: 'Syne,sans-serif' }}>
-        {Math.max(0, Math.round(value))}{unit}
-      </div>
-      <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        {label}
-      </div>
-    </div>
-  );
-}
-
 // ── Main card ─────────────────────────────────────────────────
 export function IntervalsCard() {
-  const { totals, goals } = useContext(AppContext);
   const { activities, loading, error, stale, isConnected,
           cacheAge, connect, sync, disconnect } = useIntervalsData(1);
 
@@ -147,10 +130,6 @@ export function IntervalsCard() {
   const today     = todayLocal();
   const todayActs = activities.filter(a => a.start_date_local.startsWith(today));
   const totalKcal = todayActs.reduce((s, a) => s + activityKcal(a), 0);
-
-  const remaining   = Math.round(goals.kcal + totalKcal - totals.kcal);
-  const scale       = remaining > 0 && (goals.kcal + totalKcal) > 0
-    ? remaining / (goals.kcal + totalKcal) : 0;
 
   return (
     <Card style={{ marginBottom: 16 }}>
@@ -209,41 +188,23 @@ export function IntervalsCard() {
           )}
 
           {totalKcal > 0 && (
-            <>
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                background: ICU_COLOR + '14', border: `1px solid ${ICU_COLOR}33`,
-                borderRadius: 10, padding: '10px 12px', marginBottom: 12,
-              }}>
-                <div>
-                  <div style={{ fontSize: 11, color: T.muted, marginBottom: 2 }}>Spáleno dnes</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: ICU_COLOR,
-                    fontFamily: 'Syne,sans-serif' }}>
-                    {totalKcal.toLocaleString()} kcal
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 11, color: T.muted, marginBottom: 2 }}>Zbývá sníst</div>
-                  <div style={{ fontSize: 20, fontWeight: 800,
-                    color: remaining > 0 ? '#30d158' : '#ff375f',
-                    fontFamily: 'Syne,sans-serif' }}>
-                    {remaining > 0 ? remaining.toLocaleString() : 0} kcal
-                  </div>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: ICU_COLOR + '14', border: `1px solid ${ICU_COLOR}33`,
+              borderRadius: 10, padding: '10px 12px', marginBottom: 12,
+            }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 11, color: T.muted, marginBottom: 2 }}>Spáleno dnes</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: ICU_COLOR,
+                  fontFamily: 'Syne,sans-serif' }}>
+                  {totalKcal.toLocaleString()} kcal
                 </div>
               </div>
-
-              {remaining > 0 && (
-                <>
-                  <div style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase',
-                    letterSpacing: '0.06em', marginBottom: 6 }}>Zbývá doplnit</div>
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-                    <MacroPill label="Sacharidy" value={goals.carbs   * scale} unit="g" color="#3b82f6" />
-                    <MacroPill label="Bílkoviny" value={goals.protein * scale} unit="g" color="#22c55e" />
-                    <MacroPill label="Tuky"      value={goals.fat     * scale} unit="g" color="#f59e0b" />
-                  </div>
-                </>
-              )}
-            </>
+              <div style={{ fontSize: 11, color: ICU_COLOR, background: ICU_COLOR + '22',
+                padding: '4px 8px', borderRadius: 6, fontWeight: 600 }}>
+                Cíl upraven ↑
+              </div>
+            </div>
           )}
 
           <button onClick={disconnect} style={{
