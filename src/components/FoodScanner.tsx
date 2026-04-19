@@ -75,7 +75,7 @@ interface FoodScannerProps {
   userId:   string;
   date:     string;
   mealSlot: string;
-  onResult: (entry: Omit<FoodEntry, 'id'>) => void;
+  onResult: (entry: Omit<FoodEntry, 'id'>) => Promise<FoodEntry | null>;
   onClose:  () => void;
 }
 
@@ -237,44 +237,42 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
   const handleAddFood = async () => {
     if (!scanResult || !scaledMacros) return;
     setAdding(true);
-    const scanId = `ai_scan_${Date.now()}`;
     const ingData = ingredients.map(ing => ({
       name: ing.name,
       grams: ing.currentGrams,
       kcalPer100g: ing.originalGrams > 0 ? Math.round(ing.kcal_estimate * 100 / ing.originalGrams) : 0,
     }));
-    if (ingData.length > 0) localStorage.setItem(`cfi_${scanId}`, JSON.stringify(ingData));
-    onResult({
+    const saved = await onResult({
       user_id: userId, date, meal_slot: mealSlot,
-      food_id: scanId, food_name: scanResult.dish_name,
+      food_id: `ai_scan_${Date.now()}`, food_name: scanResult.dish_name,
       grams: scaledMacros.grams, kcal: scaledMacros.kcal,
       carbs: scaledMacros.carbs, protein: scaledMacros.protein,
       fat: scaledMacros.fat, fiber: 0,
       na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
     });
+    if (saved?.id && ingData.length > 0) localStorage.setItem(`cfi_${saved.id}`, JSON.stringify(ingData));
     setAdding(false);
   };
 
   const handleAddRecipe = async () => {
     if (!recipeResult || !recipeMacros) return;
     setAdding(true);
-    const scanId = `ai_recipe_${Date.now()}`;
     const totalGrams = recipeIngredients.reduce((s, i) => s + i.currentGrams, 0) * servings;
     const ingData = recipeIngredients.map(ing => ({
       name: ing.name,
       grams: Math.round(ing.currentGrams * servings),
       kcalPer100g: ing.originalGrams > 0 ? Math.round(ing.kcal_total * 100 / ing.originalGrams) : 0,
     }));
-    if (ingData.length > 0) localStorage.setItem(`cfi_${scanId}`, JSON.stringify(ingData));
-    onResult({
+    const saved = await onResult({
       user_id: userId, date, meal_slot: mealSlot,
-      food_id: scanId,
+      food_id: `ai_recipe_${Date.now()}`,
       food_name: `${recipeResult.recipe_name}${servings > 1 ? ` (${servings} porce)` : ''}`,
       grams: Math.round(totalGrams), kcal: recipeMacros.kcal,
       carbs: recipeMacros.carbs, protein: recipeMacros.protein,
       fat: recipeMacros.fat, fiber: 0,
       na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
     });
+    if (saved?.id && ingData.length > 0) localStorage.setItem(`cfi_${saved.id}`, JSON.stringify(ingData));
     setAdding(false);
   };
 

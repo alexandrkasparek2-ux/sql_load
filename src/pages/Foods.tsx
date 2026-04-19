@@ -48,7 +48,7 @@ interface FoodPickerProps {
   mealLabel:           string;
   accent:              string;
   onClose:             () => void;
-  onConfirm:           (entry: Omit<FoodEntry, 'id'>) => Promise<void>;
+  onConfirm:           (entry: Omit<FoodEntry, 'id'>) => Promise<FoodEntry | null>;
   onSaveCustomFood:    (food: Food) => void;
   onSaveMeal:          (meal: Omit<SavedMeal, 'id' | 'createdAt'>) => void;
   onUpdateSavedMeal:   (id: string, meal: Omit<SavedMeal, 'id' | 'createdAt'>) => void;
@@ -133,10 +133,11 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
 
   const handleSelectFood = (f: Food) => { setFood(f); setGrams(f.per); setStep('portion'); };
   const handleBarcodeResult = (f: Food) => { setShowScanner(false); handleSelectFood(f); };
-  const handleFoodScanResult = async (entry: Omit<FoodEntry, 'id'>) => {
+  const handleFoodScanResult = async (entry: Omit<FoodEntry, 'id'>): Promise<FoodEntry | null> => {
     setShowFoodScanner(false);
-    await onConfirm(entry);
+    const saved = await onConfirm(entry);
     onClose();
+    return saved;
   };
 
   const handleConfirm = async () => {
@@ -811,7 +812,7 @@ export default function Foods() {
     setEditMealSlot(currentMealSlot);
     setConfirmDel(null);
     try {
-      const raw = localStorage.getItem(`cfi_${entry.food_id}`);
+      const raw = localStorage.getItem(`cfi_${entry.id}`);
       if (raw) { setEditIngredients(JSON.parse(raw)); setHasIngredients(true); }
       else      { setEditIngredients([]); setHasIngredients(false); }
     } catch    { setEditIngredients([]); setHasIngredients(false); }
@@ -823,7 +824,7 @@ export default function Foods() {
     setSavingEdit(true);
     const newKcal = editIngredients.reduce((s, ing) => s + ing.kcalPer100g * ing.grams / 100, 0);
     const ratio = entry.kcal > 0 ? newKcal / entry.kcal : 1;
-    localStorage.setItem(`cfi_${entry.food_id}`, JSON.stringify(editIngredients));
+    localStorage.setItem(`cfi_${entry.id}`, JSON.stringify(editIngredients));
     await updateEntryMacros(id, {
       kcal:    Math.round(newKcal),
       carbs:   parseFloat((entry.carbs   * ratio).toFixed(1)),

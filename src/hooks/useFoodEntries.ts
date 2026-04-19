@@ -89,13 +89,17 @@ export function useFoodEntries(userId: string | undefined, date: string) {
 
   useEffect(() => { load(); }, [load]);
 
-  const addEntry = async (entry: Omit<FoodEntry, 'id'>): Promise<void> => {
+  const addEntry = async (entry: Omit<FoodEntry, 'id'>): Promise<FoodEntry | null> => {
     const { data, error } = await supabase
       .from('food_entries')
       .insert(entry)
       .select('*')
       .single();
-    if (!error && data) setEntries(prev => [...prev, data as FoodEntry]);
+    if (!error && data) {
+      setEntries(prev => [...prev, data as FoodEntry]);
+      return data as FoodEntry;
+    }
+    return null;
   };
 
   const removeEntry = async (id: string): Promise<void> => {

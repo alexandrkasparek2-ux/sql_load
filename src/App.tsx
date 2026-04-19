@@ -64,7 +64,7 @@ export interface AppCtx {
   entries:           FoodEntry[];
   totals:            MacroTotals;
   goals:             Goals;
-  addEntry:          (e: Omit<FoodEntry, 'id'>) => Promise<void>;
+  addEntry:          (e: Omit<FoodEntry, 'id'>) => Promise<FoodEntry | null>;
   removeEntry:       (id: string) => Promise<void>;
   updateEntry:       (id: string, newGrams: number, newMealSlot?: string) => Promise<void>;
   updateEntryMacros: (id: string, macros: { kcal: number; carbs: number; protein: number; fat: number }, newMealSlot?: string) => Promise<void>;
@@ -85,7 +85,8 @@ export const useApp     = () => useContext(AppContext);
 // Today helper
 // ──────────────────────────────────────────────────────────
 function todayISO() {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 function kcalFromActivity(a: {
@@ -128,8 +129,21 @@ interface AuthShellProps {
 }
 
 function AuthShell({ userId, onSignOut }: AuthShellProps) {
-  // Mutable – user can switch to any date
-  const [today, setToday] = useState(() => todayISO());
+  const [today, setTodayState] = useState(() => {
+    const actual = todayISO();
+    try {
+      const stored = sessionStorage.getItem('cyclofuel_date');
+      if (stored) {
+        const diff = (new Date(actual).getTime() - new Date(stored).getTime()) / 86_400_000;
+        if (diff >= 0 && diff <= 7) return stored;
+      }
+    } catch { /* ignore */ }
+    return actual;
+  });
+  const setToday = (d: string) => {
+    try { sessionStorage.setItem('cyclofuel_date', d); } catch { /* ignore */ }
+    setTodayState(d);
+  };
 
   const { profile,     save: saveProfile    } = useProfile(userId);
   const { trainingDay, upsert              } = useTrainingDay(userId, today);
