@@ -783,7 +783,6 @@ export default function Foods() {
   const [editMealSlot,  setEditMealSlot]  = useState('');
   const [savingEdit,    setSavingEdit]    = useState(false);
   const [editIngredients, setEditIngredients] = useState<{name:string;grams:number;kcalPer100g:number}[]>([]);
-  const [hasIngredients,  setHasIngredients]  = useState(false);
   const [ingMode,         setIngMode]         = useState(false);
   const [ingAddName,      setIngAddName]      = useState('');
   const [ingAddGrams,     setIngAddGrams]     = useState('');
@@ -820,13 +819,11 @@ export default function Foods() {
       const raw = localStorage.getItem(`cfi_${entry.id}`);
       if (raw) {
         setEditIngredients(JSON.parse(raw));
-        setHasIngredients(true);
-        setIngMode(true);
+                setIngMode(true);
       } else {
         setEditIngredients([]);
-        setHasIngredients(false);
       }
-    } catch { setEditIngredients([]); setHasIngredients(false); }
+    } catch { setEditIngredients([]); }
   };
   const cancelEdit = () => { setEditingEntry(null); setHasIngredients(false); setIngMode(false); setIngAddName(''); setIngAddGrams(''); setIngAddKcal(''); };
   const saveIngredientEdit = async (id: string) => {
