@@ -1248,25 +1248,24 @@ export default function Foods() {
         </div>
       </Card>
 
-      {/* Food picker modal */}
-      {activePicker && (
-        <FoodPicker
-          mealSlot={activePicker}
-          mealLabel={slotLabel}
-          accent={accent}
-          userId={userId}
-          date={today}
-          allFoods={allFoods}
-          savedMeals={savedMeals}
-          onSaveCustomFood={saveCustomFood}
-          onSaveMeal={saveMeal}
-          onUpdateSavedMeal={updateMeal}
-          onDeleteSavedMeal={deleteMeal}
-          onClose={() => setActivePicker(null)}
-          onConfirm={addEntry}
-        />
-      )}
       </div>
+    {activePicker && (
+      <FoodPicker
+        mealSlot={activePicker}
+        mealLabel={slotLabel}
+        accent={accent}
+        userId={userId}
+        date={today}
+        allFoods={allFoods}
+        savedMeals={savedMeals}
+        onSaveCustomFood={saveCustomFood}
+        onSaveMeal={saveMeal}
+        onUpdateSavedMeal={updateMeal}
+        onDeleteSavedMeal={deleteMeal}
+        onClose={() => setActivePicker(null)}
+        onConfirm={addEntry}
+      />
+    )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useContext, useState, useEffect, useCallback } from 'react';
 import { AppContext, type DeficitLevel, DEFICIT_KCAL } from '../App';
-import { T, Card, SectionTitle, StatRow, Btn, Spinner } from '../components/UI';
+import { T, BRAND, Card, SectionTitle, StatRow, Btn, Spinner } from '../components/UI';
 import { calcBMR, calcCalories, calcMacros, calcWater } from '../constants/training';
 
 function SliderField({
@@ -414,8 +414,15 @@ export default function Profile() {
   const bmiColor = bmi < 18.5 ? '#f59e0b' : bmi < 25 ? '#22c55e' : bmi < 30 ? '#f59e0b' : '#ef4444';
 
   return (
-    <div style={{ padding: '16px 16px 0' }}>
-      <SectionTitle accent={accent}>Profil</SectionTitle>
+    <div style={{ padding: '16px 16px 0', position: 'relative' }}>
+      {/* Gradient overlay */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 300,
+        background: 'radial-gradient(ellipse at top, rgba(255,214,0,0.06), transparent 70%)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+      <div style={{ position: 'relative', zIndex: 1 }}>
+      <SectionTitle accent={BRAND.gold}>Profil</SectionTitle>
 
       {/* Profile card */}
       <Card style={{ marginBottom: 16 }}>
@@ -493,9 +500,9 @@ export default function Profile() {
       <SectionTitle accent={accent}>Dnešní cíle</SectionTitle>
       <Card style={{ marginBottom: 16 }}>
         <StatRow label="Kalorie"    value={kcal}           unit="kcal" accent={accent} />
-        <StatRow label="Sacharidy"  value={macros.carbs}   unit="g"    accent="#f59e0b" />
-        <StatRow label="Bílkoviny"  value={macros.protein} unit="g"    accent="#22c55e" />
-        <StatRow label="Tuky"       value={macros.fat}     unit="g"    accent="#a855f7" />
+        <StatRow label="Sacharidy"  value={macros.carbs}   unit="g"    accent={BRAND.gold}   />
+        <StatRow label="Bílkoviny"  value={macros.protein} unit="g"    accent={BRAND.green}  />
+        <StatRow label="Tuky"       value={macros.fat}     unit="g"    accent={BRAND.orange} />
         <div style={{ borderBottom: 'none' }}>
           <StatRow label="Voda"     value={water}          unit="L"    accent="#06b6d4" />
         </div>
@@ -520,6 +527,7 @@ export default function Profile() {
         </Btn>
       </div>
 
+      </div>
     </div>
   );
 }

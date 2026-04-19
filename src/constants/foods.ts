@@ -3825,4 +3825,22 @@ export const FOODS: Food[] = [
     kcal: 168, carbs: 5.0, protein: 17.5, fat: 8.5, fiber: 0.4, per: 200,
     micros: { na: 430, k: 280, mg: 22, ca: 38, fe: 1.4, vit_c: 2, vit_d: 0.8, b12: 0.8, omega3: 90, zn: 2.3 },
   },
+
+  // ── Žemlovka ─────────────────────────────────────────────
+  {
+    id: 'zemlovka',
+    cat: '🍛 Hlavní jídla',
+    name: 'Žemlovka (jablková)',
+    // starší rohlíky/housky, jablka, vejce, mléko, cukr, máslo, skořice
+    kcal: 162, carbs: 26.0, protein: 5.5, fat: 5.0, fiber: 1.5, per: 250,
+    micros: { na: 180, k: 130, mg: 12, ca: 80, fe: 0.8, vit_c: 3, vit_d: 0.3, b12: 0.4, omega3: 30, zn: 0.5 },
+  },
+  {
+    id: 'zemlovka_tvaroh',
+    cat: '🍛 Hlavní jídla',
+    name: 'Žemlovka s tvarohem a jablky',
+    // rohlíky, tvaroh, jablka, vejce, mléko, cukr, rozinky
+    kcal: 148, carbs: 22.0, protein: 8.5, fat: 3.5, fiber: 1.2, per: 250,
+    micros: { na: 170, k: 150, mg: 14, ca: 110, fe: 0.7, vit_c: 3, vit_d: 0.3, b12: 0.5, omega3: 25, zn: 0.6 },
+  },
 ];
