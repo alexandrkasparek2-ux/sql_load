@@ -379,7 +379,10 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
         position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
         width: '100%', maxWidth: 500, background: T.card,
         borderRadius: '20px 20px 0 0', border: `1px solid ${T.border}`, borderBottom: 'none',
-        zIndex: 101, maxHeight: 'calc(100dvh - 12px)', display: 'flex', flexDirection: 'column',
+        zIndex: 101,
+        height: 'min(88dvh, calc(100dvh - 12px))',
+        display: 'flex',
+        flexDirection: 'column',
       }}>
         {/* Handle */}
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10 }}>
@@ -408,7 +411,7 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 24px' }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '12px 16px 16px' }}>
 
           {/* ── BROWSE ── */}
           {step === 'browse' && (
