@@ -1,6 +1,6 @@
 import { useState, useContext, useMemo } from 'react';
 import { AppContext }    from '../App';
-import { T, Card, SectionTitle, ProgressBar, Btn } from '../components/UI';
+import { T, BRAND, Card, SectionTitle, ProgressBar, Btn } from '../components/UI';
 import { FOODS, FOOD_CATEGORIES, type Food } from '../constants/foods';
 import { MEAL_SLOTS }    from '../constants/training';
 import type { FoodEntry } from '../hooks/useFoodEntries';
@@ -728,9 +728,9 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
                     <span style={{ fontSize: 12, color: T.muted, alignSelf: 'flex-end', marginBottom: 4 }}>kcal</span>
                   </div>
                   <div style={{ display: 'flex', gap: 16 }}>
-                    <MacroLine label="Sacharidy" value={scaled.carbs}   color="#f59e0b" unit="g" />
-                    <MacroLine label="Bílkoviny" value={scaled.protein} color="#22c55e" unit="g" />
-                    <MacroLine label="Tuky"      value={scaled.fat}     color="#a855f7" unit="g" />
+                    <MacroLine label="Sacharidy" value={scaled.carbs}   color={BRAND.gold}   unit="g" />
+                    <MacroLine label="Bílkoviny" value={scaled.protein} color={BRAND.green}  unit="g" />
+                    <MacroLine label="Tuky"      value={scaled.fat}     color={BRAND.orange} unit="g" />
                   </div>
                 </div>
 
@@ -858,11 +858,18 @@ export default function Foods() {
     entriesForSlot(slotId).reduce((s, e) => s + e.kcal, 0);
 
   return (
-    <div style={{ padding: '16px 16px 0' }}>
+    <div style={{ padding: '16px 16px 0', position: 'relative' }}>
+      {/* Gradient overlay */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 300,
+        background: 'radial-gradient(ellipse at top, rgba(255,214,0,0.06), transparent 70%)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+      <div style={{ position: 'relative', zIndex: 1 }}>
       <SectionTitle
-        accent={accent}
+        accent={BRAND.gold}
         right={
-          <div style={{ fontSize: 12, color: T.muted }}>
+          <div style={{ fontSize: 12, color: BRAND.gold, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
             {Math.round(ctx.totals.kcal)} / {Math.round(goals.kcal)} kcal
           </div>
         }
@@ -872,7 +879,7 @@ export default function Foods() {
 
       {/* Overall progress bar */}
       <div style={{ marginBottom: 16 }}>
-        <ProgressBar value={ctx.totals.kcal} max={goals.kcal} color={accent} height={6} showLabel />
+        <ProgressBar value={ctx.totals.kcal} max={goals.kcal} color={BRAND.gold} height={5} showLabel />
       </div>
 
       {/* Meal slots */}
@@ -897,7 +904,7 @@ export default function Foods() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   {kcal > 0 && (
-                    <span style={{ fontSize: 12, color: accent, fontWeight: 600 }}>
+                    <span style={{ fontSize: 12, color: BRAND.gold, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                       {Math.round(kcal)} kcal
                     </span>
                   )}
@@ -905,8 +912,8 @@ export default function Foods() {
                     onClick={() => setActivePicker(slot.id)}
                     style={{
                       width: 28, height: 28, borderRadius: 8,
-                      background: accent + '22', border: `1px solid ${accent}44`,
-                      color: accent, fontSize: 18, cursor: 'pointer',
+                      background: 'rgba(255,214,0,0.08)', border: '1px solid rgba(255,214,0,0.2)',
+                      color: BRAND.gold, fontSize: 18, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       lineHeight: 1,
                     }}
@@ -939,10 +946,10 @@ export default function Foods() {
                           {entry.food_name}
                         </div>
                         <div style={{ fontSize: 11, color: T.muted, marginTop: 1 }}>
-                          {entry.grams} g
-                          &nbsp;·&nbsp;<span style={{ color: '#f59e0b' }}>{entry.carbs.toFixed(0)}g S</span>
-                          &nbsp;·&nbsp;<span style={{ color: '#22c55e' }}>{entry.protein.toFixed(0)}g B</span>
-                          &nbsp;·&nbsp;<span style={{ color: '#a855f7' }}>{entry.fat.toFixed(0)}g T</span>
+                          {entry.grams} g&nbsp;
+                          <span style={{ color: BRAND.gold, marginRight: 4 }}>●</span>{entry.carbs.toFixed(0)}g&nbsp;
+                          <span style={{ color: BRAND.green, marginRight: 4 }}>●</span>{entry.protein.toFixed(0)}g&nbsp;
+                          <span style={{ color: BRAND.orange, marginRight: 4 }}>●</span>{entry.fat.toFixed(0)}g
                         </div>
                       </div>
                       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1098,10 +1105,10 @@ export default function Foods() {
       {/* Totals bar */}
       <Card style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-          <TotalItem label="Celkem"    value={`${Math.round(ctx.totals.kcal)} kcal`}    color={accent}    />
-          <TotalItem label="Sacharidy" value={`${ctx.totals.carbs.toFixed(0)} g`}        color="#f59e0b"  />
-          <TotalItem label="Bílkoviny" value={`${ctx.totals.protein.toFixed(0)} g`}      color="#22c55e"  />
-          <TotalItem label="Tuky"      value={`${ctx.totals.fat.toFixed(0)} g`}          color="#a855f7"  />
+          <TotalItem label="Celkem"    value={`${Math.round(ctx.totals.kcal)} kcal`}    color={BRAND.gold}   />
+          <TotalItem label="Sacharidy" value={`${ctx.totals.carbs.toFixed(0)} g`}        color={BRAND.gold}   />
+          <TotalItem label="Bílkoviny" value={`${ctx.totals.protein.toFixed(0)} g`}      color={BRAND.green}  />
+          <TotalItem label="Tuky"      value={`${ctx.totals.fat.toFixed(0)} g`}          color={BRAND.orange} />
         </div>
       </Card>
 
@@ -1123,6 +1130,7 @@ export default function Foods() {
           onConfirm={addEntry}
         />
       )}
+      </div>
     </div>
   );
 }

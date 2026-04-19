@@ -243,7 +243,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 
   return (
     <AppContext.Provider value={ctx}>
-      <AppLayout accent={training.color} today={today} setToday={setToday} />
+      <AppLayout today={today} setToday={setToday} />
     </AppContext.Provider>
   );
 }
@@ -294,12 +294,11 @@ const NAV_ITEMS = [
 ] as const;
 
 interface AppLayoutProps {
-  accent:   string;
   today:    string;
   setToday: (date: string) => void;
 }
 
-function AppLayout({ accent, today, setToday }: AppLayoutProps) {
+function AppLayout({ today, setToday }: AppLayoutProps) {
   const realToday = todayISO();
 
   // Human-friendly date label
