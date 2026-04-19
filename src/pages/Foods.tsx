@@ -1,4 +1,4 @@
-import { useState, useContext, useMemo } from 'react';
+import { useState, useContext, useMemo, useEffect } from 'react';
 import { AppContext }    from '../App';
 import { T, BRAND, Card, SectionTitle, ProgressBar, Btn } from '../components/UI';
 import { FOODS, FOOD_CATEGORIES, type Food } from '../constants/foods';
@@ -11,6 +11,10 @@ import FoodScanner      from '../components/FoodScanner';
 // ─── helpers ────────────────────────────────────────────────
 function scaleNutrient(val: number, grams: number) {
   return parseFloat((val * grams / 100).toFixed(2));
+}
+
+function clampInt(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function buildEntry(
@@ -67,6 +71,7 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
   const [search,      setSearch]      = useState('');
   const [food,        setFood]        = useState<Food | null>(null);
   const [grams,       setGrams]       = useState(100);
+  const [gramsInput,  setGramsInput]  = useState('100');
   const [loading,     setLoading]     = useState(false);
   const [showScanner,     setShowScanner]     = useState(false);
   const [showFoodScanner, setShowFoodScanner] = useState(false);
@@ -77,6 +82,7 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
   const [cProtein, setCProtein] = useState('');
   const [cFat,     setCFat]     = useState('');
   const [cGrams,   setCGrams]   = useState(100);
+  const [cGramsInput, setCGramsInput] = useState('100');
   const [cSave,    setCSave]    = useState(false);
   // recipe step
   const [rName,   setRName]   = useState('');
@@ -88,6 +94,19 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
   // saved meal portion step
   const [savedMealSel,   setSavedMealSel]   = useState<SavedMeal | null>(null);
   const [savedMealGrams, setSavedMealGrams] = useState(100);
+  const [savedMealGramsInput, setSavedMealGramsInput] = useState('100');
+
+  useEffect(() => {
+    setGramsInput(String(grams));
+  }, [grams]);
+
+  useEffect(() => {
+    setCGramsInput(String(cGrams));
+  }, [cGrams]);
+
+  useEffect(() => {
+    setSavedMealGramsInput(String(savedMealGrams));
+  }, [savedMealGrams]);
 
   const categories = useMemo(() => {
     const used = new Set(allFoods.map(f => f.cat));
@@ -131,7 +150,33 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
     { grams: 0, kcal: 0, carbs: 0, protein: 0, fat: 0 }
   );
 
-  const handleSelectFood = (f: Food) => { setFood(f); setGrams(f.per); setStep('portion'); };
+  const commitGramsInput = () => {
+    const parsed = parseInt(gramsInput, 10);
+    const next = Number.isNaN(parsed) ? grams : clampInt(parsed, 5, 600);
+    setGrams(next);
+    setGramsInput(String(next));
+  };
+
+  const commitCustomGramsInput = () => {
+    const parsed = parseInt(cGramsInput, 10);
+    const next = Number.isNaN(parsed) ? cGrams : clampInt(parsed, 5, 1000);
+    setCGrams(next);
+    setCGramsInput(String(next));
+  };
+
+  const commitSavedMealGramsInput = () => {
+    const parsed = parseInt(savedMealGramsInput, 10);
+    const next = Number.isNaN(parsed) ? savedMealGrams : clampInt(parsed, 5, 2000);
+    setSavedMealGrams(next);
+    setSavedMealGramsInput(String(next));
+  };
+
+  const handleSelectFood = (f: Food) => {
+    setFood(f);
+    setGrams(f.per);
+    setGramsInput(String(f.per));
+    setStep('portion');
+  };
   const handleBarcodeResult = (f: Food) => { setShowScanner(false); handleSelectFood(f); };
   const handleFoodScanResult = async (entry: Omit<FoodEntry, 'id'>): Promise<FoodEntry | null> => {
     setShowFoodScanner(false);
@@ -545,16 +590,18 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <label style={{ fontSize: 13, color: T.muted }}>Množství</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <button onClick={() => setGrams(g => Math.max(5, g - 5))} style={{ width: 26, height: 26, borderRadius: 6, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 16 }}>−</button>
+                    <button onClick={() => setGrams(g => clampInt(g - 5, 5, 600))} style={{ width: 26, height: 26, borderRadius: 6, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 16 }}>−</button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                       <input
-                        type="number" inputMode="numeric" value={grams} min={5} max={600}
-                        onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v > 0) setGrams(Math.min(600, Math.max(5, v))); }}
+                        type="number" inputMode="numeric" value={gramsInput} min={5} max={600}
+                        onChange={e => setGramsInput(e.target.value)}
+                        onBlur={commitGramsInput}
+                        onKeyDown={e => { if (e.key === 'Enter') commitGramsInput(); }}
                         style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color: T.text, width: 52, textAlign: 'center', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, outline: 'none', padding: '2px 4px' }}
                       />
                       <span style={{ fontSize: 13, color: T.muted }}>g</span>
                     </div>
-                    <button onClick={() => setGrams(g => Math.min(600, g + 5))} style={{ width: 26, height: 26, borderRadius: 6, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 16 }}>+</button>
+                    <button onClick={() => setGrams(g => clampInt(g + 5, 5, 600))} style={{ width: 26, height: 26, borderRadius: 6, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 16 }}>+</button>
                   </div>
                 </div>
                 <input type="range" min={5} max={600} step={5} value={grams} onChange={e => setGrams(Number(e.target.value))}
@@ -610,16 +657,18 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <label style={{ fontSize: 13, color: T.muted }}>Množství</label>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <button onClick={() => setCGrams(g => Math.max(5, g - 5))} style={{ width: 26, height: 26, borderRadius: 6, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 16 }}>−</button>
+                    <button onClick={() => setCGrams(g => clampInt(g - 5, 5, 1000))} style={{ width: 26, height: 26, borderRadius: 6, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 16 }}>−</button>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                       <input
-                        type="number" inputMode="numeric" value={cGrams} min={5} max={1000}
-                        onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v > 0) setCGrams(Math.min(1000, Math.max(5, v))); }}
+                        type="number" inputMode="numeric" value={cGramsInput} min={5} max={1000}
+                        onChange={e => setCGramsInput(e.target.value)}
+                        onBlur={commitCustomGramsInput}
+                        onKeyDown={e => { if (e.key === 'Enter') commitCustomGramsInput(); }}
                         style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color: T.text, width: 52, textAlign: 'center', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, outline: 'none', padding: '2px 4px' }}
                       />
                       <span style={{ fontSize: 13, color: T.muted }}>g</span>
                     </div>
-                    <button onClick={() => setCGrams(g => Math.min(1000, g + 5))} style={{ width: 26, height: 26, borderRadius: 6, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 16 }}>+</button>
+                    <button onClick={() => setCGrams(g => clampInt(g + 5, 5, 1000))} style={{ width: 26, height: 26, borderRadius: 6, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 16 }}>+</button>
                   </div>
                 </div>
                 <input type="range" min={5} max={1000} step={5} value={cGrams} onChange={e => setCGrams(Number(e.target.value))}
@@ -780,17 +829,19 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <label style={{ fontSize: 13, color: T.muted }}>Množství</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <button onClick={() => setSavedMealGrams(g => Math.max(5, g - 5))}
+                      <button onClick={() => setSavedMealGrams(g => clampInt(g - 5, 5, 2000))}
                         style={{ width: 26, height: 26, borderRadius: 6, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 16 }}>−</button>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                         <input
-                          type="number" inputMode="numeric" value={savedMealGrams} min={5} max={2000}
-                          onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v) && v > 0) setSavedMealGrams(Math.min(2000, Math.max(5, v))); }}
+                          type="number" inputMode="numeric" value={savedMealGramsInput} min={5} max={2000}
+                          onChange={e => setSavedMealGramsInput(e.target.value)}
+                          onBlur={commitSavedMealGramsInput}
+                          onKeyDown={e => { if (e.key === 'Enter') commitSavedMealGramsInput(); }}
                           style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color: T.text, width: 60, textAlign: 'center', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8, outline: 'none', padding: '2px 4px' }}
                         />
                         <span style={{ fontSize: 13, color: T.muted }}>g</span>
                       </div>
-                      <button onClick={() => setSavedMealGrams(g => Math.min(2000, g + 5))}
+                      <button onClick={() => setSavedMealGrams(g => clampInt(g + 5, 5, 2000))}
                         style={{ width: 26, height: 26, borderRadius: 6, background: accent + '22', border: `1px solid ${accent}44`, color: accent, cursor: 'pointer', fontSize: 16 }}>+</button>
                     </div>
                   </div>
