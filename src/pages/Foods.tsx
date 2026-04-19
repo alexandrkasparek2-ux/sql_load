@@ -825,7 +825,7 @@ export default function Foods() {
       }
     } catch { setEditIngredients([]); }
   };
-  const cancelEdit = () => { setEditingEntry(null); setHasIngredients(false); setIngMode(false); setIngAddName(''); setIngAddGrams(''); setIngAddKcal(''); };
+  const cancelEdit = () => { setEditingEntry(null); setIngMode(false); setIngAddName(''); setIngAddGrams(''); setIngAddKcal(''); };
   const saveIngredientEdit = async (id: string) => {
     const entry = entries.find(e => e.id === id);
     if (!entry) return;
@@ -841,7 +841,7 @@ export default function Foods() {
     }, editMealSlot);
     setSavingEdit(false);
     setEditingEntry(null);
-    setHasIngredients(false);
+    setIngMode(false);
   };
   const saveEdit   = async (id: string) => {
     setSavingEdit(true);
