@@ -369,6 +369,15 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
     </div>
   ) : null;
 
+  const inlineActionWrap: React.CSSProperties = {
+    position: 'sticky',
+    bottom: 0,
+    marginTop: 8,
+    marginBottom: 8,
+    paddingTop: 10,
+    background: `linear-gradient(180deg, rgba(13,13,13,0) 0%, ${T.card} 28%)`,
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -564,6 +573,11 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
                   <MacroLine label="Tuky"      value={preview.fat}     color="#a855f7" unit="g" />
                 </div>
               </div>
+              <div style={inlineActionWrap}>
+                <Btn accent={accent} size="lg" full onClick={handleConfirm} disabled={loading}>
+                  {loading ? 'Přidávám…' : `+ Přidat do ${mealLabel}`}
+                </Btn>
+              </div>
             </>
           )}
 
@@ -626,6 +640,11 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
                 <input type="checkbox" checked={cSave} onChange={e => setCSave(e.target.checked)} style={{ width: 16, height: 16, accentColor: accent }} />
                 <span style={{ fontSize: 13, color: T.muted }}>Uložit do vlastních potravin</span>
               </label>
+              <div style={inlineActionWrap}>
+                <Btn accent={accent} size="lg" full onClick={handleCustomConfirm} disabled={!cName.trim() || loading}>
+                  {loading ? 'Přidávám…' : `+ Přidat do ${mealLabel}`}
+                </Btn>
+              </div>
             </>
           )}
 
@@ -713,6 +732,26 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
                   <span style={{ fontSize: 13, color: T.muted }}>💾 Uložit jako jídlo pro příště</span>
                 </label>
               )}
+              <div style={inlineActionWrap}>
+                {rEditId ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <Btn accent={accent} size="lg" full onClick={() => handleRecipeConfirm(true)} disabled={!rName.trim() || rIngs.length === 0 || loading}>
+                      {loading ? 'Ukládám…' : `Uložit a přidat do ${mealLabel}`}
+                    </Btn>
+                    <button
+                      onClick={() => handleRecipeConfirm(false)}
+                      disabled={!rName.trim() || loading}
+                      style={{ width: '100%', padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: !rName.trim() || loading ? 'default' : 'pointer', background: 'transparent', border: `1px solid ${T.border}`, color: T.muted, opacity: !rName.trim() || loading ? 0.5 : 1 }}
+                    >
+                      Jen uložit změny
+                    </button>
+                  </div>
+                ) : (
+                  <Btn accent={accent} size="lg" full onClick={() => handleRecipeConfirm(true)} disabled={!rName.trim() || rIngs.length === 0 || loading}>
+                    {loading ? 'Přidávám…' : `+ Přidat do ${mealLabel}`}
+                  </Btn>
+                )}
+              </div>
             </>
           )}
 
@@ -777,7 +816,11 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
                     <MacroLine label="Tuky"      value={scaled.fat}     color={BRAND.orange} unit="g" />
                   </div>
                 </div>
-
+                <div style={inlineActionWrap}>
+                  <Btn accent={accent} size="lg" full onClick={handleSavedMealConfirm} disabled={loading}>
+                    {loading ? 'Přidávám…' : `+ Přidat do ${mealLabel}`}
+                  </Btn>
+                </div>
               </>
             );
           })()}
