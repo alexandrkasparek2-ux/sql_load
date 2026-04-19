@@ -335,74 +335,82 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
 
   const isToday = today === realToday;
 
+  // Topbar date string: "Neděle · 19. 4."
+  const topbarDate = (() => {
+    const d = new Date(today + 'T00:00:00');
+    const weekday   = d.toLocaleDateString('cs-CZ', { weekday: 'long' });
+    const dateShort = d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' });
+    return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)} · ${dateShort}`;
+  })();
+
   return (
-    // height:100dvh + overflow:hidden → body nikdy nescrolluje
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: T.bg }}>
 
       {/* Header */}
       <div style={{ flexShrink: 0, background: T.bg, zIndex: 50 }}>
 
-        {/* Řádek 1: Logo */}
+        {/* Řádek 1: Topbar */}
         <div style={{
-          padding:      '10px 16px',
-          display:      'flex',
-          alignItems:   'center',
+          padding:        '12px 16px',
+          display:        'flex',
+          alignItems:     'center',
           justifyContent: 'space-between',
-          borderBottom: `1px solid ${T.border}`,
+          borderBottom:   `1px solid ${T.border}`,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div>
             <div style={{
-              width: 28, height: 28, borderRadius: 6,
-              background: accent,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'background 0.4s',
+              fontSize: 11, color: T.muted, letterSpacing: '1px',
+              textTransform: 'uppercase' as const, marginBottom: 2,
             }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/>
-              </svg>
+              {topbarDate}
             </div>
-            <span style={{
-              fontFamily:    'Syne, sans-serif',
-              fontSize:      16,
-              fontWeight:    800,
-              color:         T.text,
-              letterSpacing: '0.04em',
-              textTransform: 'uppercase' as const,
-            }}>CycloFuel</span>
+            <div style={{ fontSize: 20, fontWeight: 800, color: T.text, letterSpacing: '-0.3px' }}>
+              CycloFuel
+            </div>
           </div>
-          <div style={{
-            fontSize: 11, color: accent, fontWeight: 700,
-            letterSpacing: '0.08em', textTransform: 'uppercase' as const,
-            background: accent + '18', padding: '4px 10px', borderRadius: 20,
-          }}>
-            ● Live
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Live badge */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 10px',
+              background: 'rgba(0, 229, 176, 0.1)',
+              border: '1px solid rgba(0, 229, 176, 0.3)',
+              borderRadius: 6,
+              fontSize: 9, fontWeight: 700, color: '#00E5B0',
+              letterSpacing: '1px', textTransform: 'uppercase' as const,
+            }}>
+              <div style={{
+                width: 6, height: 6, background: '#00E5B0',
+                borderRadius: '50%', animation: 'pulse 2s infinite',
+              }} />
+              Sync
+            </div>
+            {/* Avatar */}
+            <div style={{
+              width: 38, height: 38,
+              background: 'linear-gradient(135deg, #FFD600, #FF6B35)',
+              borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18, fontWeight: 800, color: '#000',
+              flexShrink: 0,
+            }}>
+              🚴
+            </div>
           </div>
         </div>
 
-        {/* Řádek 2: Datum – 44px výška, plná šířka */}
+        {/* Řádek 2: Datum navigace */}
         <div style={{
-          display:      'flex',
-          alignItems:   'stretch',
-          borderBottom: `1px solid ${T.border}`,
-          height:       44,
+          display: 'flex', alignItems: 'stretch',
+          borderBottom: `1px solid ${T.border}`, height: 44,
         }}>
-          {/* ◀ Předchozí den */}
           <button
-            type="button"
-            onClick={prevDay}
+            type="button" onClick={prevDay}
             style={{
-              flex:                    '0 0 56px',
-              background:              'none',
-              border:                  'none',
-              borderRight:             `1px solid ${T.border}`,
-              color:                   T.muted,
-              cursor:                  'pointer',
-              display:                 'flex',
-              alignItems:              'center',
-              justifyContent:          'center',
-              touchAction:             'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              userSelect:              'none',
+              flex: '0 0 56px', background: 'none', border: 'none',
+              borderRight: `1px solid ${T.border}`, color: T.muted,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', userSelect: 'none',
             }}
             aria-label="Předchozí den"
           >
@@ -412,56 +420,31 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
             </svg>
           </button>
 
-          {/* Datum – průhledný date input překrývá text; iOS ho přímo tapne */}
           <div style={{
-            flex:            1,
-            position:        'relative',
-            display:         'flex',
-            alignItems:      'center',
-            justifyContent:  'center',
+            flex: 1, position: 'relative',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <span style={{
-              fontSize:   14,
-              fontWeight: isToday ? 700 : 400,
-              color:      isToday ? accent : T.muted,
-              transition: 'color 0.2s',
-              pointerEvents: 'none',   // text nepřekáží inputu
+              fontSize: 14, fontWeight: isToday ? 700 : 400,
+              color: isToday ? '#FFD600' : T.muted, transition: 'color 0.2s',
+              pointerEvents: 'none',
             }}>
               {dateLabel}
             </span>
-            {/* input zakrývá celou plochu – opacity 0, ale má pointer-events */}
             <input
-              type="date"
-              value={today}
+              type="date" value={today}
               onChange={e => e.target.value && setToday(e.target.value)}
-              style={{
-                position: 'absolute',
-                inset:    0,
-                opacity:  0,
-                cursor:   'pointer',
-                width:    '100%',
-                height:   '100%',
-              }}
+              style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
             />
           </div>
 
-          {/* ▶ Následující den */}
           <button
-            type="button"
-            onClick={nextDay}
+            type="button" onClick={nextDay}
             style={{
-              flex:                    '0 0 56px',
-              background:              'none',
-              border:                  'none',
-              borderLeft:              `1px solid ${T.border}`,
-              color:                   T.muted,
-              cursor:                  'pointer',
-              display:                 'flex',
-              alignItems:              'center',
-              justifyContent:          'center',
-              touchAction:             'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              userSelect:              'none',
+              flex: '0 0 56px', background: 'none', border: 'none',
+              borderLeft: `1px solid ${T.border}`, color: T.muted,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', userSelect: 'none',
             }}
             aria-label="Následující den"
           >
@@ -473,7 +456,7 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
         </div>
       </div>
 
-      {/* Page content – flex:1 + minHeight:0 zajistí že main neroste za výšku viewportu */}
+      {/* Page content */}
       <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: 80 }}>
         <Routes>
           <Route path="/"                element={<Dashboard />}     />
@@ -485,66 +468,74 @@ function AppLayout({ accent, today, setToday }: AppLayoutProps) {
           <Route path="/profile"         element={<Profile />}       />
           <Route path="/whoop/callback"  element={<WhoopCallback />}  />
           <Route path="/strava/callback" element={<StravaCallback />} />
-          <Route path="*"            element={<Navigate to="/" replace />} />
+          <Route path="*"               element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 
       {/* Fixed Bottom Nav */}
       <nav style={{
-        position:       'fixed',
-        bottom:         0,
-        left:           '50%',
-        transform:      'translateX(-50%)',
-        width:          '100%',
-        maxWidth:       500,
-        background:     '#0e0e0e',
-        borderTop:      `1px solid ${T.border}`,
-        display:        'flex',
-        justifyContent: 'space-around',
-        paddingBottom:  'env(safe-area-inset-bottom, 0px)',
-        zIndex:         50,
+        position:         'fixed',
+        bottom:           0,
+        left:             '50%',
+        transform:        'translateX(-50%)',
+        width:            '100%',
+        maxWidth:         500,
+        background:       'rgba(5, 5, 5, 0.95)',
+        backdropFilter:   'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop:        '1px solid #181818',
+        display:          'flex',
+        justifyContent:   'space-around',
+        paddingBottom:    'env(safe-area-inset-bottom, 0px)',
+        zIndex:           100,
+        height:           75,
+        alignItems:       'center',
       }}>
         {NAV_ITEMS.map(item => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.to === '/'}
-            style={({ isActive }) => ({
-              display:        'flex',
-              flexDirection:  'column',
-              alignItems:     'center',
-              padding:        '10px 0 7px',
-              flex:           1,
-              textDecoration: 'none',
-              color:          isActive ? accent : '#3a3a3a',
-              gap:            4,
-              transition:     'color 0.2s',
-              position:       'relative' as const,
-            })}
+            style={{ display: 'flex', flex: 1, textDecoration: 'none' }}
           >
             {({ isActive }) => (
-              <>
+              <div style={{
+                display:        'flex',
+                flexDirection:  'column',
+                alignItems:     'center',
+                justifyContent: 'center',
+                flex:           1,
+                gap:            4,
+                padding:        '8px 4px 0',
+                position:       'relative',
+                color:          isActive ? '#FFD600' : '#555555',
+                transition:     'color 0.2s',
+              }}>
                 {isActive && (
                   <div style={{
-                    position: 'absolute', top: 0, left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 28, height: 2, borderRadius: 2,
-                    background: accent, transition: 'background 0.3s',
+                    position:     'absolute',
+                    top:          0,
+                    left:         '50%',
+                    transform:    'translateX(-50%)',
+                    width:        24,
+                    height:       3,
+                    background:   'linear-gradient(90deg, #FFD600, #FF6B35)',
+                    borderRadius: '0 0 3px 3px',
                   }} />
                 )}
-                <span style={{ color: isActive ? accent : '#3a3a3a', transition: 'color 0.2s', display: 'flex' }}>
+                <span style={{ display: 'flex', color: 'inherit' }}>
                   {NavIcons[item.to]}
                 </span>
                 <span style={{
                   fontSize:      9,
-                  fontWeight:    isActive ? 700 : 400,
-                  letterSpacing: '0.06em',
+                  fontWeight:    isActive ? 700 : 600,
+                  letterSpacing: '1px',
                   textTransform: 'uppercase' as const,
-                  color:         isActive ? accent : '#3a3a3a',
+                  color:         'inherit',
                 }}>
                   {item.label}
                 </span>
-              </>
+              </div>
             )}
           </NavLink>
         ))}
@@ -567,10 +558,10 @@ function AppRoutes() {
         alignItems: 'center', justifyContent: 'center', gap: 16,
         background: T.bg,
       }}>
-        <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 24, fontWeight: 800, color: '#22c55e' }}>
+        <span style={{ fontSize: 24, fontWeight: 800, color: '#FFD600', letterSpacing: '-0.5px' }}>
           🚴 CycloFuel
         </span>
-        <Spinner color="#22c55e" size={32} />
+        <Spinner color="#FFD600" size={32} />
       </div>
     );
   }

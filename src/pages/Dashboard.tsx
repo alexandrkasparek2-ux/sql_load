@@ -1,7 +1,7 @@
 import { useContext, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext }  from '../App';
-import { T, APPLE, MacroCard, ProgressBar, SectionTitle, Card, Btn } from '../components/UI';
+import { T, BRAND, APPLE, MacroCard, ProgressBar, ProgressRing, SectionTitle, Card, Btn } from '../components/UI';
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
 import { FOODS } from '../constants/foods';
 import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
@@ -521,245 +521,304 @@ export default function Dashboard() {
     ? Math.round(daysWithData.reduce((s, d) => s + d.kcal, 0) / daysWithData.length)
     : 0;
 
+  const pctGoal = goals.kcal > 0 ? Math.round((totals.kcal / goals.kcal) * 100) : 0;
+
   return (
-    <div style={{ padding: '16px 16px 0' }}>
+    <div style={{ padding: '16px 16px 0', position: 'relative' }}>
 
-      {/* Training type badge */}
+      {/* Gradient overlay at top */}
       <div style={{
-        display:      'inline-flex',
-        alignItems:   'center',
-        gap:          6,
-        background:   accent + '1a',
-        border:       `1px solid ${accent}44`,
-        borderRadius: 20,
-        padding:      '4px 12px',
-        marginBottom: 16,
-      }}>
-        <span style={{ fontSize: 14 }}>{training.icon}</span>
-        <span style={{ fontSize: 13, color: accent, fontWeight: 600 }}>{training.label}</span>
-      </div>
+        position: 'absolute', top: 0, left: 0, right: 0, height: 300,
+        background: 'radial-gradient(ellipse at top, rgba(255,214,0,0.06), transparent 70%)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
 
-      {/* Stretching checklist */}
-      <StretchingChecklist userId={userId} today={today} accent={accent} />
+      {/* Content wrapper above overlay */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
 
-      {/* Activity rings hero */}
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <ActivityRings
-            kcal={totals.kcal}       kcalGoal={goals.kcal}
-            protein={totals.protein} proteinGoal={goals.protein}
-            carbs={totals.carbs}     carbsGoal={goals.carbs}
-            fat={totals.fat}         fatGoal={goals.fat}
-          />
-          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* Training banner */}
+        {training.id !== 'rest' && (
+          <div
+            className="stagger-1"
+            onClick={() => navigate('/plan')}
+            style={{
+              background: 'linear-gradient(135deg, #FFD600, #FFA800)',
+              borderRadius: 14, padding: '14px 16px',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginBottom: 16, color: '#000', cursor: 'pointer',
+              animation: 'pulse-glow 3s ease-in-out infinite',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 34, height: 34, background: 'rgba(0,0,0,0.15)',
+                borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+              }}>
+                {training.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.5px' }}>
+                  DNES: {training.label.toUpperCase()}
+                </div>
+                <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>Klikni pro aktivity</div>
+              </div>
+            </div>
+            <span style={{ fontSize: 18, fontWeight: 800 }}>›</span>
+          </div>
+        )}
+
+        {/* Stretching checklist */}
+        <StretchingChecklist userId={userId} today={today} accent={accent} />
+
+        {/* Hero ProgressRing card */}
+        <div className="stagger-2" style={{
+          background: 'linear-gradient(180deg, #0f0f0f, #080808)',
+          border: '1px solid #181818',
+          borderRadius: 22, padding: '24px 20px 20px',
+          marginBottom: 16, textAlign: 'center',
+          position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{
+            position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%',
+            background: 'radial-gradient(circle at center, rgba(255,214,0,0.04) 0%, transparent 40%)',
+            pointerEvents: 'none',
+          }} />
+          <ProgressRing value={totals.kcal} max={goals.kcal} size={210}>
+            <div style={{
+              fontSize: 44, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1,
+              background: 'linear-gradient(180deg, #fff 40%, #888)',
+              WebkitBackgroundClip: 'text', backgroundClip: 'text',
+              WebkitTextFillColor: 'transparent', fontVariantNumeric: 'tabular-nums',
+            }}>
+              {Math.round(totals.kcal)}
+            </div>
+            <div style={{
+              fontSize: 10, color: T.muted, letterSpacing: '2px',
+              textTransform: 'uppercase' as const, marginTop: 6,
+            }}>
+              kcal příjem
+            </div>
+            <div style={{
+              fontSize: 11, color: BRAND.gold, marginTop: 10, fontWeight: 600,
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '4px 10px', background: 'rgba(255,214,0,0.1)', borderRadius: 10,
+            }}>
+              {pctGoal}% cíle
+            </div>
+          </ProgressRing>
+
+          {/* Stats below ring */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             {[
-              { label: 'Kalorie',   val: Math.round(totals.kcal),    goal: Math.round(goals.kcal),    unit: 'kcal', color: APPLE.red    },
-              { label: 'Bílkoviny', val: Math.round(totals.protein), goal: Math.round(goals.protein), unit: 'g',    color: APPLE.green  },
-              { label: 'Sacharidy', val: Math.round(totals.carbs),   goal: Math.round(goals.carbs),   unit: 'g',    color: APPLE.blue   },
-              { label: 'Tuky',      val: Math.round(totals.fat),     goal: Math.round(goals.fat),     unit: 'g',    color: APPLE.orange },
-            ].map(m => (
-              <div key={m.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0, boxShadow: `0 0 6px ${m.color}` }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                    <span style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{m.label}</span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: m.color }}>{m.val}<span style={{ fontSize: 9, color: T.muted, marginLeft: 1 }}>{m.unit}</span></span>
-                  </div>
-                  <ProgressBar value={m.val} max={m.goal} color={m.color} height={3} />
+              { label: 'Zbývá',    value: Math.max(0, Math.round(goals.kcal - totals.kcal)), unit: 'kcal' },
+              { label: 'Cíl',      value: Math.round(goals.kcal), unit: 'kcal' },
+              { label: 'Splněno',  value: pctGoal, unit: '%' },
+            ].map(s => (
+              <div key={s.label} style={{
+                flex: 1, background: T.bg, borderRadius: 8,
+                padding: '6px 8px', textAlign: 'center',
+              }}>
+                <div style={{
+                  fontSize: 13, fontWeight: 700, color: BRAND.gold,
+                  fontVariantNumeric: 'tabular-nums',
+                }}>
+                  {s.value}
+                  <span style={{ fontSize: 9, color: T.muted, marginLeft: 2 }}>{s.unit}</span>
+                </div>
+                <div style={{
+                  fontSize: 9, color: T.muted,
+                  textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginTop: 2,
+                }}>
+                  {s.label}
                 </div>
               </div>
             ))}
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 4, borderTop: `1px solid ${T.border}` }}>
-              <span style={{ fontSize: 10, color: T.muted }}>Cíl dnes</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: T.text }}>{Math.round(goals.kcal)} kcal</span>
-            </div>
           </div>
         </div>
-      </Card>
 
-      {/* Intervals.icu card */}
-      <IntervalsCard />
-
-      {/* Macro cards */}
-      <SectionTitle accent={accent}>Makroživiny</SectionTitle>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        <MacroCard label="Sacharidy" value={totals.carbs}   target={goals.carbs}   unit="g" color={APPLE.blue}   />
-        <MacroCard label="Bílkoviny" value={totals.protein} target={goals.protein} unit="g" color={APPLE.green}  />
-        <MacroCard label="Tuky"      value={totals.fat}     target={goals.fat}     unit="g" color={APPLE.orange} />
-      </div>
-
-      {/* Fiber bar */}
-      {(() => {
-        const fiberVal  = Math.round(totals.fiber * 10) / 10;
-        const fiberGoal = goals.fiber;
-        const pct       = Math.min(1, fiberVal / fiberGoal);
-        const done      = fiberVal >= fiberGoal;
-        return (
-          <div style={{
-            background:   T.card,
-            border:       `1px solid ${T.border}`,
-            borderRadius: 12,
-            padding:      '10px 14px',
-            marginBottom: 16,
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontSize: 12, color: T.muted, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                🌾 Vláknina
-              </span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: done ? '#22c55e' : T.text }}>
-                {fiberVal} <span style={{ fontWeight: 400, color: T.muted, fontSize: 11 }}>/ {fiberGoal} g</span>
-                {done && <span style={{ marginLeft: 6, fontSize: 11, color: '#22c55e' }}>✓</span>}
-              </span>
-            </div>
-            <ProgressBar value={fiberVal} max={fiberGoal} color="#84cc16" height={5} />
-            <div style={{ fontSize: 10, color: T.muted, marginTop: 4 }}>
-              Doporučení: {fiberGoal} g / den · {Math.round(pct * 100)} % splněno
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* 14-day history chart */}
-      <SectionTitle accent={accent}>
-        Historie kalorií <span style={{ fontSize: 11, color: T.muted, fontWeight: 400 }}>— 14 dní</span>
-      </SectionTitle>
-      <Card style={{ marginBottom: 4, padding: '14px 12px 10px' }}>
-        {historyData.length > 0 ? (
-          <HistoryChart data={historyData} accent={accent} kcalGoal={goals.kcal} />
-        ) : (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: T.muted, fontSize: 13 }}>
-            Načítám data…
-          </div>
-        )}
-      </Card>
-      {/* Stats row */}
-      {daysWithData.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {[
-            { label: 'Průměr / den', value: `${avgKcal} kcal`, color: accent },
-            { label: 'Aktivní dny',  value: `${daysWithData.length} / 14`,  color: T.muted },
-            { label: 'Cíl dnes',     value: `${Math.round(goals.kcal)} kcal`, color: T.muted },
-          ].map(s => (
-            <div key={s.label} style={{
-              flex:         1,
-              background:   T.card,
-              border:       `1px solid ${T.border}`,
-              borderRadius: 10,
-              padding:      '8px 10px',
-              textAlign:    'center',
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 10, color: T.muted, marginTop: 2 }}>{s.label}</div>
-            </div>
-          ))}
+        {/* Macro 3-column grid */}
+        <SectionTitle accent={BRAND.gold}>Makroživiny</SectionTitle>
+        <div className="stagger-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
+          <MacroCard label="Sach."  value={totals.carbs}   target={goals.carbs}   unit="g" color={BRAND.gold}   />
+          <MacroCard label="Bílk."  value={totals.protein} target={goals.protein} unit="g" color={BRAND.green}  />
+          <MacroCard label="Tuky"   value={totals.fat}     target={goals.fat}     unit="g" color={BRAND.orange} />
         </div>
-      )}
-      {!daysWithData.length && <div style={{ marginBottom: 16 }} />}
 
-      {/* Training meal recommendation */}
-      {primary !== 'rest' && (
-        <>
-          <SectionTitle accent={accent}>Co si vzít s sebou?</SectionTitle>
-          <MealRecCard
-            trainingType={primary}
-            accent={accent}
-            onAddAll={handleAddMealRec}
-          />
-        </>
-      )}
-
-      {/* Water + Caffeine trackers */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-        <WaterTracker
-          glasses={trainingDay?.water_glasses ?? 0}
-          goalLitres={goals.water}
-          accent={accent}
-          onAdd={handleWaterAdd}
-          onRemove={handleWaterRemove}
-        />
-        <CaffeineTracker
-          cups={trainingDay?.coffee_cups ?? 0}
-          onAdd={handleCoffeeAdd}
-          onRemove={handleCoffeeRemove}
-        />
-      </div>
-
-      {/* Micros preview */}
-      <SectionTitle
-        accent={accent}
-        right={
-          <button
-            onClick={() => navigate('/micros')}
-            style={{ background: 'none', border: 'none', color: accent, fontSize: 13, cursor: 'pointer' }}
-          >
-            Detail →
-          </button>
-        }
-      >
-        Mikronutrienty
-      </SectionTitle>
-
-      <Card style={{ marginBottom: 16 }}>
-        {topMicros.map((m, i) => {
-          const val  = totals[m.key as keyof typeof totals] as number;
-          const goal = goals.micros[m.key] ?? m.base;
-          const pct  = goal > 0 ? Math.min(100, (val / goal) * 100) : 0;
-
+        {/* Fiber bar */}
+        {(() => {
+          const fv   = Math.round(totals.fiber * 10) / 10;
+          const fg   = goals.fiber;
+          const done = fv >= fg;
           return (
-            <div key={m.key} style={{
-              paddingBottom: i < topMicros.length - 1 ? 10 : 0,
-              marginBottom:  i < topMicros.length - 1 ? 10 : 0,
-              borderBottom:  i < topMicros.length - 1 ? `1px solid ${T.border}` : 'none',
+            <div style={{
+              background: T.card, border: `1px solid ${T.border}`,
+              borderRadius: 12, padding: '10px 14px', marginBottom: 16,
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 13, color: T.text }}>{m.label}</span>
-                <span style={{ fontSize: 12, color: T.muted }}>
-                  {val.toFixed(m.unit === 'µg' ? 1 : 0)} / {goal.toFixed(m.unit === 'µg' ? 1 : 0)} {m.unit}
-                  <span style={{ marginLeft: 6, color: pct >= 100 ? '#22c55e' : T.muted }}>
-                    {pct.toFixed(0)}%
-                  </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 11, color: T.muted, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const }}>
+                  Vláknina
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: done ? BRAND.green : T.text }}>
+                  {fv} <span style={{ fontWeight: 400, color: T.muted, fontSize: 11 }}>/ {fg} g</span>
+                  {done && <span style={{ marginLeft: 6, fontSize: 11, color: BRAND.green }}>✓</span>}
                 </span>
               </div>
-              <ProgressBar value={val} max={goal} color={m.color} height={4} />
+              <ProgressBar value={fv} max={fg} color={BRAND.green} height={4} />
             </div>
           );
-        })}
-      </Card>
+        })()}
 
-      {/* CTA if no entries */}
-      {noEntries && (
-        <Card style={{ textAlign: 'center', padding: 24, marginBottom: 16, borderColor: accent + '44' }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>🍽️</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 16, fontWeight: 700, color: T.text, marginBottom: 6 }}>
-            Zatím žádná jídla
-          </div>
-          <div style={{ fontSize: 14, color: T.muted, marginBottom: 16 }}>
-            Začni sledovat svůj nutriční příjem a plň denní cíle.
-          </div>
-          <Btn accent={accent} size="lg" full onClick={() => navigate('/foods')}>
-            + Přidat první jídlo
-          </Btn>
+        {/* Intervals.icu card */}
+        <IntervalsCard />
+
+        {/* Training meal recommendation */}
+        {primary !== 'rest' && (
+          <>
+            <SectionTitle accent={BRAND.gold}>Co si vzít s sebou?</SectionTitle>
+            <MealRecCard trainingType={primary} accent={accent} onAddAll={handleAddMealRec} />
+          </>
+        )}
+
+        {/* Water + Caffeine trackers */}
+        <SectionTitle accent={BRAND.gold}>Hydratace & stimulanty</SectionTitle>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+          <WaterTracker
+            glasses={trainingDay?.water_glasses ?? 0}
+            goalLitres={goals.water}
+            accent={BRAND.blue}
+            onAdd={handleWaterAdd}
+            onRemove={handleWaterRemove}
+          />
+          <CaffeineTracker
+            cups={trainingDay?.coffee_cups ?? 0}
+            onAdd={handleCoffeeAdd}
+            onRemove={handleCoffeeRemove}
+          />
+        </div>
+
+        {/* 14-day history */}
+        <SectionTitle
+          accent={BRAND.gold}
+          right={<span style={{ fontSize: 11, color: T.muted }}>14 dní</span>}
+        >
+          Historie kalorií
+        </SectionTitle>
+        <Card style={{ marginBottom: daysWithData.length > 0 ? 8 : 16, padding: '14px 12px 10px' }}>
+          {historyData.length > 0 ? (
+            <HistoryChart data={historyData} accent={accent} kcalGoal={goals.kcal} />
+          ) : (
+            <div style={{ textAlign: 'center', padding: '20px 0', color: T.muted, fontSize: 13 }}>
+              Načítám data…
+            </div>
+          )}
         </Card>
-      )}
-
-      {/* Training tips */}
-      <SectionTitle accent={accent}>Tipy pro dnešek</SectionTitle>
-      <Card style={{ marginBottom: 16 }}>
-        {training.tips.map((tip, i) => (
-          <div key={i} style={{
-            display:       'flex',
-            alignItems:    'flex-start',
-            gap:           10,
-            paddingBottom: i < training.tips.length - 1 ? 10 : 0,
-            marginBottom:  i < training.tips.length - 1 ? 10 : 0,
-            borderBottom:  i < training.tips.length - 1 ? `1px solid ${T.border}` : 'none',
-          }}>
-            <span style={{ color: accent, fontSize: 14, marginTop: 1 }}>✓</span>
-            <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.5 }}>{tip}</span>
+        {daysWithData.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {[
+              { label: 'Průměr / den', value: `${avgKcal} kcal`, color: BRAND.gold },
+              { label: 'Aktivní dny',  value: `${daysWithData.length} / 14`, color: T.muted },
+              { label: 'Cíl dnes',     value: `${Math.round(goals.kcal)} kcal`, color: T.muted },
+            ].map(s => (
+              <div key={s.label} style={{
+                flex: 1, background: T.card, border: `1px solid ${T.border}`,
+                borderRadius: 10, padding: '8px 10px', textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: s.color, fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+                <div style={{ fontSize: 9, color: T.muted, marginTop: 2, textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>{s.label}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </Card>
+        )}
 
+        {/* Micros preview */}
+        <SectionTitle
+          accent={BRAND.gold}
+          right={
+            <button
+              onClick={() => navigate('/micros')}
+              style={{ background: 'none', border: 'none', color: BRAND.gold, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}
+            >
+              Detail →
+            </button>
+          }
+        >
+          Mikronutrienty
+        </SectionTitle>
+        <Card style={{ marginBottom: 16 }}>
+          {topMicros.map((m, i) => {
+            const val  = totals[m.key as keyof typeof totals] as number;
+            const goal = goals.micros[m.key] ?? m.base;
+            const pct  = goal > 0 ? Math.min(100, (val / goal) * 100) : 0;
+            return (
+              <div key={m.key} style={{
+                paddingBottom: i < topMicros.length - 1 ? 10 : 0,
+                marginBottom:  i < topMicros.length - 1 ? 10 : 0,
+                borderBottom:  i < topMicros.length - 1 ? `1px solid ${T.border}` : 'none',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, color: T.text }}>{m.label}</span>
+                  <span style={{ fontSize: 12, color: T.muted }}>
+                    {val.toFixed(m.unit === 'µg' ? 1 : 0)} / {goal.toFixed(m.unit === 'µg' ? 1 : 0)} {m.unit}
+                    <span style={{ marginLeft: 6, color: pct >= 100 ? BRAND.green : T.muted }}>{pct.toFixed(0)}%</span>
+                  </span>
+                </div>
+                <ProgressBar value={val} max={goal} color={m.color} height={4} />
+              </div>
+            );
+          })}
+        </Card>
+
+        {/* CTA if no entries */}
+        {noEntries && (
+          <div style={{
+            background: 'linear-gradient(135deg, #0f0f0f, #0a0a0a)',
+            border: `1px solid rgba(255,214,0,0.15)`,
+            borderRadius: 18, padding: 24, marginBottom: 16, textAlign: 'center',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(135deg, rgba(255,214,0,0.04), transparent)',
+              pointerEvents: 'none',
+            }} />
+            <div style={{ fontSize: 36, marginBottom: 8 }}>🍽️</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 6 }}>
+              Zatím žádná jídla
+            </div>
+            <div style={{ fontSize: 14, color: T.muted, marginBottom: 16 }}>
+              Začni sledovat svůj nutriční příjem a plň denní cíle.
+            </div>
+            <button
+              onClick={() => navigate('/foods')}
+              style={{
+                width: '100%', background: 'linear-gradient(135deg, #FFD600, #FFA800)',
+                color: '#000', border: 'none', padding: '13px', borderRadius: 12,
+                fontSize: 12, fontWeight: 800, letterSpacing: '1.5px',
+                textTransform: 'uppercase' as const, cursor: 'pointer',
+              }}
+            >
+              + Přidat první jídlo
+            </button>
+          </div>
+        )}
+
+        {/* Training tips */}
+        <SectionTitle accent={BRAND.gold}>Tipy pro dnešek</SectionTitle>
+        <Card style={{ marginBottom: 16 }}>
+          {training.tips.map((tip, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10,
+              paddingBottom: i < training.tips.length - 1 ? 10 : 0,
+              marginBottom:  i < training.tips.length - 1 ? 10 : 0,
+              borderBottom:  i < training.tips.length - 1 ? `1px solid ${T.border}` : 'none',
+            }}>
+              <span style={{ color: BRAND.gold, fontSize: 14, marginTop: 1 }}>◆</span>
+              <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.5 }}>{tip}</span>
+            </div>
+          ))}
+        </Card>
+
+      </div>
     </div>
   );
 }
