@@ -1,21 +1,20 @@
 import { useState, useContext, useRef, useEffect } from 'react';
 import { AppContext } from '../App';
 import type { AppCtx } from '../App';
-import { T } from '../components/UI';
+import { T, BRAND } from '../components/UI';
 
 interface Message {
   role:    'user' | 'model';
   content: string;
 }
 
-// Quick suggestion chips
 const SUGGESTIONS = [
-  'Co mám dát k večeři?',
-  'Mám dost bílkovin?',
-  'Co jíst před tréninkem?',
-  'Co jíst po tréninku?',
-  'Jak doplnit sacharidy?',
-  'Proč jsem unavený?',
+  { icon: '⚡', color: BRAND.gold,   text: 'Co jíst před tréninkem?' },
+  { icon: '💪', color: BRAND.green,  text: 'Mám dost bílkovin?' },
+  { icon: '🔥', color: BRAND.orange, text: 'Proč jsem unavený?' },
+  { icon: '🍽️', color: BRAND.blue,   text: 'Co mám dát k večeři?' },
+  { icon: '🚴', color: BRAND.gold,   text: 'Jak doplnit sacharidy?' },
+  { icon: '💤', color: BRAND.purple, text: 'Co jíst po tréninku?' },
 ];
 
 function buildContext(ctx: AppCtx): string {
@@ -54,7 +53,7 @@ function buildContext(ctx: AppCtx): string {
 
 export default function Chat() {
   const ctx = useContext(AppContext);
-  const { accent } = ctx;
+  const { accent, goals, totals, trainingDay } = ctx;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input,    setInput]    = useState('');
@@ -63,7 +62,6 @@ export default function Chat() {
   const bottomRef  = useRef<HTMLDivElement>(null);
   const inputRef   = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-scroll on new message
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
@@ -136,40 +134,124 @@ Pravidla:
 
   const isEmpty = messages.length === 0;
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 64px)', padding: '0' }}>
+  const trainType = trainingDay?.training_type ?? 'rest';
+  const trainLabel: Record<string, string> = {
+    rest: 'odpočinkový den', easy: 'lehký výjezd',
+    moderate: 'střední výjezd', hard: 'těžký výjezd', race: 'závodní den',
+  };
+  const remaining = Math.max(0, Math.round(goals.kcal - totals.kcal));
 
-      {/* Messages area */}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 64px)' }}>
+
+      {/* Messages / empty state area */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 0' }}>
 
-        {/* Empty state */}
         {isEmpty && (
-          <div style={{ textAlign: 'center', paddingTop: 32 }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🤖</div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color: T.text, marginBottom: 6 }}>
-              Výživový poradce
+          <>
+            {/* Hero intro card */}
+            <div className="stagger-1" style={{
+              background: 'linear-gradient(180deg, #0f0f0f, #080808)',
+              border: `1px solid rgba(255,214,0,0.15)`,
+              borderRadius: 22, padding: '20px 16px 18px',
+              marginBottom: 14, position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'radial-gradient(ellipse at top left, rgba(255,214,0,0.05), transparent 60%)',
+                pointerEvents: 'none',
+              }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12 }}>
+                <div style={{
+                  width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                  background: 'linear-gradient(135deg, #FFD600, #FF6B35)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 22,
+                  boxShadow: '0 0 20px rgba(255,214,0,0.25)',
+                }}>
+                  ⚡
+                </div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 2 }}>
+                    AI Výživový poradce
+                  </div>
+                  <div style={{ fontSize: 11, color: T.muted }}>
+                    Vidím tvá dnešní data · {trainLabel[trainType] ?? trainType}
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.6 }}>
+                Máš přijato <span style={{ color: BRAND.gold, fontWeight: 600 }}>{Math.round(totals.kcal)} kcal</span> ze{' '}
+                <span style={{ color: T.text, fontWeight: 600 }}>{Math.round(goals.kcal)}</span>.{' '}
+                {remaining > 0
+                  ? <>Zbývá <span style={{ color: BRAND.green, fontWeight: 600 }}>{remaining} kcal</span> do cíle.</>
+                  : <span style={{ color: BRAND.green, fontWeight: 600 }}>Cíl splněn! 🎉</span>
+                }
+                {' '}Jak ti můžu pomoct?
+              </div>
             </div>
-            <div style={{ fontSize: 13, color: T.muted, marginBottom: 24, maxWidth: 280, margin: '0 auto 24px' }}>
-              Zeptej se na cokoliv ohledně výživy, tréninku nebo dnešního jídelníčku.
+
+            {/* Context grid */}
+            <div className="stagger-2" style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr',
+              gap: 8, marginBottom: 20,
+            }}>
+              {[
+                { label: 'Dnešní cíl',  value: `${Math.round(goals.kcal)} kcal`, color: BRAND.gold   },
+                { label: 'Snědeno',     value: `${Math.round(totals.kcal)} kcal`, color: BRAND.green  },
+                { label: 'Trénink',     value: trainLabel[trainType] ?? trainType, color: accent        },
+                { label: 'Sacharidy',   value: `${totals.carbs.toFixed(0)} / ${goals.carbs} g`, color: BRAND.gold },
+              ].map(item => (
+                <div key={item.label} style={{
+                  background: T.card, border: `1px solid ${T.border}`,
+                  borderRadius: 12, padding: '10px 12px',
+                }}>
+                  <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '1.5px', marginBottom: 4 }}>
+                    {item.label}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: item.color, fontVariantNumeric: 'tabular-nums' }}>
+                    {item.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Section label */}
+            <div className="stagger-3" style={{
+              fontSize: 9, color: T.muted, textTransform: 'uppercase',
+              letterSpacing: '1.5px', fontWeight: 700, marginBottom: 10,
+            }}>
+              💡 Rychlé dotazy
             </div>
 
             {/* Suggestion chips */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+            <div className="stagger-3" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
               {SUGGESTIONS.map(s => (
                 <button
-                  key={s}
-                  onClick={() => send(s)}
+                  key={s.text}
+                  onClick={() => send(s.text)}
                   style={{
-                    padding: '8px 14px', borderRadius: 20, fontSize: 13, cursor: 'pointer',
-                    background: accent + '18', border: `1px solid ${accent}44`, color: accent,
-                    fontFamily: 'DM Sans, sans-serif',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '11px 14px', borderRadius: 12, cursor: 'pointer',
+                    background: s.color + '0e',
+                    border: `1px solid ${s.color}25`,
+                    textAlign: 'left',
                   }}
                 >
-                  {s}
+                  <span style={{
+                    width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                    background: s.color + '20',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 14,
+                  }}>
+                    {s.icon}
+                  </span>
+                  <span style={{ fontSize: 13, color: T.text, fontWeight: 500 }}>{s.text}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 14, color: T.muted, opacity: 0.5 }}>›</span>
                 </button>
               ))}
             </div>
-          </div>
+          </>
         )}
 
         {/* Message bubbles */}
@@ -177,47 +259,60 @@ Pravidla:
           <div
             key={i}
             style={{
-              display:       'flex',
+              display: 'flex',
               justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
-              marginBottom:  10,
+              marginBottom: 10,
             }}
           >
             {m.role === 'model' && (
-              <div style={{ width: 28, height: 28, borderRadius: 14, background: accent + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0, marginRight: 8, marginTop: 2 }}>
-                🤖
+              <div style={{
+                width: 30, height: 30, borderRadius: 10, flexShrink: 0,
+                background: 'linear-gradient(135deg, #FFD600, #FF6B35)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 14, marginRight: 8, marginTop: 2,
+              }}>
+                ⚡
               </div>
             )}
-            <div
-              style={{
-                maxWidth:     '78%',
-                padding:      '10px 14px',
-                borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                background:   m.role === 'user' ? accent : T.card,
-                border:       m.role === 'user' ? 'none' : `1px solid ${T.border}`,
-                color:        m.role === 'user' ? '#fff' : T.text,
-                fontSize:     14,
-                lineHeight:   1.5,
-                whiteSpace:   'pre-wrap',
-                wordBreak:    'break-word',
-              }}
-            >
+            <div style={{
+              maxWidth: '78%',
+              padding: '10px 14px',
+              borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+              background: m.role === 'user'
+                ? 'linear-gradient(135deg, #FFD600, #FF6B35)'
+                : T.card,
+              border: m.role === 'user' ? 'none' : `1px solid ${T.border}`,
+              color: m.role === 'user' ? '#000' : T.text,
+              fontSize: 14,
+              fontWeight: m.role === 'user' ? 500 : 400,
+              lineHeight: 1.5,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}>
               {m.content}
             </div>
           </div>
         ))}
 
-        {/* Loading indicator */}
+        {/* Loading */}
         {loading && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 14, background: accent + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
-              🤖
+            <div style={{
+              width: 30, height: 30, borderRadius: 10,
+              background: 'linear-gradient(135deg, #FFD600, #FF6B35)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+            }}>
+              ⚡
             </div>
-            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: '16px 16px 16px 4px', padding: '10px 16px' }}>
+            <div style={{
+              background: T.card, border: `1px solid ${T.border}`,
+              borderRadius: '16px 16px 16px 4px', padding: '12px 16px',
+            }}>
               <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
                 {[0, 1, 2].map(i => (
                   <div key={i} style={{
-                    width: 6, height: 6, borderRadius: 3, background: accent,
-                    animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+                    width: 7, height: 7, borderRadius: '50%', background: BRAND.gold,
+                    animation: `chatBounce 1.2s ease-in-out ${i * 0.2}s infinite`,
                   }} />
                 ))}
               </div>
@@ -227,29 +322,48 @@ Pravidla:
 
         {/* Error */}
         {error && (
-          <div style={{ background: '#ef444420', border: '1px solid #ef444440', borderRadius: 10, padding: '10px 14px', marginBottom: 10, fontSize: 13, color: '#ef4444' }}>
+          <div style={{
+            background: BRAND.red + '18', border: `1px solid ${BRAND.red}33`,
+            borderRadius: 12, padding: '10px 14px', marginBottom: 10,
+            fontSize: 13, color: BRAND.red, display: 'flex', alignItems: 'center', gap: 8,
+          }}>
             ⚠️ {error}
           </div>
         )}
 
-        <div ref={bottomRef} />
+        <div ref={bottomRef} style={{ height: 16 }} />
       </div>
 
-      {/* Input area */}
-      <div style={{ padding: '12px 16px 16px', borderTop: `1px solid ${T.border}`, background: T.bg, flexShrink: 0 }}>
+      {/* Input bar */}
+      <div style={{
+        padding: '10px 12px 14px',
+        borderTop: `1px solid ${T.border}`,
+        background: 'rgba(5,5,5,0.97)',
+        backdropFilter: 'blur(20px)',
+        flexShrink: 0,
+      }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <textarea
             ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Napiš dotaz… (Enter = odeslat)"
+            placeholder="Napiš dotaz…"
             rows={1}
             style={{
-              flex: 1, background: T.card, border: `1px solid ${T.border}`, borderRadius: 16,
-              padding: '10px 14px', color: T.text, fontSize: 14, outline: 'none',
-              resize: 'none', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5,
-              maxHeight: 120, overflowY: 'auto',
+              flex: 1,
+              background: T.card,
+              border: `1px solid ${input.trim() ? BRAND.gold + '44' : T.border}`,
+              borderRadius: 16,
+              padding: '10px 14px',
+              color: T.text,
+              fontSize: 14,
+              outline: 'none',
+              resize: 'none',
+              lineHeight: 1.5,
+              maxHeight: 120,
+              overflowY: 'auto',
+              transition: 'border-color 0.15s',
             }}
             onInput={e => {
               const el = e.currentTarget;
@@ -261,23 +375,28 @@ Pravidla:
             onClick={() => send(input)}
             disabled={!input.trim() || loading}
             style={{
-              width: 40, height: 40, borderRadius: 20, flexShrink: 0,
-              background: !input.trim() || loading ? T.border : accent,
-              border: 'none', cursor: !input.trim() || loading ? 'default' : 'pointer',
+              width: 42, height: 42, borderRadius: 12, flexShrink: 0,
+              background: !input.trim() || loading
+                ? T.border
+                : 'linear-gradient(135deg, #FFD600, #FF6B35)',
+              border: 'none',
+              cursor: !input.trim() || loading ? 'default' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, transition: 'background 0.15s',
+              fontSize: 16,
+              color: !input.trim() || loading ? T.muted : '#000',
+              transition: 'background 0.2s',
             }}
           >
             ↑
           </button>
         </div>
-        <div style={{ fontSize: 10, color: T.muted, marginTop: 6, textAlign: 'center' }}>
+        <div style={{ fontSize: 10, color: T.muted, marginTop: 6, textAlign: 'center', opacity: 0.7 }}>
           Powered by Google Gemini · Automaticky vidí dnešní data
         </div>
       </div>
 
       <style>{`
-        @keyframes bounce {
+        @keyframes chatBounce {
           0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
           40% { transform: scale(1); opacity: 1; }
         }
