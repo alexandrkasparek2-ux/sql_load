@@ -89,6 +89,10 @@ function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function formatLocalISODate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function kcalFromActivity(a: {
   calories?: number | null;
   icu_joules?: number | null;
@@ -310,11 +314,11 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
 
     const yest = new Date();
     yest.setDate(yest.getDate() - 1);
-    if (today === yest.toISOString().split('T')[0]) return `Včera · ${dateShort}`;
+    if (today === formatLocalISODate(yest)) return `Včera · ${dateShort}`;
 
     const tom = new Date();
     tom.setDate(tom.getDate() + 1);
-    if (today === tom.toISOString().split('T')[0]) return `Zítra · ${dateShort}`;
+    if (today === formatLocalISODate(tom)) return `Zítra · ${dateShort}`;
 
     const dayShort = d.toLocaleDateString('cs-CZ', { weekday: 'short' });
     return `${dayShort} ${dateShort}`;
@@ -323,13 +327,13 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
   const prevDay = () => {
     const d = new Date(today + 'T00:00:00');
     d.setDate(d.getDate() - 1);
-    setToday(d.toISOString().split('T')[0]);
+    setToday(formatLocalISODate(d));
   };
 
   const nextDay = () => {
     const d = new Date(today + 'T00:00:00');
     d.setDate(d.getDate() + 1);
-    setToday(d.toISOString().split('T')[0]);
+    setToday(formatLocalISODate(d));
   };
 
   const isToday = today === realToday;
