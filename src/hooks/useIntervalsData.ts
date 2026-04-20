@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   loadCreds, clearCreds, saveCreds,
-  fetchIntervalsActivities,
+  fetchIntervalsActivities, saveBurnLog,
   type IntervalsActivity, type IntervalsCreds,
 } from '../services/intervalsService';
 
@@ -62,6 +62,7 @@ export function useIntervalsData(daysBack = 3): UseIntervalsResult {
     try {
       const data = await fetchIntervalsActivities(activeCreds, daysBack);
       saveCache(data, daysBack);
+      saveBurnLog(data);
       setActivities(data);
       setFetchedAt(Date.now());
       setStale(false);

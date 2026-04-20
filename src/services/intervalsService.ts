@@ -22,6 +22,28 @@ export function clearCreds() {
   localStorage.removeItem(CREDS_KEY);
 }
 
+// ── Persistent burn log (no TTL — survives Intervals cache expiry) ─────────────
+const BURN_LOG_KEY = 'cyclofuel_burn_log';
+export type BurnLog = Record<string, number>; // date (YYYY-MM-DD) → kcal burned
+
+export function loadBurnLog(): BurnLog {
+  try { return JSON.parse(localStorage.getItem(BURN_LOG_KEY) ?? '{}'); }
+  catch { return {}; }
+}
+
+export function saveBurnLog(activities: IntervalsActivity[]) {
+  const log = loadBurnLog();
+  // Reset all dates covered by this sync batch, then re-accumulate
+  const dates = new Set(activities.map(a => a.start_date_local.split('T')[0]));
+  for (const d of dates) delete log[d];
+  for (const a of activities) {
+    const date = a.start_date_local.split('T')[0];
+    const kcal = activityKcal(a);
+    if (kcal > 0) log[date] = (log[date] ?? 0) + kcal;
+  }
+  localStorage.setItem(BURN_LOG_KEY, JSON.stringify(log));
+}
+
 // ── Data types ────────────────────────────────────────────────
 export interface IntervalsActivity {
   id:                      string;

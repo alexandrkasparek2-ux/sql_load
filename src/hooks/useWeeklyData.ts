@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { loadDailyGoals } from './useDailyGoals';
 import { calcCalories, type CalcProfile } from '../constants/training';
+import { loadBurnLog } from '../services/intervalsService';
 
 export interface DayKcal {
   date:    string; // YYYY-MM-DD
@@ -10,6 +11,7 @@ export interface DayKcal {
   protein: number;
   fat:     number;
   goal:    number; // kcal cíl pro daný den
+  burned:  number; // kcal výdej (z Intervals.icu burn logu)
   label:   string; // 'Po', 'Út', …
   dateNum: number; // day of month (e.g. 10)
 }
@@ -64,6 +66,7 @@ export function useWeeklyData(
 
     // localStorage goals as secondary fallback (for days without training_days row)
     const storedGoals = loadDailyGoals();
+    const burnLog     = loadBurnLog();
 
     const grouped: DayKcal[] = dates.map(date => {
       const dayRows  = (rows      ?? []).filter(r => r.date === date);
@@ -90,6 +93,7 @@ export function useWeeklyData(
         protein: dayRows.reduce((s, r) => s + (r.protein as number), 0),
         fat:     dayRows.reduce((s, r) => s + (r.fat     as number), 0),
         goal,
+        burned:  burnLog[date] ?? 0,
       };
     });
 

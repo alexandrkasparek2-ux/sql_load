@@ -99,9 +99,14 @@ function StretchingChecklist({ userId, today, accent }: { userId: string; today:
 
 // ─── 14-day history chart ─────────────────────────────────────
 function HistoryChart({ data, accent, kcalGoal }: { data: DayKcal[]; accent: string; kcalGoal: number }) {
-  const today  = new Date().toISOString().split('T')[0];
-  // Max přes všechny hodnoty i cíle (fallback na dnešní cíl pro dny bez uloženého cíle)
-  const maxVal = Math.max(...data.map(d => d.kcal), ...data.map(d => d.goal || kcalGoal), 1);
+  const today   = new Date().toISOString().split('T')[0];
+  const hasBurn = data.some(d => d.burned > 0);
+  const maxVal  = Math.max(
+    ...data.map(d => d.kcal),
+    ...data.map(d => d.goal || kcalGoal),
+    ...data.map(d => d.burned),
+    1,
+  );
   const barW   = 22;
   const gap    = 7;
   const H      = 70;
@@ -147,6 +152,16 @@ function HistoryChart({ data, accent, kcalGoal }: { data: DayKcal[]; accent: str
                   stroke={accent + 'aa'} strokeWidth={1.5} strokeDasharray="3,2"
                 />
               )}
+              {/* Burn line – from Intervals.icu */}
+              {hasBurn && d.burned > 0 && (() => {
+                const burnY = H - (d.burned / maxVal) * H;
+                return (
+                  <line
+                    x1={x} y1={burnY} x2={x + barW} y2={burnY}
+                    stroke="#FF6B35" strokeWidth={2} strokeLinecap="round"
+                  />
+                );
+              })()}
               {/* Day label */}
               <text
                 x={x + barW / 2} y={H + 12}
@@ -530,29 +545,32 @@ export default function Dashboard() {
             background: 'radial-gradient(circle at center, rgba(255,214,0,0.04) 0%, transparent 40%)',
             pointerEvents: 'none',
           }} />
-          <ProgressRing value={totals.kcal} max={goals.kcal} size={210}>
-            <div style={{
-              fontSize: 44, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1,
-              background: 'linear-gradient(180deg, #fff 40%, #888)',
-              WebkitBackgroundClip: 'text', backgroundClip: 'text',
-              WebkitTextFillColor: 'transparent', fontVariantNumeric: 'tabular-nums',
-            }}>
-              {Math.round(totals.kcal)}
-            </div>
-            <div style={{
-              fontSize: 10, color: T.muted, letterSpacing: '2px',
-              textTransform: 'uppercase' as const, marginTop: 6,
-            }}>
-              kcal příjem
-            </div>
-            <div style={{
-              fontSize: 11, color: BRAND.gold, marginTop: 10, fontWeight: 600,
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              padding: '4px 10px', background: 'rgba(255,214,0,0.1)', borderRadius: 10,
-            }}>
-              {pctGoal}% cíle
-            </div>
-          </ProgressRing>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+            <ProgressRing value={totals.kcal} max={goals.kcal} size={210}>
+              <div style={{
+                fontSize: 44, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1,
+                background: 'linear-gradient(180deg, #fff 40%, #888)',
+                WebkitBackgroundClip: 'text', backgroundClip: 'text',
+                WebkitTextFillColor: 'transparent', fontVariantNumeric: 'tabular-nums',
+                textAlign: 'center',
+              }}>
+                {Math.round(totals.kcal)}
+              </div>
+              <div style={{
+                fontSize: 10, color: T.muted, letterSpacing: '2px',
+                textTransform: 'uppercase' as const, marginTop: 6, textAlign: 'center',
+              }}>
+                kcal příjem
+              </div>
+              <div style={{
+                fontSize: 11, color: BRAND.gold, marginTop: 10, fontWeight: 600,
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', background: 'rgba(255,214,0,0.1)', borderRadius: 10,
+              }}>
+                {pctGoal}% cíle
+              </div>
+            </ProgressRing>
+          </div>
 
           {/* Stats below ring */}
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
@@ -652,7 +670,25 @@ export default function Dashboard() {
         </SectionTitle>
         <Card style={{ marginBottom: daysWithData.length > 0 ? 8 : 16, padding: '14px 12px 10px' }}>
           {historyData.length > 0 ? (
-            <HistoryChart data={historyData} accent={accent} kcalGoal={goals.kcal} />
+            <>
+              <HistoryChart data={historyData} accent={accent} kcalGoal={goals.kcal} />
+              {historyData.some(d => d.burned > 0) && (
+                <div style={{ display: 'flex', gap: 14, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
+                    <div style={{ width: 14, height: 4, borderRadius: 2, background: accent + '88' }} />
+                    Příjem
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
+                    <div style={{ width: 14, height: 2, borderRadius: 1, background: '#FF6B35' }} />
+                    Výdej (Intervals)
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
+                    <div style={{ width: 14, height: 0, borderTop: `1.5px dashed ${accent}aa` }} />
+                    Cíl
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
             <div style={{ textAlign: 'center', padding: '20px 0', color: T.muted, fontSize: 13 }}>
               Načítám data…
