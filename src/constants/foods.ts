@@ -1017,6 +1017,13 @@ export const FOODS: Food[] = [
     micros: { na: 5, k: 300, mg: 130, ca: 40, fe: 3.5, vit_c: 0, vit_d: 0, b12: 0, omega3: 60, zn: 2.4 },
   },
   {
+    id: 'tagliatelle',
+    cat: '🍚 Sacharidy',
+    name: 'Tagliatelle (v suchém stavu)',
+    kcal: 358, carbs: 71.0, protein: 12.5, fat: 2.2, fiber: 3.0, per: 80,
+    micros: { na: 6, k: 223, mg: 53, ca: 24, fe: 1.4, vit_c: 0, vit_d: 0, b12: 0, omega3: 35, zn: 1.2 },
+  },
+  {
     id: 'barley',
     cat: '🍚 Sacharidy',
     name: 'Kroupy (v suchém stavu)',
