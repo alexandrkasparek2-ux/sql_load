@@ -363,6 +363,13 @@ export const FOODS: Food[] = [
     micros: { na: 180, k: 250, mg: 35, ca: 200, fe: 1.5, vit_c: 5, vit_d: 1, b12: 0.6, omega3: 150, zn: 2.5 },
   },
   {
+    id: 'science_in_sport_rego_rapid_recovery',
+    cat: '⚡ Sportovní',
+    name: 'Science in Sport REGO Rapid Recovery',
+    kcal: 357, carbs: 45.0, protein: 43.0, fat: 0.2, fiber: 0, per: 50,
+    micros: { na: 960, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 66, vit_d: 0, b12: 2.1, omega3: 0, zn: 0 },
+  },
+  {
     id: 'rice_cakes',
     cat: '⚡ Sportovní',
     name: 'Rýžové chlebíčky',
