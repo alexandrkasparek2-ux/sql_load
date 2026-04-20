@@ -1,6 +1,7 @@
 import { useContext, useState, useEffect, useCallback } from 'react';
 import { AppContext, type DeficitLevel, DEFICIT_KCAL } from '../App';
 import { T, BRAND, Card, SectionTitle, StatRow, Btn, Spinner } from '../components/UI';
+import { showToast } from '../components/Toast';
 import { calcBMR, calcCalories, calcMacros, calcWater } from '../constants/training';
 
 function SliderField({
@@ -398,6 +399,7 @@ export default function Profile() {
     await saveProfile({ weight, height, age, gender });
     setSaving(false);
     setSaved(true);
+    showToast('Profil uložen');
     setTimeout(() => setSaved(false), 2500);
   }, [weight, height, age, gender, saveProfile]);
 

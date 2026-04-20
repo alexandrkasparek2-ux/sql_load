@@ -1,6 +1,7 @@
 import { useContext, useState } from 'react';
 import { AppContext } from '../App';
 import { T, BRAND, ProgressBar } from '../components/UI';
+import { showToast } from '../components/Toast';
 import { SUPPLEMENTS, SUPPLEMENT_CATEGORIES } from '../constants/supplements';
 import { useSupplements } from '../hooks/useSupplements';
 
@@ -110,7 +111,11 @@ export default function Supplements() {
   const totalSupplements = SUPPLEMENTS.length;
   const pct = totalSupplements > 0 ? Math.round((takenCount / totalSupplements) * 100) : 0;
 
-  const handleToggle  = async (s: typeof SUPPLEMENTS[0]) => toggle(s.id, s.name, getDose(s.id, s.defaultDose), s.unit);
+  const handleToggle  = async (s: typeof SUPPLEMENTS[0]) => {
+    const willBeTaken = !isTaken(s.id);
+    await toggle(s.id, s.name, getDose(s.id, s.defaultDose), s.unit);
+    if (willBeTaken) showToast(`${s.name} ✓`);
+  };
   const handleDoseChg = async (s: typeof SUPPLEMENTS[0], delta: number) => {
     const current = getDose(s.id, s.defaultDose);
     const min = s.unit === 'tab' ? 1 : 0;

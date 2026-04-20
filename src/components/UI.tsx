@@ -383,3 +383,28 @@ export function Spinner({ color = '#666666', size = 24 }: { color?: string; size
     }} />
   );
 }
+
+// ──────────────────────────────────────────────────────────
+// Skeleton — shimmer placeholder for loading states
+// ──────────────────────────────────────────────────────────
+export function Skeleton({
+  width, height = 16, borderRadius = 8, style,
+}: {
+  width?:        string | number;
+  height?:       string | number;
+  borderRadius?: number;
+  style?:        React.CSSProperties;
+}) {
+  return (
+    <div style={{
+      width:           width ?? '100%',
+      height,
+      borderRadius,
+      background:      'linear-gradient(90deg, #111 25%, #1c1c1c 50%, #111 75%)',
+      backgroundSize:  '200% 100%',
+      animation:       'shimmer 1.5s infinite',
+      flexShrink:      0,
+      ...style,
+    }} />
+  );
+}

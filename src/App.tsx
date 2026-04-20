@@ -32,6 +32,7 @@ import WhoopCallback   from './pages/WhoopCallback';
 import StravaCallback  from './pages/StravaCallback';
 
 import { T, Spinner } from './components/UI';
+import { ToastHost }  from './components/Toast';
 
 // ──────────────────────────────────────────────────────────
 // Context
@@ -474,6 +475,9 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
           <Route path="*"               element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+
+      {/* Toast notifications */}
+      <ToastHost />
 
       {/* Fixed Bottom Nav */}
       <nav style={{

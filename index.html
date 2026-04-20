@@ -92,6 +92,9 @@
       .stagger-3 { animation: fadeInUp 0.5s ease-out 0.25s both; }
       .stagger-4 { animation: fadeInUp 0.5s ease-out 0.35s both; }
       .stagger-5 { animation: fadeInUp 0.5s ease-out 0.45s both; }
+
+      /* ── Tap feedback ────────────────────────────────────── */
+      button:active:not(:disabled) { transform: scale(0.97); transition: transform 0.08s ease; }
     </style>
   </head>
   <body>

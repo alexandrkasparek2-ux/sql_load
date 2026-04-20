@@ -1,6 +1,7 @@
 import { useState, useContext, useMemo, useEffect } from 'react';
 import { AppContext }    from '../App';
 import { T, BRAND, Card, SectionTitle, ProgressBar, Btn } from '../components/UI';
+import { showToast }    from '../components/Toast';
 import { FOODS, FOOD_CATEGORIES, type Food } from '../constants/foods';
 import { MEAL_SLOTS }    from '../constants/training';
 import type { FoodEntry } from '../hooks/useFoodEntries';
@@ -190,6 +191,7 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
     setLoading(true);
     await onConfirm(buildEntry(food, grams, userId, date, mealSlot));
     setLoading(false);
+    showToast(`${food.name} přidáno`);
     onClose();
   };
 
@@ -276,6 +278,7 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
       vit_c: sumM('vit_c'), vit_d: sumM('vit_d'), b12: sumM('b12'), omega3: sumM('omega3'), zn: sumM('zn'),
     });
     setLoading(false);
+    showToast(`${rName.trim() || 'Recept'} přidán`);
     onClose();
   };
 
@@ -327,6 +330,7 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
       zn:        scale(savedMealSel.zn),
     });
     setLoading(false);
+    showToast(`${savedMealSel.name} přidáno`);
     onClose();
   };
 
