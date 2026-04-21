@@ -52,7 +52,8 @@ function buildFoodEntry(food: Food, grams: number, userId: string, date: string)
 }
 
 // Simple markdown renderer: bold, bullet lists, line breaks
-function renderMarkdown(text: string, color: string) {
+function renderMarkdown(text: string | undefined, color: string) {
+  if (!text) return null;
   const lines = text.split('\n');
   return lines.map((line, i) => {
     const isBullet = /^[-•*]\s/.test(line);

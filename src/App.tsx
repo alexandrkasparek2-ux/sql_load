@@ -597,12 +597,53 @@ function AppRoutes() {
 }
 
 // ──────────────────────────────────────────────────────────
+// Error Boundary
+// ──────────────────────────────────────────────────────────
+interface EBState { error: Error | null }
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, EBState> {
+  state: EBState = { error: null };
+  static getDerivedStateFromError(error: Error): EBState { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{
+          height: '100dvh', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 16,
+          background: '#080c14', padding: 24, textAlign: 'center',
+        }}>
+          <span style={{ fontSize: 24, fontWeight: 800, color: '#FFD600' }}>🚴 CycloFuel</span>
+          <div style={{ fontSize: 14, color: '#ef4444', fontWeight: 600 }}>Chyba aplikace</div>
+          <div style={{
+            fontSize: 12, color: '#888', background: '#111', borderRadius: 10,
+            padding: '12px 16px', maxWidth: 340, wordBreak: 'break-word', textAlign: 'left',
+          }}>
+            {this.state.error.message}
+          </div>
+          <button
+            onClick={() => { localStorage.clear(); window.location.reload(); }}
+            style={{
+              padding: '10px 20px', borderRadius: 10, background: '#FFD600',
+              color: '#000', fontWeight: 700, fontSize: 14, cursor: 'pointer', border: 'none',
+            }}
+          >
+            Vymazat cache a obnovit
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ──────────────────────────────────────────────────────────
 // Root
 // ──────────────────────────────────────────────────────────
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }

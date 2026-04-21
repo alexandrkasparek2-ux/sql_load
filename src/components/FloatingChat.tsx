@@ -50,7 +50,8 @@ function buildFoodEntry(food: Food, grams: number, userId: string, date: string)
   };
 }
 
-function renderMarkdown(text: string, accent: string) {
+function renderMarkdown(text: string | undefined, accent: string) {
+  if (!text) return null;
   const lines = text.split('\n');
   return lines.map((line, i) => {
     const isBullet = /^[-•*]\s/.test(line);

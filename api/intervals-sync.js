@@ -2,7 +2,7 @@
 // Proxy pro Intervals.icu API — skrývá Basic auth před přímým CORS
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://sql-load.vercel.app');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -20,8 +20,12 @@ export default async function handler(req, res) {
 
   const url = `https://intervals.icu/api/v1/athlete/${athlete_id}/activities?${params}`;
 
-  const r = await fetch(url, { headers: { Authorization: auth } });
-  const data = await r.json();
-  if (!r.ok) return res.status(r.status).json({ error: data });
-  return res.json(data);
+  try {
+    const r = await fetch(url, { headers: { Authorization: auth } });
+    const data = await r.json();
+    if (!r.ok) return res.status(r.status).json({ error: data });
+    return res.json(data);
+  } catch (e) {
+    return res.status(502).json({ error: { message: e instanceof Error ? e.message : 'Upstream error' } });
+  }
 }
