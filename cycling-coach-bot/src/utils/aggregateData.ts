@@ -4,8 +4,26 @@ import { getCustomDashboardData } from '../data/custom.js';
 import { getToken } from '../db/schema.js';
 import type { AthleteData } from '../types/index.js';
 
+const TZ = process.env.TZ || 'Europe/Prague';
+
 function unavailable(reason: string) {
   return { unavailable: true as const, reason };
+}
+
+function localDateStr(date: Date): string {
+  return date.toLocaleDateString('sv-SE', { timeZone: TZ });
+}
+
+function relativeDayLabel(activityDate: string, now: Date): string {
+  const today = localDateStr(now);
+  const yesterday = localDateStr(new Date(now.getTime() - 86400_000));
+  const d = activityDate.slice(0, 10);
+  if (d === today) return 'TODAY';
+  if (d === yesterday) return 'YESTERDAY';
+  const diff = Math.round(
+    (new Date(today).getTime() - new Date(d).getTime()) / 86400_000
+  );
+  return `${diff} DAYS AGO`;
 }
 
 /**
@@ -44,11 +62,16 @@ async function fetchStrava(userId: number) {
     throw new Error('Strava not connected');
   }
   const activities = await getRecentActivities(userId, 7);
+  const now = new Date();
+  const annotated = activities.map((a) => ({
+    ...a,
+    _day: relativeDayLabel(a.start_date, now),
+  }));
   const totalDistance = activities.reduce((s, a) => s + (a.distance || 0), 0);
   const withPower = activities.filter((a) => typeof a.average_power === 'number');
   const withHr = activities.filter((a) => typeof a.average_heartrate === 'number');
   return {
-    last_7_days: activities,
+    last_7_days: annotated,
     total_distance_km: +(totalDistance / 1000).toFixed(1),
     avg_power:
       withPower.length > 0
