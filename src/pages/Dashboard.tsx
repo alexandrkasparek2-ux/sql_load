@@ -680,7 +680,7 @@ export default function Dashboard() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
                     <div style={{ width: 14, height: 2, borderRadius: 1, background: '#FF6B35' }} />
-                    Výdej (Intervals)
+                    Výdej (BMR + aktivita)
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
                     <div style={{ width: 14, height: 0, borderTop: `1.5px dashed ${accent}aa` }} />

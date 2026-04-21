@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { loadDailyGoals } from './useDailyGoals';
 import { calcCalories, type CalcProfile } from '../constants/training';
-import { loadBurnLog } from '../services/intervalsService';
 
 export interface DayKcal {
   date:    string; // YYYY-MM-DD
@@ -11,7 +10,7 @@ export interface DayKcal {
   protein: number;
   fat:     number;
   goal:    number; // kcal cíl pro daný den
-  burned:  number; // kcal výdej (z Intervals.icu burn logu)
+  burned:  number; // celkový výdej: BMR + aktivita (calcCalories)
   label:   string; // 'Po', 'Út', …
   dateNum: number; // day of month (e.g. 10)
 }
@@ -66,7 +65,6 @@ export function useWeeklyData(
 
     // localStorage goals as secondary fallback (for days without training_days row)
     const storedGoals = loadDailyGoals();
-    const burnLog     = loadBurnLog();
 
     const grouped: DayKcal[] = dates.map(date => {
       const dayRows  = (rows      ?? []).filter(r => r.date === date);
@@ -84,6 +82,15 @@ export function useWeeklyData(
         goal = storedGoals[date];
       }
 
+      // Total expenditure = BMR + activity (same formula as goal calculation)
+      // On days without training log, assume sedentary (rest day = BMR × 1.2)
+      let burned = 0;
+      if (profile) {
+        burned = trainRow
+          ? Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0))
+          : Math.round(calcCalories(profile, 'rest', 0));
+      }
+
       return {
         date,
         label:   dayLabel(date),
@@ -93,7 +100,7 @@ export function useWeeklyData(
         protein: dayRows.reduce((s, r) => s + (r.protein as number), 0),
         fat:     dayRows.reduce((s, r) => s + (r.fat     as number), 0),
         goal,
-        burned:  burnLog[date] ?? 0,
+        burned,
       };
     });
 
