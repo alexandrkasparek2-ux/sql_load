@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import Anthropic from '@anthropic-ai/sdk';
 import type { AppCtx } from '../App';
 
 const HISTORY_KEY = 'cyclofuel_chat_v1';
@@ -41,6 +42,17 @@ function buildContext(ctx: AppCtx): string {
 
 const FOOD_RE = /```food-action\s*([\s\S]*?)\s*```/;
 
+const SYSTEM_PROMPT = `Jsi výživový poradce specializovaný na cyklistiku. Odpovídej stručně, prakticky, česky.
+
+Pravidla:
+- Zohledni tréninkový typ a cíle dne
+- Doporučuj konkrétní potraviny nebo množství
+- Nejdi úvody jako "Samozřejmě!" – jdi rovnou k věci
+- Pokud uživatel chce přidat jídlo do deníku (slova: "přidej", "zaloguj", "přidal jsem", "dej mi"), přidej na KONEC odpovědi blok:
+\`\`\`food-action
+{"query":"název potraviny česky","grams":množství jako číslo}
+\`\`\``;
+
 export function useChatSession(ctx: AppCtx) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory());
   const [input,    setInput]    = useState('');
@@ -65,60 +77,74 @@ export function useChatSession(ctx: AppCtx) {
     setLoading(true);
     setError('');
 
+    // Placeholder for streaming response
+    const modelId = `m_${Date.now()}`;
+    setMessages(prev => [...prev, { id: modelId, role: 'model', ts: Date.now(), content: '' }]);
+
     try {
-      const key = import.meta.env.VITE_GEMINI_API_KEY as string;
-      if (!key) throw new Error('Gemini API klíč není nastaven');
+      const key = import.meta.env.VITE_ANTHROPIC_API_KEY as string;
+      if (!key) throw new Error('Anthropic API klíč není nastaven (VITE_ANTHROPIC_API_KEY)');
 
-      const sys = `Jsi výživový poradce specializovaný na cyklistiku. Odpovídej stručně, prakticky, česky.
-Aktuální data uživatele:
-${buildContext(ctx)}
+      const client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
 
-Pravidla:
-- Zohledni tréninkový typ a cíle dne
-- Doporučuj konkrétní potraviny nebo množství
-- Nejdi úvody jako "Samozřejmě!" – jdi rovnou k věci
-- Pokud uživatel chce přidat jídlo do deníku (slova: "přidej", "zaloguj", "přidal jsem", "dej mi"), přidej na KONEC odpovědi blok:
-\`\`\`food-action
-{"query":"název potraviny česky","grams":množství jako číslo}
-\`\`\``;
+      const contextBlock = buildContext(ctx);
 
-      const contents = [
-        { role: 'user',  parts: [{ text: sys }] },
-        { role: 'model', parts: [{ text: 'Rozumím, jsem připraven.' }] },
-        ...updated.slice(-20).map(m => ({ role: m.role, parts: [{ text: m.content }] })),
-      ];
+      // Convert history to Anthropic message format (last 20 messages)
+      const history = updated.slice(-20).map(m => ({
+        role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+        content: m.content,
+      }));
 
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`,
-        {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ contents, generationConfig: { temperature: 0.7, maxOutputTokens: 500 } }),
+      let fullText = '';
+
+      const stream = client.messages.stream({
+        model:      'claude-opus-4-7',
+        max_tokens: 1024,
+        thinking:   { type: 'adaptive' },
+        system: [
+          {
+            type: 'text',
+            text: SYSTEM_PROMPT,
+            cache_control: { type: 'ephemeral' },
+          },
+          {
+            type: 'text',
+            text: `Aktuální data uživatele:\n${contextBlock}`,
+          },
+        ],
+        messages: history,
+      });
+
+      for await (const event of stream) {
+        if (
+          event.type === 'content_block_delta' &&
+          event.delta.type === 'text_delta'
+        ) {
+          fullText += event.delta.text;
+          // Update streaming message in place
+          setMessages(prev =>
+            prev.map(m => m.id === modelId ? { ...m, content: fullText } : m)
+          );
         }
-      );
-
-      if (!res.ok) {
-        const e = await res.json().catch(() => ({})) as { error?: { message?: string } };
-        throw new Error(e.error?.message ?? `Chyba ${res.status}`);
       }
 
-      const data = await res.json() as { candidates: { content: { parts: { text: string }[] } }[] };
-      let reply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'Nepodařilo se získat odpověď.';
-
+      // Parse food action from completed response
       let foodAction: ChatMessage['foodAction'];
-      const m = FOOD_RE.exec(reply);
-      if (m) {
+      const match = FOOD_RE.exec(fullText);
+      if (match) {
         try {
-          const p = JSON.parse(m[1]) as { query: string; grams: number };
+          const p = JSON.parse(match[1]) as { query: string; grams: number };
           foodAction = { query: p.query, grams: Number(p.grams) || 100 };
-          reply = reply.replace(FOOD_RE, '').trim();
+          fullText = fullText.replace(FOOD_RE, '').trim();
         } catch { /* malformed JSON, skip */ }
       }
 
-      setMessages(prev => [...prev, {
-        id: `m_${Date.now()}`, role: 'model', ts: Date.now(), content: reply, foodAction,
-      }]);
+      setMessages(prev =>
+        prev.map(m => m.id === modelId ? { ...m, content: fullText, foodAction } : m)
+      );
     } catch (e) {
+      // Remove the placeholder message on error
+      setMessages(prev => prev.filter(m => m.id !== modelId));
       setError((e as Error).message);
     } finally {
       setLoading(false);

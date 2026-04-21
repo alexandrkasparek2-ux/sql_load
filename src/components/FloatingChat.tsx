@@ -147,7 +147,7 @@ export default function FloatingChat() {
             <div>
               <div style={{ fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.2 }}>AI Poradce</div>
               <div style={{ fontSize: 11, color: T.muted }}>
-                Gemini · {messages.length} {messages.length === 1 ? 'zpráva' : messages.length < 5 ? 'zprávy' : 'zpráv'}
+                Claude · {messages.length} {messages.length === 1 ? 'zpráva' : messages.length < 5 ? 'zprávy' : 'zpráv'}
               </div>
             </div>
           </div>

@@ -96,7 +96,7 @@ export default function Chat() {
           }}>⚡</div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>AI Poradce</div>
-            <div style={{ fontSize: 11, color: T.muted }}>Gemini · vidí tvá dnešní data</div>
+            <div style={{ fontSize: 11, color: T.muted }}>Claude · vidí tvá dnešní data</div>
           </div>
         </div>
         {messages.length > 0 && (
@@ -297,7 +297,7 @@ export default function Chat() {
           </button>
         </div>
         <div style={{ fontSize: 10, color: T.muted, marginTop: 6, textAlign: 'center' }}>
-          Powered by Google Gemini · Sdílená historie mezi stránkami
+          Powered by Claude (Anthropic) · Sdílená historie mezi stránkami
         </div>
       </div>
 
