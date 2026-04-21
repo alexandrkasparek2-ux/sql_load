@@ -384,6 +384,8 @@ export default function Profile() {
   const [saving,       setSaving]       = useState(false);
   const [saved,        setSaved]        = useState(false);
   const [weightLogKey, setWeightLogKey] = useState(0);
+  const [apiKey,    setApiKey]    = useState(() => localStorage.getItem('anthropic_api_key') ?? '');
+  const [apiKeySaved, setApiKeySaved] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -508,6 +510,37 @@ export default function Profile() {
         <div style={{ borderBottom: 'none' }}>
           <StatRow label="Voda"     value={water}          unit="L"    accent="#06b6d4" />
         </div>
+      </Card>
+
+      {/* AI API Key */}
+      <SectionTitle accent={BRAND.gold}>AI Poradce</SectionTitle>
+      <Card style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 13, color: T.muted, marginBottom: 10 }}>
+          Vlož svůj Anthropic API klíč pro funkci AI chatbota.
+        </div>
+        <input
+          type="password"
+          value={apiKey}
+          onChange={e => { setApiKey(e.target.value); setApiKeySaved(false); }}
+          placeholder="sk-ant-api03-..."
+          style={{
+            width: '100%', background: T.bg, border: `1px solid ${T.border}`,
+            borderRadius: 10, padding: '10px 12px', color: T.text, fontSize: 13,
+            outline: 'none', boxSizing: 'border-box', marginBottom: 10,
+            fontFamily: 'monospace',
+          }}
+        />
+        <Btn
+          accent={BRAND.gold}
+          size="sm"
+          onClick={() => {
+            localStorage.setItem('anthropic_api_key', apiKey.trim());
+            setApiKeySaved(true);
+            showToast('API klíč uložen');
+          }}
+        >
+          {apiKeySaved ? '✓ Uloženo' : 'Uložit klíč'}
+        </Btn>
       </Card>
 
       {/* About */}

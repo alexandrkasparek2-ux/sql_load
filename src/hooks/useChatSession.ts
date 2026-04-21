@@ -82,8 +82,8 @@ export function useChatSession(ctx: AppCtx) {
     setMessages(prev => [...prev, { id: modelId, role: 'model', ts: Date.now(), content: '' }]);
 
     try {
-      const key = import.meta.env.VITE_ANTHROPIC_API_KEY as string;
-      if (!key) throw new Error('Anthropic API klíč není nastaven (VITE_ANTHROPIC_API_KEY)');
+      const key = localStorage.getItem('anthropic_api_key') || (import.meta.env.VITE_ANTHROPIC_API_KEY as string);
+      if (!key) throw new Error('Vlož Anthropic API klíč v Nastavení → AI Poradce');
 
       const client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
 
