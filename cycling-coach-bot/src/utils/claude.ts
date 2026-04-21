@@ -42,7 +42,13 @@ export async function getCoachingResponse(
     2
   )}\n\`\`\``;
 
-  const userTurn = `${profileBlock}${dataBlock}\n\nATHLETE_QUESTION: ${userMessage}`;
+  const now = new Date();
+  const tz = process.env.TZ || 'Europe/Prague';
+  const localTime = now.toLocaleString('cs-CZ', { timeZone: tz, weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  const timeBlock = `CURRENT_TIME: ${localTime} (${tz})\n\n`;
+
+  const userTurn = `${timeBlock}${profileBlock}${dataBlock}\n\nATHLETE_QUESTION: ${userMessage}`;
 
   // Prompt caching: the coaching system prompt is static across every call,
   // so we mark it as a cache breakpoint. Anthropic returns cached tokens at
