@@ -132,8 +132,8 @@ export function activityKcal(a: StravaActivity): number {
   return 0;
 }
 
-export function sportIcon(sportType: string): string {
-  const t = sportType.toLowerCase();
+export function sportIcon(sportType: string | null | undefined): string {
+  const t = (sportType ?? '').toLowerCase();
   if (t.includes('ride') || t.includes('cycling')) return '🚴';
   if (t.includes('run'))   return '🏃';
   if (t.includes('swim'))  return '🏊';

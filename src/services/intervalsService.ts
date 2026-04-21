@@ -85,8 +85,8 @@ export function activityKcal(a: IntervalsActivity): number {
   return 0;
 }
 
-export function sportIcon(type: string): string {
-  const t = type.toLowerCase();
+export function sportIcon(type: string | null | undefined): string {
+  const t = (type ?? '').toLowerCase();
   if (t.includes('ride') || t.includes('cycling') || t.includes('virtual')) return '🚴';
   if (t.includes('run'))    return '🏃';
   if (t.includes('swim'))   return '🏊';
