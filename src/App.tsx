@@ -32,7 +32,8 @@ import WhoopCallback   from './pages/WhoopCallback';
 import StravaCallback  from './pages/StravaCallback';
 
 import { T, Spinner } from './components/UI';
-import { ToastHost }  from './components/Toast';
+import { ToastHost }     from './components/Toast';
+import FloatingChat      from './components/FloatingChat';
 
 // ──────────────────────────────────────────────────────────
 // Context
@@ -478,6 +479,9 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
 
       {/* Toast notifications */}
       <ToastHost />
+
+      {/* Floating AI chat bubble (hidden on /chat page) */}
+      <FloatingChat />
 
       {/* Fixed Bottom Nav */}
       <nav style={{
