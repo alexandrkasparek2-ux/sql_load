@@ -30,7 +30,7 @@ function matchFood(query: string): Food | null {
 function buildFoodEntry(food: Food, grams: number, userId: string, date: string): Omit<FoodEntry, 'id'> {
   const f = grams / 100;
   return {
-    user_id: userId, date, meal_slot: 'snack',
+    user_id: userId, date, meal_slot: 'odp_svacina',
     food_id: food.id, food_name: food.name, grams,
     kcal:    parseFloat((food.kcal        * f).toFixed(1)),
     carbs:   parseFloat((food.carbs       * f).toFixed(1)),
