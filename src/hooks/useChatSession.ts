@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from 'react';
-import Anthropic from '@anthropic-ai/sdk';
 import type { AppCtx } from '../App';
 
 const HISTORY_KEY = 'cyclofuel_chat_v1';
@@ -122,37 +121,59 @@ export function useChatSession(ctx: AppCtx) {
       const key = localStorage.getItem('anthropic_api_key') || (import.meta.env.VITE_ANTHROPIC_API_KEY as string);
       if (!key) throw new Error('Vlož Anthropic API klíč v Nastavení → AI Poradce');
 
-      const client = new Anthropic({ apiKey: key, dangerouslyAllowBrowser: true });
-
       const history = updated.slice(-20).map(m => ({
-        role:    m.role === 'user' ? 'user' as const : 'assistant' as const,
+        role:    m.role === 'user' ? 'user' : 'assistant',
         content: m.content,
       }));
 
       let fullText = '';
 
-      const stream = client.messages.stream({
-        model:      'claude-opus-4-7',
-        max_tokens: 1024,
-        thinking:   { type: 'adaptive' },
-        system: [
-          {
-            type:          'text',
-            text:          SYSTEM_PROMPT,
-            cache_control: { type: 'ephemeral' },
-          },
-          {
-            type: 'text',
-            text: `Aktuální data uživatele:\n${buildContext(ctx)}`,
-          },
-        ],
-        messages: history,
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type':            'application/json',
+          'x-api-key':               key,
+          'anthropic-version':       '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model:      'claude-opus-4-7',
+          max_tokens: 1024,
+          stream:     true,
+          system: [
+            { type: 'text', text: SYSTEM_PROMPT,                                cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: `Aktuální data uživatele:\n${buildContext(ctx)}` },
+          ],
+          messages: history,
+        }),
       });
 
-      for await (const event of stream) {
-        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          fullText += event.delta.text;
-          setMessages(prev => prev.map(m => m.id === modelId ? { ...m, content: fullText } : m));
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({})) as { error?: { message?: string } };
+        throw new Error(e.error?.message ?? `Chyba ${res.status}`);
+      }
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const json = line.slice(6).trim();
+          if (json === '[DONE]') break;
+          try {
+            const ev = JSON.parse(json) as { type: string; delta?: { type: string; text: string } };
+            if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
+              fullText += ev.delta.text;
+              setMessages(prev => prev.map(m => m.id === modelId ? { ...m, content: fullText } : m));
+            }
+          } catch { /* skip malformed SSE */ }
         }
       }
 
