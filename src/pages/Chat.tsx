@@ -51,11 +51,31 @@ function buildFoodEntry(food: Food, grams: number, userId: string, date: string)
   };
 }
 
+// Simple markdown renderer: bold, bullet lists, line breaks
+function renderMarkdown(text: string, color: string) {
+  const lines = text.split('\n');
+  return lines.map((line, i) => {
+    const isBullet = /^[-•*]\s/.test(line);
+    const parts = line.replace(/^[-•*]\s/, '').split(/\*\*(.*?)\*\*/g);
+    const nodes = parts.map((part, j) =>
+      j % 2 === 1
+        ? <strong key={j} style={{ color, fontWeight: 700 }}>{part}</strong>
+        : <span key={j}>{part}</span>
+    );
+    return (
+      <div key={i} style={{ display: 'flex', gap: isBullet ? 6 : 0, marginBottom: isBullet ? 2 : 0 }}>
+        {isBullet && <span style={{ color, flexShrink: 0 }}>•</span>}
+        <span>{nodes}</span>
+      </div>
+    );
+  });
+}
+
 export default function Chat() {
   const ctx = useContext(AppContext);
-  const { accent, addEntry, userId, today } = ctx;
+  const { accent, addEntry, removeEntry, updateEntry, userId, today } = ctx;
   const { messages, input, setInput, loading, error, send, clearHistory } = useChatSession(ctx);
-  const [logged, setLogged] = useState<Set<string>>(new Set());
+  const [actioned, setActioned] = useState<Set<string>>(new Set());
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLTextAreaElement>(null);
@@ -68,9 +88,20 @@ export default function Chat() {
     const food = matchFood(query);
     if (!food) { showToast('Potravina nenalezena v databázi', 'error'); return; }
     await addEntry(buildFoodEntry(food, grams, userId, today));
-    setLogged(prev => new Set([...prev, msgId]));
+    setActioned(prev => new Set([...prev, msgId]));
     showToast(`${food.name} přidáno`);
   }, [addEntry, userId, today]);
+
+  const handleDiaryAction = useCallback(async (msgId: string, type: 'delete' | 'edit', entryId: string, foodName: string, grams?: number) => {
+    if (type === 'delete') {
+      await removeEntry(entryId);
+      showToast(`${foodName} smazáno`);
+    } else if (type === 'edit' && grams) {
+      await updateEntry(entryId, grams);
+      showToast(`${foodName} upraveno na ${grams}g`);
+    }
+    setActioned(prev => new Set([...prev, msgId]));
+  }, [removeEntry, updateEntry]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); }
@@ -117,7 +148,6 @@ export default function Chat() {
 
         {isEmpty && (
           <div>
-            {/* Intro card */}
             <div style={{
               background: 'linear-gradient(135deg, #0f0f0f, #080808)',
               border: `1px solid ${BRAND.gold}22`,
@@ -127,11 +157,9 @@ export default function Chat() {
                 Zeptej se na <span style={{ color: BRAND.gold, fontWeight: 600 }}>výživu</span>,{' '}
                 <span style={{ color: BRAND.orange, fontWeight: 600 }}>trénink</span> nebo{' '}
                 <span style={{ color: BRAND.green, fontWeight: 600 }}>regeneraci</span>.
-                Automaticky vidím tvá dnešní data.
+                Automaticky vidím tvá dnešní data a záznamy v deníku.
               </div>
             </div>
-
-            {/* Suggestions */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {SUGGESTIONS.map(s => (
                 <button
@@ -181,13 +209,17 @@ export default function Chat() {
                   : T.card,
                 border:       m.role === 'user' ? 'none' : `1px solid ${T.border}`,
                 color:        m.role === 'user' ? '#000' : T.text,
-                fontSize:     14, lineHeight: 1.6,
-                whiteSpace:   'pre-wrap', wordBreak: 'break-word',
+                fontSize:     14, lineHeight: 1.65,
+                wordBreak:    'break-word',
               }}>
-                {m.content}
+                {m.role === 'model'
+                  ? renderMarkdown(m.content, accent)
+                  : m.content
+                }
               </div>
 
-              {m.foodAction && !logged.has(m.id) && (
+              {/* Food action */}
+              {m.foodAction && !actioned.has(m.id) && (
                 <button
                   onClick={() => handleLog(m.id, m.foodAction!.query, m.foodAction!.grams)}
                   style={{
@@ -200,9 +232,36 @@ export default function Chat() {
                   + Přidat {m.foodAction.grams}g · {m.foodAction.query} do deníku
                 </button>
               )}
-              {m.foodAction && logged.has(m.id) && (
+
+              {/* Diary delete/edit action */}
+              {m.diaryAction && !actioned.has(m.id) && (
+                <button
+                  onClick={() => handleDiaryAction(
+                    m.id,
+                    m.diaryAction!.type,
+                    m.diaryAction!.entryId,
+                    m.diaryAction!.foodName,
+                    m.diaryAction!.grams,
+                  )}
+                  style={{
+                    marginTop: 6, padding: '8px 14px', borderRadius: 10, width: '100%',
+                    background: (m.diaryAction.type === 'delete' ? BRAND.red : BRAND.blue) + '12',
+                    border: `1px solid ${(m.diaryAction.type === 'delete' ? BRAND.red : BRAND.blue)}40`,
+                    color: m.diaryAction.type === 'delete' ? BRAND.red : BRAND.blue,
+                    fontSize: 13, cursor: 'pointer', fontWeight: 600, textAlign: 'left',
+                  }}
+                >
+                  {m.diaryAction.type === 'delete'
+                    ? `🗑 Smazat ${m.diaryAction.foodName} z deníku`
+                    : `✏️ Upravit ${m.diaryAction.foodName} na ${m.diaryAction.grams}g`
+                  }
+                </button>
+              )}
+
+              {/* Done state for any action */}
+              {(m.foodAction || m.diaryAction) && actioned.has(m.id) && (
                 <div style={{ marginTop: 6, fontSize: 12, color: BRAND.green, fontWeight: 600 }}>
-                  ✓ Přidáno do deníku
+                  ✓ Hotovo
                 </div>
               )}
 
