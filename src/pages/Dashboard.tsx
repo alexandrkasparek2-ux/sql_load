@@ -428,7 +428,8 @@ export default function Dashboard() {
   const navigate = useNavigate();
 
   const {
-    accent, totals, goals, trainingDay, upsertTrainingDay,
+    accent, totals, goals, goalOverride, setGoalOverride,
+    trainingDay, upsertTrainingDay,
     entries, userId, today, addEntry, profile,
   } = ctx;
 
@@ -575,14 +576,30 @@ export default function Dashboard() {
           {/* Stats below ring */}
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             {[
-              { label: 'Zbývá',    value: Math.max(0, Math.round(goals.kcal - totals.kcal)), unit: 'kcal' },
-              { label: 'Cíl',      value: Math.round(goals.kcal), unit: 'kcal' },
-              { label: 'Splněno',  value: pctGoal, unit: '%' },
+              { label: 'Zbývá',   value: Math.max(0, Math.round(goals.kcal - totals.kcal)), unit: 'kcal' },
+              { label: 'Cíl',     value: Math.round(goals.kcal), unit: 'kcal' },
+              { label: 'Splněno', value: pctGoal, unit: '%' },
             ].map(s => (
               <div key={s.label} style={{
                 flex: 1, background: T.bg, borderRadius: 8,
                 padding: '6px 8px', textAlign: 'center',
+                position: 'relative',
               }}>
+                {/* Reset button — visible only on 'Cíl' tile when override is active */}
+                {s.label === 'Cíl' && goalOverride && (
+                  <button
+                    onClick={() => setGoalOverride(null)}
+                    title="Obnovit výchozí cíle"
+                    style={{
+                      position: 'absolute', top: 4, right: 4,
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: BRAND.gold, fontSize: 13, lineHeight: 1, padding: 0,
+                      opacity: 0.8,
+                    }}
+                  >
+                    ↺
+                  </button>
+                )}
                 <div style={{
                   fontSize: 13, fontWeight: 700, color: BRAND.gold,
                   fontVariantNumeric: 'tabular-nums',
