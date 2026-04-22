@@ -73,7 +73,7 @@ function renderMarkdown(text: string | undefined, accent: string) {
 export default function FloatingChat() {
   const location = useLocation();
   const ctx = useContext(AppContext);
-  const { accent, addEntry, removeEntry, updateEntry, userId, today } = ctx;
+  const { accent, addEntry, removeEntry, updateEntry, setGoalOverride, userId, today } = ctx;
   const { messages, input, setInput, loading, error, send, clearHistory } = useChatSession(ctx);
   const [open,     setOpen]     = useState(false);
   const [actioned, setActioned] = useState<Set<string>>(new Set());
@@ -103,6 +103,11 @@ export default function FloatingChat() {
     setActioned(prev => new Set([...prev, msgId]));
     showToast(`${food.name} přidáno`);
   }, [addEntry, userId, today]);
+
+  const handleGoalsAction = useCallback((msgId: string, g: import('../hooks/useChatSession').GoalsAction) => {
+    setGoalOverride(g);
+    setActioned(prev => new Set([...prev, msgId]));
+  }, [setGoalOverride]);
 
   const handleDiaryAction = useCallback(async (msgId: string, type: 'delete' | 'edit', entryId: string, foodName: string, grams?: number) => {
     if (type === 'delete') {
@@ -310,8 +315,29 @@ export default function FloatingChat() {
                   </button>
                 )}
 
+                {/* Goals action */}
+                {m.goalsAction && !actioned.has(m.id) && (
+                  <button
+                    onClick={() => handleGoalsAction(m.id, m.goalsAction!)}
+                    style={{
+                      marginTop: 5, padding: '6px 12px', borderRadius: 8, width: '100%',
+                      background: BRAND.gold + '15', border: `1px solid ${BRAND.gold}40`,
+                      color: BRAND.gold, fontSize: 12, cursor: 'pointer', fontWeight: 600,
+                      textAlign: 'left',
+                    }}
+                  >
+                    🎯{' '}
+                    {[
+                      m.goalsAction.kcal    && `${m.goalsAction.kcal} kcal`,
+                      m.goalsAction.carbs   && `S: ${m.goalsAction.carbs}g`,
+                      m.goalsAction.protein && `B: ${m.goalsAction.protein}g`,
+                      m.goalsAction.fat     && `T: ${m.goalsAction.fat}g`,
+                    ].filter(Boolean).join(' · ')}
+                  </button>
+                )}
+
                 {/* Done */}
-                {(m.foodAction || m.diaryAction) && actioned.has(m.id) && (
+                {(m.foodAction || m.diaryAction || m.goalsAction) && actioned.has(m.id) && (
                   <div style={{ marginTop: 5, fontSize: 11, color: BRAND.green, fontWeight: 600, paddingLeft: 2 }}>
                     ✓ Hotovo
                   </div>

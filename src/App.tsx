@@ -1,5 +1,5 @@
 import React, {
-  createContext, useContext, useEffect, useMemo, useState,
+  createContext, useCallback, useContext, useEffect, useMemo, useState,
 } from 'react';
 import {
   BrowserRouter, Routes, Route, NavLink, useNavigate, Navigate,
@@ -66,6 +66,8 @@ export interface AppCtx {
   entries:           FoodEntry[];
   totals:            MacroTotals;
   goals:             Goals;
+  goalOverride:      Partial<Goals> | null;
+  setGoalOverride:   (o: Partial<Goals> | null) => void;
   addEntry:          (e: Omit<FoodEntry, 'id'>) => Promise<FoodEntry | null>;
   removeEntry:       (id: string) => Promise<void>;
   updateEntry:       (id: string, newGrams: number, newMealSlot?: string) => Promise<void>;
@@ -225,6 +227,28 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     if (goalsWithIntervals.kcal > 0) saveGoalForDate(today, goalsWithIntervals.kcal);
   }, [today, goalsWithIntervals.kcal, saveGoalForDate]);
 
+  // ── Chat goal override (set by AI chat for current day) ──
+  const overrideKey = `cyclofuel_goal_override_${userId}_${today}`;
+  const [goalOverride, setGoalOverrideState] = useState<Partial<Goals> | null>(() => {
+    try { return JSON.parse(localStorage.getItem(overrideKey) ?? 'null'); }
+    catch { return null; }
+  });
+  const setGoalOverride = useCallback((o: Partial<Goals> | null) => {
+    setGoalOverrideState(o);
+    if (o) localStorage.setItem(overrideKey, JSON.stringify(o));
+    else   localStorage.removeItem(overrideKey);
+  }, [overrideKey]);
+
+  // Re-read override when date changes
+  useEffect(() => {
+    try { setGoalOverrideState(JSON.parse(localStorage.getItem(overrideKey) ?? 'null')); }
+    catch { setGoalOverrideState(null); }
+  }, [overrideKey]);
+
+  const effectiveGoals: Goals = goalOverride
+    ? { ...goalsWithIntervals, ...goalOverride }
+    : goalsWithIntervals;
+
   const ctx: AppCtx = {
     userId,
     today,
@@ -237,7 +261,9 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     upsertTrainingDay: upsert,
     entries,
     totals,
-    goals: goalsWithIntervals,
+    goals: effectiveGoals,
+    goalOverride,
+    setGoalOverride,
     addEntry,
     removeEntry,
     updateEntry,

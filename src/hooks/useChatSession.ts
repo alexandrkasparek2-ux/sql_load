@@ -14,7 +14,15 @@ export interface DiaryAction {
   type:     'delete' | 'edit';
   entryId:  string;
   foodName: string;
-  grams?:   number; // for edit
+  grams?:   number;
+}
+
+export interface GoalsAction {
+  kcal?:    number;
+  carbs?:   number;
+  protein?: number;
+  fat?:     number;
+  water?:   number;
 }
 
 export interface ChatMessage {
@@ -24,6 +32,7 @@ export interface ChatMessage {
   ts:           number;
   foodAction?:  { query: string; grams: number };
   diaryAction?: DiaryAction;
+  goalsAction?: GoalsAction;
 }
 
 function loadHistory(): ChatMessage[] {
@@ -64,6 +73,7 @@ function buildContext(ctx: AppCtx): string {
 const FOOD_RE   = /```food-action\s*([\s\S]*?)\s*```/;
 const DELETE_RE = /```delete-entry\s*([\s\S]*?)\s*```/;
 const EDIT_RE   = /```edit-entry\s*([\s\S]*?)\s*```/;
+const GOALS_RE  = /```set-goals\s*([\s\S]*?)\s*```/;
 
 const SYSTEM_PROMPT = `Jsi výživový poradce specializovaný na cyklistiku. Odpovídej stručně, prakticky, česky. Nepoužívej markdown (žádné ##, **, atd.) – prostý text.
 
@@ -88,7 +98,13 @@ Akce které SMÍŠ provádět (vždy jen 1 akci na konci odpovědi):
 3. Upravit gramáž záznamu (slova: "uprav", "změň", "bylo to", "oprav"):
 \`\`\`edit-entry
 {"id":"uuid záznamu","food_name":"název pro potvrzení","grams":nová gramáž}
-\`\`\``;
+\`\`\`
+
+4. Nastavit denní cíle (slova: "nastav cíle", "změň cíle", "uprav cíle", "chci jíst", "snižme kalorie", "zvyšme bílkoviny"):
+\`\`\`set-goals
+{"kcal":číslo,"carbs":číslo,"protein":číslo,"fat":číslo,"water":číslo}
+\`\`\`
+(uveď jen pole která chceš změnit, ostatní zůstanou původní)`;
 
 export function useChatSession(ctx: AppCtx) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory());
@@ -180,6 +196,7 @@ export function useChatSession(ctx: AppCtx) {
       // Parse action blocks
       let foodAction:  ChatMessage['foodAction'];
       let diaryAction: ChatMessage['diaryAction'];
+      let goalsAction: ChatMessage['goalsAction'];
 
       const foodMatch = FOOD_RE.exec(fullText);
       if (foodMatch) {
@@ -208,8 +225,23 @@ export function useChatSession(ctx: AppCtx) {
         } catch { /* skip */ }
       }
 
+      const goalsMatch = GOALS_RE.exec(fullText);
+      if (goalsMatch) {
+        try {
+          const p = JSON.parse(goalsMatch[1]) as GoalsAction;
+          goalsAction = {
+            kcal:    p.kcal    ? Number(p.kcal)    : undefined,
+            carbs:   p.carbs   ? Number(p.carbs)   : undefined,
+            protein: p.protein ? Number(p.protein) : undefined,
+            fat:     p.fat     ? Number(p.fat)     : undefined,
+            water:   p.water   ? Number(p.water)   : undefined,
+          };
+          fullText = fullText.replace(GOALS_RE, '').trim();
+        } catch { /* skip */ }
+      }
+
       setMessages(prev =>
-        prev.map(m => m.id === modelId ? { ...m, content: fullText, foodAction, diaryAction } : m)
+        prev.map(m => m.id === modelId ? { ...m, content: fullText, foodAction, diaryAction, goalsAction } : m)
       );
     } catch (e) {
       setMessages(prev => prev.filter(m => m.id !== modelId));
