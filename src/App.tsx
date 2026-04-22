@@ -18,6 +18,7 @@ import type { FoodEntry, MacroTotals } from './hooks/useFoodEntries';
 import {
   TRAINING_TYPES,
   calcCaloriesMulti, calcCalories, calcMacros, calcWater, calcMicroGoals,
+  type TrainingType,
 } from './constants/training';
 
 import Login           from './pages/Login';
@@ -117,16 +118,57 @@ function kcalFromActivity(a: {
   return 0;
 }
 
-function readIntervalsKcalToday(today: string): number {
+function activityTypeToTraining(type: string | null | undefined, intensityPct: number): TrainingType {
+  const t = (type ?? '').toLowerCase();
+  if (t.includes('strength') || t.includes('workout') || t.includes('weight') || t.includes('crossfit')) return 'strength';
+  if (t.includes('run') || t.includes('jog') || t.includes('trail')) return 'running';
+  if (t.includes('swim')) return 'swimming';
+  if (t.includes('walk')) return 'walking';
+  if (t.includes('hike')) return 'hiking';
+  if (t.includes('ski') || t.includes('snow')) return 'skiing';
+  if (t.includes('yoga') || t.includes('stretch')) return 'yoga';
+  // cycling / ride / virtual / default → intensity-based
+  if (intensityPct >= 88) return 'race';
+  if (intensityPct >= 73) return 'hard';
+  if (intensityPct >= 56) return 'medium';
+  return 'light';
+}
+
+interface IntervalsDataToday {
+  kcal:  number;
+  type:  TrainingType;
+  hours: number;
+}
+
+function readIntervalsDataToday(today: string): IntervalsDataToday {
   try {
     const raw = localStorage.getItem('cyclofuel_intervals_cache');
-    if (!raw) return 0;
+    if (!raw) return { kcal: 0, type: 'rest', hours: 0 };
     const cache = JSON.parse(raw);
-    return (cache.activities ?? [])
-      .filter((a: { start_date_local: string }) => a.start_date_local.startsWith(today))
-      .reduce((s: number, a: Parameters<typeof kcalFromActivity>[0]) => s + kcalFromActivity(a), 0);
-  } catch { return 0; }
+    const acts = (cache.activities ?? []).filter(
+      (a: { start_date_local: string }) => a.start_date_local.startsWith(today)
+    );
+    if (acts.length === 0) return { kcal: 0, type: 'rest', hours: 0 };
+
+    const kcal  = acts.reduce((s: number, a: Parameters<typeof kcalFromActivity>[0]) => s + kcalFromActivity(a), 0);
+    const hours = acts.reduce((s: number, a: { moving_time?: number }) => s + (a.moving_time ?? 0) / 3600, 0);
+
+    // Weighted average intensity across activities (by duration)
+    const totalTime = acts.reduce((s: number, a: { moving_time?: number }) => s + (a.moving_time ?? 0), 0);
+    const avgIntensity = totalTime > 0
+      ? acts.reduce((s: number, a: { icu_intensity?: number | null; moving_time?: number }) =>
+          s + (a.icu_intensity ?? 0) * (a.moving_time ?? 0), 0) / totalTime
+      : 0;
+
+    // Pick dominant type by longest activity
+    const dominant = acts.reduce((best: { moving_time?: number; type?: string | null }, a: { moving_time?: number }) =>
+      (a.moving_time ?? 0) > (best.moving_time ?? 0) ? a : best, acts[0]);
+
+    const type = activityTypeToTraining(dominant.type, avgIntensity);
+    return { kcal, type, hours };
+  } catch { return { kcal: 0, type: 'rest', hours: 0 }; }
 }
+
 
 // ──────────────────────────────────────────────────────────
 // Authenticated shell
@@ -201,25 +243,29 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     };
   }, [profile, trainingType, rideHours, training.microMul, trainingDay, deficitLevel, userId]);
 
-  // ── Intervals.icu: přidat spálené kalorie k dennímu cíli ──
-  const [intervalsKcalToday, setIntervalsKcalToday] = useState(
-    () => readIntervalsKcalToday(today),
+  // ── Intervals.icu: přepočet kalorií + maker podle skutečné aktivity ──
+  const [intervalsData, setIntervalsData] = useState(
+    () => readIntervalsDataToday(today),
   );
   useEffect(() => {
-    setIntervalsKcalToday(readIntervalsKcalToday(today));
-    const handler = () => setIntervalsKcalToday(readIntervalsKcalToday(today));
-    window.addEventListener('intervals-cache-updated', handler);
-    return () => window.removeEventListener('intervals-cache-updated', handler);
+    const refresh = () => setIntervalsData(readIntervalsDataToday(today));
+    refresh();
+    window.addEventListener('intervals-cache-updated', refresh);
+    return () => window.removeEventListener('intervals-cache-updated', refresh);
   }, [today]);
 
   const goalsWithIntervals = useMemo<Goals>(() => {
-    if (!intervalsKcalToday || !profile) return goals;
-    // Základní metabolismus (klidový den) + co spálil Intervals
+    if (!intervalsData.kcal || !profile) return goals;
+    const { kcal: actKcal, type: actType, hours: actHours } = intervalsData;
+    // Total: BMR (rest) + actual activity kcal from Intervals
     const baseBMR  = calcCalories(profile, 'rest', 0);
-    const kcalNew  = Math.round(baseBMR + intervalsKcalToday);
+    const kcalNew  = Math.round(baseBMR + actKcal);
     const fiberNew = Math.min(45, Math.max(25, Math.round(kcalNew * 0.014)));
-    return { ...goals, kcal: kcalNew, fiber: fiberNew };
-  }, [goals, intervalsKcalToday, profile]);
+    // Recalculate macros based on actual training type and duration from Intervals
+    const m        = calcMacros(profile, actType);
+    const waterNew = calcWater(profile, actHours);
+    return { ...goals, kcal: kcalNew, fiber: fiberNew, carbs: m.carbs, protein: m.protein, fat: m.fat, water: waterNew };
+  }, [goals, intervalsData, profile]);
 
   // Uložit cíl kalorií pro aktuální den, aby ho historie zobrazila správně
   const { saveGoalForDate } = useDailyGoals();
