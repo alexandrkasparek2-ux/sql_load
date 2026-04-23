@@ -68,7 +68,7 @@ interface FoodPickerProps {
 function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCustomFood, onSaveMeal, onUpdateSavedMeal, onDeleteSavedMeal, savedMeals, userId, date, allFoods }: FoodPickerProps) {
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.innerWidth >= 1024;
+    return window.innerWidth >= 1280;
   });
   type Step = 'browse' | 'portion' | 'custom' | 'recipe' | 'saved_portion';
   const [step,        setStep]        = useState<Step>('browse');
@@ -116,7 +116,7 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    const media = window.matchMedia('(min-width: 1024px)');
+    const media = window.matchMedia('(min-width: 1280px)');
     const sync = () => setIsDesktop(media.matches);
     sync();
     media.addEventListener('change', sync);
@@ -988,12 +988,12 @@ export default function Foods() {
   const { accent, entries, addEntry, removeEntry, updateEntry, updateEntryMacros, userId, today, goals } = ctx;
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.innerWidth >= 1024;
+    return window.innerWidth >= 1280;
   });
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    const media = window.matchMedia('(min-width: 1024px)');
+    const media = window.matchMedia('(min-width: 1280px)');
     const sync = () => setIsDesktop(media.matches);
     sync();
     media.addEventListener('change', sync);

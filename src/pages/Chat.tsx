@@ -79,7 +79,7 @@ export default function Chat() {
   const [actioned, setActioned] = useState<Set<string>>(new Set());
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.innerWidth >= 1024;
+    return window.innerWidth >= 1440;
   });
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -91,7 +91,7 @@ export default function Chat() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    const media = window.matchMedia('(min-width: 1024px)');
+    const media = window.matchMedia('(min-width: 1440px)');
     const sync = () => setIsDesktop(media.matches);
     sync();
     media.addEventListener('change', sync);

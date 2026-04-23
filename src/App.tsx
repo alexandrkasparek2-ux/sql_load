@@ -390,12 +390,12 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
   const realToday = todayISO();
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.innerWidth >= 1024;
+    return window.innerWidth >= 1280;
   });
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    const media = window.matchMedia('(min-width: 1024px)');
+    const media = window.matchMedia('(min-width: 1280px)');
     const sync = () => setIsDesktop(media.matches);
     sync();
     media.addEventListener('change', sync);

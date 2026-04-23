@@ -392,7 +392,7 @@ export default function Profile() {
   const { userId, accent, profile, saveProfile, signOut, trainingDay } = ctx;
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === 'undefined') return false;
-    return window.innerWidth >= 1024;
+    return window.innerWidth >= 1280;
   });
 
   const [weight, setWeight] = useState(profile?.weight ?? 70);
@@ -416,7 +416,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
-    const media = window.matchMedia('(min-width: 1024px)');
+    const media = window.matchMedia('(min-width: 1280px)');
     const sync = () => setIsDesktop(media.matches);
     sync();
     media.addEventListener('change', sync);
