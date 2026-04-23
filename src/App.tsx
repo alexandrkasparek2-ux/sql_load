@@ -448,6 +448,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
       ? location.pathname === '/'
       : location.pathname.startsWith(item.to)
   )?.label ?? 'CycloFuel';
+  const isChatPage = location.pathname.startsWith('/chat');
 
   const routes = (
     <Routes>
@@ -468,7 +469,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
     return (
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '280px minmax(0, 1fr)',
+        gridTemplateColumns: '220px minmax(0, 1fr)',
         height: '100dvh',
         overflow: 'hidden',
         background:
@@ -479,55 +480,51 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
           display: 'flex',
           flexDirection: 'column',
           minHeight: 0,
-          padding: '24px 18px 18px',
+          padding: '18px 14px 14px',
           borderRight: `1px solid ${T.border}`,
           background: 'linear-gradient(180deg, rgba(10,10,10,0.94), rgba(5,5,5,0.98))',
           backdropFilter: 'blur(20px)',
         }}>
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, color: T.muted, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 8 }}>
-              Performance Cockpit
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
+                width: 40,
+                height: 40,
+                borderRadius: 12,
                 background: 'linear-gradient(135deg, #FFD600, #FF6B35)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#000',
-                fontSize: 22,
-                boxShadow: '0 14px 32px rgba(255,214,0,0.16)',
+                fontSize: 20,
               }}>
                 🚴
               </div>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: T.text, letterSpacing: '-0.03em' }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: T.text, letterSpacing: '-0.03em' }}>
                   CycloFuel
                 </div>
-                <div style={{ fontSize: 12, color: T.muted }}>
-                  Notebook workspace
+                <div style={{ fontSize: 11, color: T.muted }}>
+                  Desktop
                 </div>
               </div>
             </div>
           </div>
 
           <div style={{
-            marginBottom: 18,
-            padding: 14,
-            borderRadius: 18,
+            marginBottom: 14,
+            padding: 12,
+            borderRadius: 14,
             border: `1px solid ${T.border}`,
             background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',
           }}>
-            <div style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 8 }}>
-              Aktivní den
+            <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 6 }}>
+              Den
             </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: T.text, marginBottom: 4 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 2 }}>
               {dateLabel}
             </div>
-            <div style={{ fontSize: 12, color: T.muted }}>
+            <div style={{ fontSize: 11, color: T.muted }}>
               {topbarDate}
             </div>
           </div>
@@ -544,9 +541,9 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 12,
-                    padding: '13px 14px',
-                    borderRadius: 16,
+                    gap: 10,
+                    padding: '11px 12px',
+                    borderRadius: 12,
                     border: `1px solid ${isActive ? 'rgba(255,214,0,0.24)' : 'transparent'}`,
                     background: isActive
                       ? 'linear-gradient(135deg, rgba(255,214,0,0.14), rgba(255,107,53,0.10))'
@@ -555,7 +552,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                     transition: 'all 0.2s ease',
                   }}>
                     <span style={{ display: 'flex', color: 'inherit' }}>{NavIcons[item.to]}</span>
-                    <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 600, letterSpacing: '0.02em' }}>
+                    <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 600, letterSpacing: '0.02em' }}>
                       {item.label}
                     </span>
                   </div>
@@ -567,8 +564,8 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
           <div style={{ flex: 1 }} />
 
           <div style={{
-            padding: 16,
-            borderRadius: 18,
+            padding: 12,
+            borderRadius: 14,
             border: '1px solid rgba(0,229,176,0.16)',
             background: 'linear-gradient(180deg, rgba(0,229,176,0.08), rgba(79,195,247,0.03))',
           }}>
@@ -580,12 +577,12 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                 background: '#00E5B0',
                 boxShadow: '0 0 12px rgba(0,229,176,0.8)',
               }} />
-              <span style={{ fontSize: 11, color: '#00E5B0', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 700 }}>
-                Sync aktivní
+              <span style={{ fontSize: 10, color: '#00E5B0', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>
+                Sync
               </span>
             </div>
-            <div style={{ fontSize: 12, color: T.text, lineHeight: 1.6 }}>
-              Notebook používá rozšířené pracovní rozložení. Telefon zůstává v mobilním režimu.
+            <div style={{ fontSize: 11, color: T.text, lineHeight: 1.5 }}>
+              Sdílená data mezi zařízeními.
             </div>
           </div>
         </aside>
@@ -597,7 +594,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: 16,
-            padding: '22px 28px 18px',
+            padding: '18px 22px 14px',
             borderBottom: `1px solid ${T.border}`,
             background: 'rgba(5,5,5,0.72)',
             backdropFilter: 'blur(18px)',
@@ -606,7 +603,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
               <div style={{ fontSize: 11, color: T.muted, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>
                 {topbarDate}
               </div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: T.text, letterSpacing: '-0.04em' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: T.text, letterSpacing: '-0.04em' }}>
                 {pageTitle}
               </div>
             </div>
@@ -715,12 +712,13 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
             </div>
           </header>
 
-          <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 28 }}>
+          <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: isChatPage ? 0 : 22 }}>
             <div style={{
               width: '100%',
-              maxWidth: 1480,
+              maxWidth: isChatPage ? 'none' : 1400,
               margin: '0 auto',
-              paddingBottom: 28,
+              paddingBottom: isChatPage ? 0 : 22,
+              minHeight: '100%',
             }}>
               {routes}
             </div>
