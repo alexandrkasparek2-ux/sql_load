@@ -10,6 +10,7 @@ import { useProfile }     from './hooks/useProfile';
 import { useTrainingDay } from './hooks/useTrainingDay';
 import { useFoodEntries } from './hooks/useFoodEntries';
 import { useDailyGoals }  from './hooks/useDailyGoals';
+import { useUserSetting } from './hooks/useUserSetting';
 
 import type { Profile as ProfileData } from './hooks/useProfile';
 import type { TrainingDay } from './hooks/useTrainingDay';
@@ -199,15 +200,23 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   const { trainingDay, upsert              } = useTrainingDay(userId, today);
   const { entries, totals, addEntry, removeEntry, updateEntry, updateEntryMacros } = useFoodEntries(userId, today);
 
-  const [deficitLevel, setDeficitLevelState] = useState<DeficitLevel>(() => {
-    const v = localStorage.getItem(`cyclofuel_deficit_level_${userId}`);
-    return (v as DeficitLevel) ?? 'off';
-  });
+  const { value: deficitLevel, setValue: setStoredDeficitLevel } = useUserSetting<DeficitLevel>(
+    userId,
+    'deficit_level',
+    'off',
+    { legacyKey: `cyclofuel_deficit_level_${userId}` },
+  );
 
   const setDeficitLevel = (v: DeficitLevel) => {
-    localStorage.setItem(`cyclofuel_deficit_level_${userId}`, v);
-    setDeficitLevelState(v);
+    void setStoredDeficitLevel(v);
   };
+
+  const { value: targetWeightSetting } = useUserSetting<number>(
+    userId,
+    'target_weight',
+    profile?.weight ?? 0,
+    { legacyKey: `cyclofuel_target_weight_${userId}` },
+  );
 
   const trainingType = trainingDay?.training_type ?? 'rest';
   const rideHours    = trainingDay?.ride_hours    ?? 0;
@@ -226,7 +235,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     );
 
     // Apply weight-loss deficit
-    const targetW = Number(localStorage.getItem(`cyclofuel_target_weight_${userId}`) ?? profile.weight);
+    const targetW = targetWeightSetting > 0 ? targetWeightSetting : profile.weight;
     const deficit = deficitLevel !== 'off' && targetW < profile.weight ? DEFICIT_KCAL[deficitLevel] : 0;
     const kcalFinal = Math.max(1200, kcalGoal - deficit);
 
@@ -241,7 +250,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       water:   calcWater(profile, rideHours),
       micros:  calcMicroGoals(training.microMul),
     };
-  }, [profile, trainingType, rideHours, training.microMul, trainingDay, deficitLevel, userId]);
+  }, [profile, trainingType, rideHours, training.microMul, trainingDay, deficitLevel, targetWeightSetting]);
 
   // ── Intervals.icu: přepočet kalorií + maker podle skutečné aktivity ──
   const [intervalsData, setIntervalsData] = useState(
@@ -268,7 +277,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   }, [goals, intervalsData, profile]);
 
   // Uložit cíl kalorií pro aktuální den, aby ho historie zobrazila správně
-  const { saveGoalForDate } = useDailyGoals();
+  const { saveGoalForDate } = useDailyGoals(userId);
   useEffect(() => {
     if (goalsWithIntervals.kcal > 0) saveGoalForDate(today, goalsWithIntervals.kcal);
   }, [today, goalsWithIntervals.kcal, saveGoalForDate]);

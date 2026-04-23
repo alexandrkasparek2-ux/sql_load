@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useUserSetting } from './useUserSetting';
 
 // ─── SavedMeal interface ────────────────────────────────────
 // All numeric values are ABSOLUTE for the reference portion
@@ -28,43 +28,35 @@ export interface SavedMeal {
 
 const LS_KEY = 'cyclofuel_saved_meals';
 
-function load(): SavedMeal[] {
-  try {
-    return JSON.parse(localStorage.getItem(LS_KEY) ?? '[]');
-  } catch {
-    return [];
-  }
-}
+const EMPTY_MEALS: SavedMeal[] = [];
 
-function persist(meals: SavedMeal[]): void {
-  localStorage.setItem(LS_KEY, JSON.stringify(meals));
-}
+export function useSavedMeals(userId: string | undefined) {
+  const { value: savedMeals, setValue: setSavedMeals, loading } = useUserSetting<SavedMeal[]>(
+    userId,
+    'saved_meals',
+    EMPTY_MEALS,
+    {
+      legacyKey: LS_KEY,
+      isEmpty: value => value.length === 0,
+    },
+  );
 
-export function useSavedMeals() {
-  const [savedMeals, setSavedMeals] = useState<SavedMeal[]>(load);
-
-  const saveMeal = (meal: Omit<SavedMeal, 'id' | 'createdAt'>): void => {
+  const saveMeal = async (meal: Omit<SavedMeal, 'id' | 'createdAt'>): Promise<void> => {
     const newMeal: SavedMeal = {
       ...meal,
       id:        `saved_${Date.now()}`,
       createdAt: new Date().toISOString(),
     };
-    const updated = [...savedMeals, newMeal];
-    persist(updated);
-    setSavedMeals(updated);
+    await setSavedMeals([...savedMeals, newMeal]);
   };
 
-  const updateMeal = (id: string, updates: Omit<SavedMeal, 'id' | 'createdAt'>): void => {
-    const updated = savedMeals.map(m => m.id === id ? { ...m, ...updates } : m);
-    persist(updated);
-    setSavedMeals(updated);
+  const updateMeal = async (id: string, updates: Omit<SavedMeal, 'id' | 'createdAt'>): Promise<void> => {
+    await setSavedMeals(savedMeals.map(m => m.id === id ? { ...m, ...updates } : m));
   };
 
-  const deleteMeal = (id: string): void => {
-    const updated = savedMeals.filter(m => m.id !== id);
-    persist(updated);
-    setSavedMeals(updated);
+  const deleteMeal = async (id: string): Promise<void> => {
+    await setSavedMeals(savedMeals.filter(m => m.id !== id));
   };
 
-  return { savedMeals, saveMeal, updateMeal, deleteMeal };
+  return { savedMeals, saveMeal, updateMeal, deleteMeal, loading };
 }

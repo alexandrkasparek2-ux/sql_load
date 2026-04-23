@@ -6,6 +6,7 @@ import { FOODS, FOOD_CATEGORIES, type Food } from '../constants/foods';
 import { MEAL_SLOTS }    from '../constants/training';
 import type { FoodEntry } from '../hooks/useFoodEntries';
 import { useSavedMeals, type SavedMeal } from '../hooks/useSavedMeals';
+import { useUserSetting } from '../hooks/useUserSetting';
 import BarcodeScanner    from '../components/BarcodeScanner';
 import FoodScanner      from '../components/FoodScanner';
 
@@ -927,11 +928,16 @@ export default function Foods() {
   const [ingAddName,      setIngAddName]      = useState('');
   const [ingAddGrams,     setIngAddGrams]     = useState('');
   const [ingAddKcal,      setIngAddKcal]      = useState('');
-  const [customFoods,   setCustomFoods]   = useState<Food[]>(() => {
-    try { return JSON.parse(localStorage.getItem('cyclofuel_custom_foods') ?? '[]'); }
-    catch { return []; }
-  });
-  const { savedMeals, saveMeal, updateMeal, deleteMeal } = useSavedMeals();
+  const { value: customFoods, setValue: setCustomFoods } = useUserSetting<Food[]>(
+    userId,
+    'custom_foods',
+    [],
+    {
+      legacyKey: 'cyclofuel_custom_foods',
+      isEmpty: value => value.length === 0,
+    },
+  );
+  const { savedMeals, saveMeal, updateMeal, deleteMeal } = useSavedMeals(userId);
 
   const allFoods = useMemo(() => {
     // Deduplicate by ID — FOODS take priority, customFoods fill in anything extra
@@ -945,8 +951,7 @@ export default function Foods() {
 
   const saveCustomFood = (food: Food) => {
     const updated = [...customFoods, food];
-    localStorage.setItem('cyclofuel_custom_foods', JSON.stringify(updated));
-    setCustomFoods(updated);
+    void setCustomFoods(updated);
   };
 
   const startEdit = (id: string, currentGrams: number, currentMealSlot: string, entry: FoodEntry) => {

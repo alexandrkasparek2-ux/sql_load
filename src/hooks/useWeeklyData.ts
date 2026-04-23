@@ -63,8 +63,8 @@ export function useWeeklyData(
         .in('date', dates),
     ]);
 
-    // localStorage goals as secondary fallback (for days without training_days row)
-    const storedGoals = loadDailyGoals();
+    // synced goals as secondary fallback (for days without training_days row)
+    const storedGoals = await loadDailyGoals(userId);
 
     const grouped: DayKcal[] = dates.map(date => {
       const dayRows  = (rows      ?? []).filter(r => r.date === date);

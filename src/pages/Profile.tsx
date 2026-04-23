@@ -3,6 +3,7 @@ import { AppContext, type DeficitLevel, DEFICIT_KCAL } from '../App';
 import { T, BRAND, Card, SectionTitle, StatRow, Btn, Spinner } from '../components/UI';
 import { showToast } from '../components/Toast';
 import { calcBMR, calcCalories, calcMacros, calcWater } from '../constants/training';
+import { useUserSetting } from '../hooks/useUserSetting';
 
 function SliderField({
   label, value, min, max, step, unit, accent, onChange,
@@ -38,29 +39,31 @@ function SliderField({
 function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; currentWeight: number; accent: string }) {
   const ctx = useContext(AppContext);
   const { deficitLevel, setDeficitLevel } = ctx;
-
-  const storageKey = `cyclofuel_target_weight_${userId}`;
-  const startKey   = `cyclofuel_start_weight_${userId}`;
-
-  const [targetWeight, setTargetWeight] = useState<number>(() => {
-    const v = localStorage.getItem(storageKey);
-    return v ? Number(v) : Math.max(40, currentWeight - 5);
-  });
-  const [startWeight, setStartWeight] = useState<number>(() => {
-    const v = localStorage.getItem(startKey);
-    if (v) return Number(v);
-    localStorage.setItem(startKey, String(currentWeight));
-    return currentWeight;
-  });
+  const { value: storedTargetWeight, setValue: setStoredTargetWeight } = useUserSetting<number>(
+    userId,
+    'target_weight',
+    Math.max(40, currentWeight - 5),
+    { legacyKey: `cyclofuel_target_weight_${userId}` },
+  );
+  const { value: startWeight, setValue: setStartWeight } = useUserSetting<number>(
+    userId,
+    'start_weight',
+    currentWeight,
+    { legacyKey: `cyclofuel_start_weight_${userId}` },
+  );
+  const [targetWeight, setTargetWeight] = useState<number>(storedTargetWeight);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setTargetWeight(storedTargetWeight);
+  }, [storedTargetWeight]);
 
   // If user increased weight above stored start, update start weight
   useEffect(() => {
     if (currentWeight > startWeight) {
-      localStorage.setItem(startKey, String(currentWeight));
-      setStartWeight(currentWeight);
+      void setStartWeight(currentWeight);
     }
-  }, [currentWeight, startWeight, startKey]);
+  }, [currentWeight, startWeight, setStartWeight]);
 
   const tolose     = parseFloat((currentWeight - targetWeight).toFixed(1));
   const totalGoal  = parseFloat((startWeight - targetWeight).toFixed(1));
@@ -72,7 +75,7 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
   const weeksNeeded    = tolose > 0 && kgPerWeek > 0 ? Math.ceil(tolose / kgPerWeek) : 0;
 
   const handleSave = () => {
-    localStorage.setItem(storageKey, String(targetWeight));
+    void setStoredTargetWeight(targetWeight);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -184,20 +187,23 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
 
 // ─── Weight log button (inline in profile card) ───────────────
 function WeightLogBtn({ userId, currentWeight, accent, onLogged }: { userId: string; currentWeight: number; accent: string; onLogged: () => void }) {
-  const logKey = `cyclofuel_weight_log_${userId}`;
   const today  = new Date().toISOString().split('T')[0];
   const [logged, setLogged] = useState(false);
-
-  const entries: { date: string; weight: number }[] = (() => {
-    try { return JSON.parse(localStorage.getItem(logKey) ?? '[]'); }
-    catch { return []; }
-  })();
+  const { value: entries, setValue: setEntries } = useUserSetting<{ date: string; weight: number }[]>(
+    userId,
+    'weight_log',
+    [],
+    {
+      legacyKey: `cyclofuel_weight_log_${userId}`,
+      isEmpty: value => value.length === 0,
+    },
+  );
   const todayLogged = entries.some(e => e.date === today);
 
   const log = () => {
     const next = [...entries.filter(e => e.date !== today), { date: today, weight: currentWeight }]
       .sort((a, b) => a.date.localeCompare(b.date)).slice(-60);
-    localStorage.setItem(logKey, JSON.stringify(next));
+    void setEntries(next);
     setLogged(true);
     onLogged();
     setTimeout(() => setLogged(false), 2000);
@@ -223,16 +229,24 @@ function WeightLogBtn({ userId, currentWeight, accent, onLogged }: { userId: str
 interface WeightEntry { date: string; weight: number; }
 
 function WeightTracker({ userId, currentWeight, accent }: { userId: string; currentWeight: number; accent: string }) {
-  const logKey    = `cyclofuel_weight_log_${userId}`;
-  const targetKey = `cyclofuel_target_weight_${userId}`;
-
-  const [entries] = useState<WeightEntry[]>(() => {
-    try { return JSON.parse(localStorage.getItem(logKey) ?? '[]'); }
-    catch { return []; }
-  });
+  const { value: entries } = useUserSetting<WeightEntry[]>(
+    userId,
+    'weight_log',
+    [],
+    {
+      legacyKey: `cyclofuel_weight_log_${userId}`,
+      isEmpty: value => value.length === 0,
+    },
+  );
+  const { value: syncedTargetWeight } = useUserSetting<number>(
+    userId,
+    'target_weight',
+    0,
+    { legacyKey: `cyclofuel_target_weight_${userId}` },
+  );
 
   const today        = new Date().toISOString().split('T')[0];
-  const targetWeight = Number(localStorage.getItem(targetKey) ?? 0) || null;
+  const targetWeight = syncedTargetWeight > 0 ? syncedTargetWeight : null;
 
   // Chart
   const W = 280, H = 110, padL = 34, padR = 8, padT = 12, padB = 24;

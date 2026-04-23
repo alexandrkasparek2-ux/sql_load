@@ -1,37 +1,49 @@
 import { useCallback } from 'react';
-
-// ─── Daily calorie goals ────────────────────────────────────
-// Stores the calorie goal for each date so the history chart
-// can show the correct goal bar per day (e.g. hard training day
-// has a higher goal than a rest day).
-// Format: { "2026-03-15": 3200, "2026-03-14": 2000, ... }
+import { fetchUserSetting, useUserSetting } from './useUserSetting';
 
 const LS_KEY = 'cyclofuel_daily_goals';
+const SETTING_KEY = 'daily_goals';
+const EMPTY_GOALS: Record<string, number> = {};
 
-export function loadDailyGoals(): Record<string, number> {
-  try {
-    return JSON.parse(localStorage.getItem(LS_KEY) ?? '{}');
-  } catch {
-    return {};
+export async function loadDailyGoals(userId: string | undefined): Promise<Record<string, number>> {
+  if (!userId) {
+    try {
+      return JSON.parse(localStorage.getItem(LS_KEY) ?? '{}');
+    } catch {
+      return {};
+    }
   }
+  return fetchUserSetting<Record<string, number>>(userId, SETTING_KEY, EMPTY_GOALS);
 }
 
-export function useDailyGoals() {
-  const saveGoalForDate = useCallback((date: string, kcal: number) => {
+export function useDailyGoals(userId: string | undefined) {
+  const { value: goalsByDate, setValue: setGoalsByDate } = useUserSetting<Record<string, number>>(
+    userId,
+    SETTING_KEY,
+    EMPTY_GOALS,
+    {
+      legacyKey: LS_KEY,
+      isEmpty: value => Object.keys(value).length === 0,
+    },
+  );
+
+  const saveGoalForDate = useCallback(async (date: string, kcal: number) => {
     if (!date || kcal <= 0) return;
-    const stored = loadDailyGoals();
-    // Only update if the value actually changed (avoids unnecessary writes)
-    if (stored[date] === Math.round(kcal)) return;
-    stored[date] = Math.round(kcal);
-    // Keep only last 60 days to avoid unbounded growth
+
+    const next = { ...goalsByDate };
+    const rounded = Math.round(kcal);
+    if (next[date] === rounded) return;
+    next[date] = rounded;
+
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 60);
-    const cutoffStr = cutoff.toISOString().split('T')[0];
-    for (const key of Object.keys(stored)) {
-      if (key < cutoffStr) delete stored[key];
+    const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`;
+    for (const key of Object.keys(next)) {
+      if (key < cutoffStr) delete next[key];
     }
-    localStorage.setItem(LS_KEY, JSON.stringify(stored));
-  }, []);
 
-  return { saveGoalForDate };
+    await setGoalsByDate(next);
+  }, [goalsByDate, setGoalsByDate]);
+
+  return { saveGoalForDate, goalsByDate };
 }

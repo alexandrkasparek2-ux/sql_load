@@ -62,6 +62,17 @@ CREATE TABLE IF NOT EXISTS food_entries (
   created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 
+-- user_settings: synced app settings and user-defined lists
+CREATE TABLE IF NOT EXISTS user_settings (
+  id         UUID        NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id    UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  key        TEXT        NOT NULL,
+  value      JSONB       NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, key)
+);
+
 -- ============================================================
 -- INDEXES
 -- ============================================================
@@ -72,6 +83,9 @@ CREATE INDEX IF NOT EXISTS idx_training_days_user_date
 CREATE INDEX IF NOT EXISTS idx_food_entries_user_date
   ON food_entries (user_id, date);
 
+CREATE INDEX IF NOT EXISTS idx_user_settings_user_key
+  ON user_settings (user_id, key);
+
 -- ============================================================
 -- ROW LEVEL SECURITY
 -- ============================================================
@@ -79,6 +93,7 @@ CREATE INDEX IF NOT EXISTS idx_food_entries_user_date
 ALTER TABLE profiles      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE training_days ENABLE ROW LEVEL SECURITY;
 ALTER TABLE food_entries  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
 
 -- profiles
 CREATE POLICY "profiles: select own"
@@ -125,6 +140,23 @@ CREATE POLICY "food_entries: update own"
 
 CREATE POLICY "food_entries: delete own"
   ON food_entries FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- user_settings
+CREATE POLICY "user_settings: select own"
+  ON user_settings FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "user_settings: insert own"
+  ON user_settings FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "user_settings: update own"
+  ON user_settings FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "user_settings: delete own"
+  ON user_settings FOR DELETE
   USING (auth.uid() = user_id);
 
 -- ============================================================
@@ -175,4 +207,9 @@ CREATE TRIGGER set_profiles_updated_at
 DROP TRIGGER IF EXISTS set_training_days_updated_at ON training_days;
 CREATE TRIGGER set_training_days_updated_at
   BEFORE UPDATE ON training_days
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+DROP TRIGGER IF EXISTS set_user_settings_updated_at ON user_settings;
+CREATE TRIGGER set_user_settings_updated_at
+  BEFORE UPDATE ON user_settings
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
