@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { loadDailyGoals } from './useDailyGoals';
-import { calcCalories, type CalcProfile } from '../constants/training';
+import { calcBMR, calcCalories, type CalcProfile } from '../constants/training';
+import { loadBurnLog } from '../services/intervalsService';
 
 export interface DayKcal {
   date:    string; // YYYY-MM-DD
@@ -65,6 +66,7 @@ export function useWeeklyData(
 
     // synced goals as secondary fallback (for days without training_days row)
     const storedGoals = await loadDailyGoals(userId);
+    const burnLog = loadBurnLog();
 
     const grouped: DayKcal[] = dates.map(date => {
       const dayRows  = (rows      ?? []).filter(r => r.date === date);
@@ -83,12 +85,17 @@ export function useWeeklyData(
       }
 
       // Total expenditure = BMR + activity (same formula as goal calculation)
-      // On days without training log, assume sedentary (rest day = BMR × 1.2)
+      // Prefer persistent Intervals burn log for historical activity kcal so
+      // chart lines don't shift when short-lived activity cache rotates.
       let burned = 0;
       if (profile) {
-        burned = trainRow
-          ? Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0))
-          : Math.round(calcCalories(profile, 'rest', 0));
+        if (typeof burnLog[date] === 'number') {
+          burned = Math.round(calcBMR(profile) + burnLog[date]);
+        } else {
+          burned = trainRow
+            ? Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0))
+            : Math.round(calcCalories(profile, 'rest', 0));
+        }
       }
 
       return {
