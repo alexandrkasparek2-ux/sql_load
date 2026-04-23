@@ -2,7 +2,7 @@ import React, {
   createContext, useCallback, useContext, useEffect, useMemo, useState,
 } from 'react';
 import {
-  BrowserRouter, Routes, Route, NavLink, useNavigate, Navigate,
+  BrowserRouter, Routes, Route, NavLink, useNavigate, Navigate, useLocation,
 } from 'react-router-dom';
 
 import { useAuth }        from './hooks/useAuth';
@@ -386,7 +386,21 @@ interface AppLayoutProps {
 }
 
 function AppLayout({ today, setToday }: AppLayoutProps) {
+  const location = useLocation();
   const realToday = todayISO();
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth >= 1024;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const media = window.matchMedia('(min-width: 1024px)');
+    const sync = () => setIsDesktop(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
 
   // Human-friendly date label
   const dateLabel = (() => {
@@ -428,6 +442,296 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
     const dateShort = d.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' });
     return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)} · ${dateShort}`;
   })();
+
+  const pageTitle = NAV_ITEMS.find(item =>
+    item.to === '/'
+      ? location.pathname === '/'
+      : location.pathname.startsWith(item.to)
+  )?.label ?? 'CycloFuel';
+
+  const routes = (
+    <Routes>
+      <Route path="/"                element={<Dashboard />}     />
+      <Route path="/foods"           element={<Foods />}         />
+      <Route path="/chat"            element={<Chat />}          />
+      <Route path="/plan"            element={<Plan />}          />
+      <Route path="/supplements"     element={<Supplements />}   />
+      <Route path="/micros"          element={<Micros />}        />
+      <Route path="/profile"         element={<Profile />}       />
+      <Route path="/whoop/callback"  element={<WhoopCallback />}  />
+      <Route path="/strava/callback" element={<StravaCallback />} />
+      <Route path="*"                element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+
+  if (isDesktop) {
+    return (
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '280px minmax(0, 1fr)',
+        height: '100dvh',
+        overflow: 'hidden',
+        background:
+          'radial-gradient(circle at top left, rgba(255,214,0,0.08), transparent 28%), radial-gradient(circle at top right, rgba(255,107,53,0.08), transparent 24%), #050505',
+      }}>
+        <aside style={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+          padding: '24px 18px 18px',
+          borderRight: `1px solid ${T.border}`,
+          background: 'linear-gradient(180deg, rgba(10,10,10,0.94), rgba(5,5,5,0.98))',
+          backdropFilter: 'blur(20px)',
+        }}>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 11, color: T.muted, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 8 }}>
+              Performance Cockpit
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                background: 'linear-gradient(135deg, #FFD600, #FF6B35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#000',
+                fontSize: 22,
+                boxShadow: '0 14px 32px rgba(255,214,0,0.16)',
+              }}>
+                🚴
+              </div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: T.text, letterSpacing: '-0.03em' }}>
+                  CycloFuel
+                </div>
+                <div style={{ fontSize: 12, color: T.muted }}>
+                  Notebook workspace
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            marginBottom: 18,
+            padding: 14,
+            borderRadius: 18,
+            border: `1px solid ${T.border}`,
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',
+          }}>
+            <div style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 8 }}>
+              Aktivní den
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: T.text, marginBottom: 4 }}>
+              {dateLabel}
+            </div>
+            <div style={{ fontSize: 12, color: T.muted }}>
+              {topbarDate}
+            </div>
+          </div>
+
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {NAV_ITEMS.map(item => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                style={{ textDecoration: 'none' }}
+              >
+                {({ isActive }) => (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '13px 14px',
+                    borderRadius: 16,
+                    border: `1px solid ${isActive ? 'rgba(255,214,0,0.24)' : 'transparent'}`,
+                    background: isActive
+                      ? 'linear-gradient(135deg, rgba(255,214,0,0.14), rgba(255,107,53,0.10))'
+                      : 'transparent',
+                    color: isActive ? '#FFD600' : '#7b7b7b',
+                    transition: 'all 0.2s ease',
+                  }}>
+                    <span style={{ display: 'flex', color: 'inherit' }}>{NavIcons[item.to]}</span>
+                    <span style={{ fontSize: 13, fontWeight: isActive ? 700 : 600, letterSpacing: '0.02em' }}>
+                      {item.label}
+                    </span>
+                  </div>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div style={{ flex: 1 }} />
+
+          <div style={{
+            padding: 16,
+            borderRadius: 18,
+            border: '1px solid rgba(0,229,176,0.16)',
+            background: 'linear-gradient(180deg, rgba(0,229,176,0.08), rgba(79,195,247,0.03))',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <div style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: '#00E5B0',
+                boxShadow: '0 0 12px rgba(0,229,176,0.8)',
+              }} />
+              <span style={{ fontSize: 11, color: '#00E5B0', letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 700 }}>
+                Sync aktivní
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: T.text, lineHeight: 1.6 }}>
+              Notebook používá rozšířené pracovní rozložení. Telefon zůstává v mobilním režimu.
+            </div>
+          </div>
+        </aside>
+
+        <div style={{ minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <header style={{
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            padding: '22px 28px 18px',
+            borderBottom: `1px solid ${T.border}`,
+            background: 'rgba(5,5,5,0.72)',
+            backdropFilter: 'blur(18px)',
+          }}>
+            <div>
+              <div style={{ fontSize: 11, color: T.muted, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>
+                {topbarDate}
+              </div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: T.text, letterSpacing: '-0.04em' }}>
+                {pageTitle}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: 6,
+                borderRadius: 16,
+                border: `1px solid ${T.border}`,
+                background: 'rgba(255,255,255,0.02)',
+              }}>
+                <button
+                  type="button"
+                  onClick={prevDay}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
+                    background: 'transparent',
+                    border: 'none',
+                    color: T.muted,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  aria-label="Předchozí den"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+
+                <div style={{
+                  position: 'relative',
+                  minWidth: 172,
+                  padding: '0 8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <span style={{
+                    fontSize: 14,
+                    fontWeight: isToday ? 700 : 500,
+                    color: isToday ? '#FFD600' : T.text,
+                  }}>
+                    {dateLabel}
+                  </span>
+                  <input
+                    type="date"
+                    value={today}
+                    onChange={e => e.target.value && setToday(e.target.value)}
+                    style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={nextDay}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
+                    background: 'transparent',
+                    border: 'none',
+                    color: T.muted,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  aria-label="Následující den"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 12px',
+                borderRadius: 14,
+                border: '1px solid rgba(0,229,176,0.22)',
+                background: 'rgba(0,229,176,0.08)',
+                color: '#00E5B0',
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+              }}>
+                <div style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  background: '#00E5B0',
+                  animation: 'pulse 2s infinite',
+                }} />
+                Sync
+              </div>
+            </div>
+          </header>
+
+          <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 28 }}>
+            <div style={{
+              width: '100%',
+              maxWidth: 1480,
+              margin: '0 auto',
+              paddingBottom: 28,
+            }}>
+              {routes}
+            </div>
+          </main>
+
+          <ToastHost />
+          <FloatingChat />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: T.bg }}>
@@ -544,18 +848,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
 
       {/* Page content */}
       <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: 80 }}>
-        <Routes>
-          <Route path="/"                element={<Dashboard />}     />
-          <Route path="/foods"           element={<Foods />}         />
-          <Route path="/chat"            element={<Chat />}          />
-          <Route path="/plan"            element={<Plan />}          />
-          <Route path="/supplements"     element={<Supplements />}   />
-          <Route path="/micros"          element={<Micros />}        />
-          <Route path="/profile"         element={<Profile />}       />
-          <Route path="/whoop/callback"  element={<WhoopCallback />}  />
-          <Route path="/strava/callback" element={<StravaCallback />} />
-          <Route path="*"               element={<Navigate to="/" replace />} />
-        </Routes>
+        {routes}
       </main>
 
       {/* Toast notifications */}
