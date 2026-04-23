@@ -468,265 +468,206 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
   if (isDesktop) {
     return (
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: '220px minmax(0, 1fr)',
+        display: 'flex',
+        flexDirection: 'column',
         height: '100dvh',
         overflow: 'hidden',
         background:
           'radial-gradient(circle at top left, rgba(255,214,0,0.08), transparent 28%), radial-gradient(circle at top right, rgba(255,107,53,0.08), transparent 24%), #050505',
       }}>
-        <aside style={{
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0,
-          padding: '18px 14px 14px',
-          borderRight: `1px solid ${T.border}`,
-          background: 'linear-gradient(180deg, rgba(10,10,10,0.94), rgba(5,5,5,0.98))',
-          backdropFilter: 'blur(20px)',
+        <header style={{
+          flexShrink: 0,
+          borderBottom: `1px solid ${T.border}`,
+          background: 'rgba(5,5,5,0.78)',
+          backdropFilter: 'blur(18px)',
         }}>
-          <div style={{ marginBottom: 18 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                background: 'linear-gradient(135deg, #FFD600, #FF6B35)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#000',
-                fontSize: 20,
-              }}>
-                🚴
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: T.text, letterSpacing: '-0.03em' }}>
-                  CycloFuel
-                </div>
-                <div style={{ fontSize: 11, color: T.muted }}>
-                  Desktop
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div style={{
-            marginBottom: 14,
-            padding: 12,
-            borderRadius: 14,
-            border: `1px solid ${T.border}`,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',
-          }}>
-            <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 6 }}>
-              Den
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 2 }}>
-              {dateLabel}
-            </div>
-            <div style={{ fontSize: 11, color: T.muted }}>
-              {topbarDate}
-            </div>
-          </div>
-
-          <nav style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {NAV_ITEMS.map(item => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                style={{ textDecoration: 'none' }}
-              >
-                {({ isActive }) => (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '11px 12px',
-                    borderRadius: 12,
-                    border: `1px solid ${isActive ? 'rgba(255,214,0,0.24)' : 'transparent'}`,
-                    background: isActive
-                      ? 'linear-gradient(135deg, rgba(255,214,0,0.14), rgba(255,107,53,0.10))'
-                      : 'transparent',
-                    color: isActive ? '#FFD600' : '#7b7b7b',
-                    transition: 'all 0.2s ease',
-                  }}>
-                    <span style={{ display: 'flex', color: 'inherit' }}>{NavIcons[item.to]}</span>
-                    <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 600, letterSpacing: '0.02em' }}>
-                      {item.label}
-                    </span>
-                  </div>
-                )}
-              </NavLink>
-            ))}
-          </nav>
-
-          <div style={{ flex: 1 }} />
-
-          <div style={{
-            padding: 12,
-            borderRadius: 14,
-            border: '1px solid rgba(0,229,176,0.16)',
-            background: 'linear-gradient(180deg, rgba(0,229,176,0.08), rgba(79,195,247,0.03))',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-              <div style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: '#00E5B0',
-                boxShadow: '0 0 12px rgba(0,229,176,0.8)',
-              }} />
-              <span style={{ fontSize: 10, color: '#00E5B0', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>
-                Sync
-              </span>
-            </div>
-            <div style={{ fontSize: 11, color: T.text, lineHeight: 1.5 }}>
-              Sdílená data mezi zařízeními.
-            </div>
-          </div>
-        </aside>
-
-        <div style={{ minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <header style={{
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 16,
+            maxWidth: 1460,
+            margin: '0 auto',
             padding: '18px 22px 14px',
-            borderBottom: `1px solid ${T.border}`,
-            background: 'rgba(5,5,5,0.72)',
-            backdropFilter: 'blur(18px)',
           }}>
-            <div>
-              <div style={{ fontSize: 11, color: T.muted, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>
-                {topbarDate}
-              </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: T.text, letterSpacing: '-0.04em' }}>
-                {pageTitle}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: 6,
-                borderRadius: 16,
-                border: `1px solid ${T.border}`,
-                background: 'rgba(255,255,255,0.02)',
-              }}>
-                <button
-                  type="button"
-                  onClick={prevDay}
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    background: 'transparent',
-                    border: 'none',
-                    color: T.muted,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                  aria-label="Předchozí den"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="15 18 9 12 15 6" />
-                  </svg>
-                </button>
-
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
-                  position: 'relative',
-                  minWidth: 172,
-                  padding: '0 8px',
+                  width: 42,
+                  height: 42,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #FFD600, #FF6B35)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  color: '#000',
+                  fontSize: 20,
                 }}>
-                  <span style={{
-                    fontSize: 14,
-                    fontWeight: isToday ? 700 : 500,
-                    color: isToday ? '#FFD600' : T.text,
-                  }}>
-                    {dateLabel}
-                  </span>
-                  <input
-                    type="date"
-                    value={today}
-                    onChange={e => e.target.value && setToday(e.target.value)}
-                    style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
-                  />
+                  🚴
                 </div>
+                <div>
+                  <div style={{ fontSize: 11, color: T.muted, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 4 }}>
+                    {topbarDate}
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: T.text, letterSpacing: '-0.04em' }}>
+                    {pageTitle}
+                  </div>
+                </div>
+              </div>
 
-                <button
-                  type="button"
-                  onClick={nextDay}
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    background: 'transparent',
-                    border: 'none',
-                    color: T.muted,
-                    cursor: 'pointer',
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: 6,
+                  borderRadius: 16,
+                  border: `1px solid ${T.border}`,
+                  background: 'rgba(255,255,255,0.02)',
+                }}>
+                  <button
+                    type="button"
+                    onClick={prevDay}
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 12,
+                      background: 'transparent',
+                      border: 'none',
+                      color: T.muted,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    aria-label="Předchozí den"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                  </button>
+
+                  <div style={{
+                    position: 'relative',
+                    minWidth: 172,
+                    padding: '0 8px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                  }}
-                  aria-label="Následující den"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </button>
-              </div>
+                  }}>
+                    <span style={{
+                      fontSize: 14,
+                      fontWeight: isToday ? 700 : 500,
+                      color: isToday ? '#FFD600' : T.text,
+                    }}>
+                      {dateLabel}
+                    </span>
+                    <input
+                      type="date"
+                      value={today}
+                      onChange={e => e.target.value && setToday(e.target.value)}
+                      style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
+                    />
+                  </div>
 
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 12px',
-                borderRadius: 14,
-                border: '1px solid rgba(0,229,176,0.22)',
-                background: 'rgba(0,229,176,0.08)',
-                color: '#00E5B0',
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-              }}>
+                  <button
+                    type="button"
+                    onClick={nextDay}
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 12,
+                      background: 'transparent',
+                      border: 'none',
+                      color: T.muted,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    aria-label="Následující den"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </button>
+                </div>
+
                 <div style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: '50%',
-                  background: '#00E5B0',
-                  animation: 'pulse 2s infinite',
-                }} />
-                Sync
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 12px',
+                  borderRadius: 14,
+                  border: '1px solid rgba(0,229,176,0.22)',
+                  background: 'rgba(0,229,176,0.08)',
+                  color: '#00E5B0',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                }}>
+                  <div style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: '#00E5B0',
+                    animation: 'pulse 2s infinite',
+                  }} />
+                  Sync
+                </div>
               </div>
             </div>
-          </header>
 
-          <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: isChatPage ? 0 : 22 }}>
-            <div style={{
-              width: '100%',
-              maxWidth: isChatPage ? 'none' : 1400,
-              margin: '0 auto',
-              paddingBottom: isChatPage ? 0 : 22,
-              minHeight: '100%',
-            }}>
-              {routes}
-            </div>
-          </main>
+            <nav style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, overflowX: 'auto', paddingBottom: 2 }}>
+              {NAV_ITEMS.map(item => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === '/'}
+                  style={{ textDecoration: 'none' }}
+                >
+                  {({ isActive }) => (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '10px 14px',
+                      borderRadius: 999,
+                      border: `1px solid ${isActive ? 'rgba(255,214,0,0.24)' : T.border}`,
+                      background: isActive
+                        ? 'linear-gradient(135deg, rgba(255,214,0,0.14), rgba(255,107,53,0.10))'
+                        : 'rgba(255,255,255,0.02)',
+                      color: isActive ? '#FFD600' : '#9a9a9a',
+                      transition: 'all 0.2s ease',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      <span style={{ display: 'flex', color: 'inherit' }}>{NavIcons[item.to]}</span>
+                      <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 600, letterSpacing: '0.02em' }}>
+                        {item.label}
+                      </span>
+                    </div>
+                  )}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
+        </header>
+        <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: isChatPage ? 0 : 22 }}>
+          <div style={{
+            width: '100%',
+            maxWidth: isChatPage ? 'none' : 1460,
+            margin: '0 auto',
+            paddingBottom: isChatPage ? 0 : 22,
+            minHeight: '100%',
+          }}>
+            {routes}
+          </div>
+        </main>
 
-          <ToastHost />
-          <FloatingChat />
-        </div>
+        <ToastHost />
+        <FloatingChat />
       </div>
     );
   }
