@@ -336,8 +336,64 @@ export default function FloatingChat() {
                   </button>
                 )}
 
+                {/* Meal plan action */}
+                {m.mealPlanAction && !actioned.has(m.id) && (
+                  <button
+                    onClick={async () => {
+                      for (const meal of m.mealPlanAction!) {
+                        await addEntry({
+                          user_id: userId, date: today,
+                          meal_slot: meal.slot,
+                          food_id: `chat_plan_${Date.now()}_${meal.slot}`,
+                          food_name: meal.name, grams: meal.grams,
+                          kcal: meal.kcal, carbs: meal.carbs, protein: meal.protein, fat: meal.fat,
+                          fiber: 0, na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
+                        });
+                      }
+                      setActioned(prev => new Set([...prev, m.id]));
+                      showToast(`${m.mealPlanAction!.length} jídel přidáno`);
+                    }}
+                    style={{
+                      marginTop: 5, padding: '6px 12px', borderRadius: 8, width: '100%',
+                      background: BRAND.green + '15', border: `1px solid ${BRAND.green}40`,
+                      color: BRAND.green, fontSize: 12, cursor: 'pointer', fontWeight: 600,
+                      textAlign: 'left',
+                    }}
+                  >
+                    📋 Zapsat {m.mealPlanAction.length} jídel · {m.mealPlanAction.reduce((s, x) => s + x.kcal, 0)} kcal
+                  </button>
+                )}
+
+                {/* Recipe action */}
+                {m.recipeAction && !actioned.has(m.id) && (
+                  <button
+                    onClick={async () => {
+                      const r = m.recipeAction!;
+                      const grams = r.ingredients.reduce((s, i) => s + i.grams, 0) || 300;
+                      await addEntry({
+                        user_id: userId, date: today, meal_slot: 'obed',
+                        food_id: `chat_recipe_${Date.now()}`,
+                        food_name: r.name, grams,
+                        kcal: r.macros.kcal, carbs: r.macros.carbs,
+                        protein: r.macros.protein, fat: r.macros.fat,
+                        fiber: 0, na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
+                      });
+                      setActioned(prev => new Set([...prev, m.id]));
+                      showToast(`${r.name} přidáno`);
+                    }}
+                    style={{
+                      marginTop: 5, padding: '6px 12px', borderRadius: 8, width: '100%',
+                      background: BRAND.orange + '15', border: `1px solid ${BRAND.orange}40`,
+                      color: BRAND.orange, fontSize: 12, cursor: 'pointer', fontWeight: 600,
+                      textAlign: 'left',
+                    }}
+                  >
+                    👨‍🍳 {m.recipeAction.name} · {m.recipeAction.macros.kcal} kcal
+                  </button>
+                )}
+
                 {/* Done */}
-                {(m.foodAction || m.diaryAction || m.goalsAction) && actioned.has(m.id) && (
+                {(m.foodAction || m.diaryAction || m.goalsAction || m.mealPlanAction || m.recipeAction) && actioned.has(m.id) && (
                   <div style={{ marginTop: 5, fontSize: 11, color: BRAND.green, fontWeight: 600, paddingLeft: 2 }}>
                     ✓ Hotovo
                   </div>
