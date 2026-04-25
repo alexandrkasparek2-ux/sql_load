@@ -11,6 +11,7 @@ import { useTrainingDay } from './hooks/useTrainingDay';
 import { useFoodEntries } from './hooks/useFoodEntries';
 import { useDailyGoals }  from './hooks/useDailyGoals';
 import { getSetting, setSetting, deleteSetting } from './hooks/useUserSettings';
+import { useNotifications } from './hooks/useNotifications';
 
 import type { Profile as ProfileData } from './hooks/useProfile';
 import type { TrainingDay } from './hooks/useTrainingDay';
@@ -328,6 +329,21 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     deficitLevel,
     setDeficitLevel,
   };
+
+  // Push notifications (runs checks every 5 min when permission granted)
+  useNotifications({
+    totals:      { kcal: totals.kcal, protein: totals.protein },
+    goals:       { kcal: effectiveGoals.kcal, water: effectiveGoals.water, protein: effectiveGoals.protein },
+    waterGlasses: trainingDay?.water_glasses ?? 0,
+    intervalsActivitiesJson: (() => {
+      try {
+        const cache = localStorage.getItem('cyclofuel_intervals_cache');
+        if (!cache) return '';
+        const parsed = JSON.parse(cache) as { activities?: unknown[] };
+        return JSON.stringify(parsed.activities ?? []);
+      } catch { return ''; }
+    })(),
+  });
 
   return (
     <AppContext.Provider value={ctx}>

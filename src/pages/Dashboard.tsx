@@ -5,7 +5,170 @@ import { T, BRAND, MacroCard, ProgressBar, ProgressRing, SectionTitle, Card, Btn
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
 import { FOODS } from '../constants/foods';
 import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
+import { useIntervalsData } from '../hooks/useIntervalsData';
 import { IntervalsCard } from '../components/IntervalsCard';
+
+// ─── Weekly summary ───────────────────────────────────────────
+function WeeklySummaryCard({ historyData, accent }: { historyData: DayKcal[]; accent: string }) {
+  const last7 = historyData.slice(-7);
+  const withData = last7.filter(d => d.kcal > 0);
+  if (withData.length < 2) return null;
+
+  const avgKcal    = Math.round(withData.reduce((s, d) => s + d.kcal, 0) / withData.length);
+  const onTarget   = withData.filter(d => d.goal > 0 && d.kcal >= d.goal * 0.88 && d.kcal <= d.goal * 1.12).length;
+  const avgDeficit = withData.reduce((s, d) => s + (d.burned > 0 ? d.burned - d.kcal : 0), 0) / withData.length;
+  const totalTSS   = 0; // placeholder — extended via Intervals data when available
+
+  return (
+    <Card style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 16 }}>📊</span>
+          <span style={{ fontFamily: 'Syne,sans-serif', fontWeight: 700, color: T.text, fontSize: 14 }}>
+            Týdenní přehled
+          </span>
+        </div>
+        <span style={{ fontSize: 10, color: T.muted }}>posledních 7 dní</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
+        {[
+          { label: 'Průměr / den', value: `${avgKcal}`, unit: 'kcal', color: accent },
+          { label: 'Dny v cíli',   value: `${onTarget}/${withData.length}`, unit: '', color: BRAND.green },
+          { label: 'Průměrný deficit', value: avgDeficit > 0 ? `${Math.round(avgDeficit)}` : '—', unit: avgDeficit > 0 ? 'kcal' : '', color: BRAND.orange },
+          { label: 'Aktivní dny', value: `${withData.length}`, unit: '/ 7', color: T.muted },
+        ].map(s => (
+          <div key={s.label} style={{ background: T.bg, borderRadius: 10, padding: '10px 12px' }}>
+            <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase' as const, letterSpacing: '1.5px', marginBottom: 4 }}>
+              {s.label}
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: s.color, fontVariantNumeric: 'tabular-nums' }}>
+              {s.value}
+              {s.unit && <span style={{ fontSize: 10, color: T.muted, marginLeft: 3 }}>{s.unit}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+      {totalTSS > 0 && (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}`, fontSize: 12, color: T.muted }}>
+          Celkový TSS za týden: <span style={{ color: BRAND.purple, fontWeight: 700 }}>{Math.round(totalTSS)}</span>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ─── Training timing card ─────────────────────────────────────
+interface IntervalsAct {
+  start_date_local: string;
+  moving_time:      number;
+  type:             string;
+  name:             string;
+}
+
+function TrainingTimingCard({ activities, goals, accent }: {
+  activities: IntervalsAct[];
+  goals: { protein: number; carbs: number };
+  accent: string;
+}) {
+  const now     = Date.now();
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const todayActs = activities.filter(a => a.start_date_local.startsWith(todayStr));
+  if (todayActs.length === 0) return null;
+
+  // Find most recently ended activity
+  const endedActs = todayActs
+    .map(a => ({ ...a, endMs: new Date(a.start_date_local).getTime() + a.moving_time * 1000 }))
+    .filter(a => a.endMs < now)
+    .sort((a, b) => b.endMs - a.endMs);
+
+  const lastEnded = endedActs[0];
+  if (!lastEnded) return null;
+
+  const minsAgo = Math.round((now - lastEnded.endMs) / 60_000);
+  if (minsAgo > 90) return null;  // window expired
+
+  const inWindow = minsAgo <= 45;
+  const color    = inWindow ? BRAND.green : BRAND.gold;
+
+  return (
+    <div style={{
+      background: color + '0e', border: `1px solid ${color}33`,
+      borderRadius: 14, padding: '12px 16px', marginBottom: 14,
+      display: 'flex', gap: 12, alignItems: 'flex-start',
+    }}>
+      <span style={{ fontSize: 22, flexShrink: 0 }}>{inWindow ? '🥛' : '⏳'}</span>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 700, color, marginBottom: 3 }}>
+          {inWindow
+            ? `Proteiny! Trénink skončil před ${minsAgo} min`
+            : `Proteiny — ještěze stihneš (${minsAgo} min)`
+          }
+        </div>
+        <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.5 }}>
+          Sněz <span style={{ color: T.text, fontWeight: 600 }}>
+            {Math.round(goals.protein * 0.25)}–{Math.round(goals.protein * 0.3)}g bílkovin
+          </span> do {Math.max(0, 45 - minsAgo)} min.
+          Sacharidy: <span style={{ color: T.text, fontWeight: 600 }}>{Math.round(goals.carbs * 0.2)}g</span> pro regeneraci.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Electrolyte card (long rides) ───────────────────────────
+function ElectrolyteCard({ rideHours, totals, goals }: {
+  rideHours:  number;
+  totals: { na: number; k: number; mg: number };
+  goals:  { na: number; k: number; mg: number };
+}) {
+  if (rideHours < 1.5) return null;
+
+  const adjustedGoals = { na: goals.na * 1.5, k: goals.k * 1.5, mg: goals.mg * 1.5 };
+  const electrolytes = [
+    { key: 'na' as const, label: 'Sodík (Na)',    unit: 'mg', color: '#06b6d4' },
+    { key: 'k'  as const, label: 'Draslík (K)',   unit: 'mg', color: '#8b5cf6' },
+    { key: 'mg' as const, label: 'Hořčík (Mg)',   unit: 'mg', color: '#22c55e' },
+  ];
+  const anyLow = electrolytes.some(e => totals[e.key] < adjustedGoals[e.key] * 0.7);
+
+  return (
+    <Card style={{ marginBottom: 16, borderColor: anyLow ? '#f59e0b44' : undefined }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <span style={{ fontSize: 16 }}>💧</span>
+        <span style={{ fontFamily: 'Syne,sans-serif', fontWeight: 700, color: T.text, fontSize: 14 }}>
+          Elektrolyty
+        </span>
+        <span style={{ fontSize: 10, color: '#f59e0b', background: '#f59e0b18', padding: '2px 8px', borderRadius: 6, marginLeft: 4 }}>
+          jízda {rideHours.toFixed(1)}h → +50%
+        </span>
+      </div>
+      {electrolytes.map(e => {
+        const val  = totals[e.key];
+        const goal = adjustedGoals[e.key];
+        const pct  = goal > 0 ? Math.min(100, (val / goal) * 100) : 0;
+        const low  = pct < 60;
+        return (
+          <div key={e.key} style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ fontSize: 12, color: T.text }}>{e.label}</span>
+              <span style={{ fontSize: 12, color: low ? '#f59e0b' : T.muted, fontWeight: low ? 700 : 400 }}>
+                {Math.round(val)} / {Math.round(goal)} {e.unit}
+                {low && ' ⚠️'}
+              </span>
+            </div>
+            <ProgressBar value={val} max={goal} color={low ? '#f59e0b' : e.color} height={5} />
+          </div>
+        );
+      })}
+      {anyLow && (
+        <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 4, lineHeight: 1.5 }}>
+          Při dlouhých jízdách doplňuj elektrolyty — izotonické nápoje, banány, tyčinky s elektrolyty.
+        </div>
+      )}
+    </Card>
+  );
+}
 
 // ─── Stretching checklist ─────────────────────────────────────
 interface StoredStretch { name: string; duration: string; desc: string; checked: boolean; }
@@ -434,6 +597,7 @@ export default function Dashboard() {
   } = ctx;
 
   const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal);
+  const { activities: intervalsActivities } = useIntervalsData(1, userId);
 
   const allTypes   = trainingDay ? [trainingDay.training_type, ...(trainingDay.extra_types ?? [])] : ['rest'];
   const primary    = primaryType(allTypes as any);
@@ -653,6 +817,20 @@ export default function Dashboard() {
         {/* Intervals.icu card */}
         <IntervalsCard />
 
+        {/* Post-workout protein timing alert */}
+        <TrainingTimingCard
+          activities={intervalsActivities}
+          goals={{ protein: goals.protein, carbs: goals.carbs }}
+          accent={accent}
+        />
+
+        {/* Electrolytes for long rides */}
+        <ElectrolyteCard
+          rideHours={trainingDay?.ride_hours ?? 0}
+          totals={{ na: totals.na, k: totals.k, mg: totals.mg }}
+          goals={{ na: goals.micros['na'] ?? 1500, k: goals.micros['k'] ?? 3500, mg: goals.micros['mg'] ?? 350 }}
+        />
+
         {/* Training meal recommendation */}
         {primary !== 'rest' && (
           <>
@@ -729,6 +907,10 @@ export default function Dashboard() {
             ))}
           </div>
         )}
+
+        {/* Weekly summary */}
+        <SectionTitle accent={BRAND.gold}>Týdenní přehled</SectionTitle>
+        <WeeklySummaryCard historyData={historyData} accent={accent} />
 
         {/* Micros preview */}
         <SectionTitle

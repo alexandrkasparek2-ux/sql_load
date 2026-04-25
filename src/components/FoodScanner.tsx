@@ -357,7 +357,7 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
                 style={{ background: T.border, border: 'none', borderRadius: 10, color: T.muted, padding: '10px 24px', cursor: 'pointer', fontSize: 13 }}>
                 🖼️ Vybrat z galerie
               </button>
-              <p style={{ fontSize: 12, color: T.muted, textAlign: 'center', margin: 0 }}>Powered by Gemini AI · Odhady jsou přibližné</p>
+              <p style={{ fontSize: 12, color: T.muted, textAlign: 'center', margin: 0 }}>Powered by Claude AI · Odhady jsou přibližné</p>
             </div>
           )}
 
@@ -383,7 +383,7 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
                 <div style={{ color: T.text, fontWeight: 600, marginBottom: 4 }}>
                   {mode === 'recipe' ? 'Čtu recept…' : 'Analyzuji jídlo…'}
                 </div>
-                <div style={{ color: T.muted, fontSize: 13 }}>Gemini AI rozpoznává ingredience</div>
+                <div style={{ color: T.muted, fontSize: 13 }}>Claude AI rozpoznává ingredience</div>
               </div>
             </div>
           )}

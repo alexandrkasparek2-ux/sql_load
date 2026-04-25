@@ -2,17 +2,24 @@ import { useRef, useEffect, useContext, useState, useCallback } from 'react';
 import { AppContext } from '../App';
 import { T, BRAND } from '../components/UI';
 import { useChatSession } from '../hooks/useChatSession';
+import type { MealPlanItem, RecipeSuggestionAction } from '../hooks/useChatSession';
 import { showToast } from '../components/Toast';
 import { FOODS, type Food } from '../constants/foods';
 import type { FoodEntry } from '../hooks/useFoodEntries';
 
+const SLOT_LABELS: Record<string, string> = {
+  snidane: 'Snídaně', dop_svacina: 'Dop. svačina', obed: 'Oběd',
+  odp_svacina: 'Odp. svačina', pred_tren: 'Před tréninkem',
+  behem_tren: 'Během tréninku', po_tren: 'Po tréninku', vecere: 'Večeře',
+};
+
 const SUGGESTIONS = [
-  { text: 'Co mám dát k večeři?',    icon: '🍽️', color: BRAND.orange },
-  { text: 'Mám dost bílkovin?',       icon: '💪', color: BRAND.purple },
-  { text: 'Co jíst před tréninkem?',  icon: '⚡', color: BRAND.gold   },
-  { text: 'Co jíst po tréninku?',     icon: '🔄', color: BRAND.blue   },
-  { text: 'Jak doplnit sacharidy?',   icon: '🍌', color: BRAND.green  },
-  { text: 'Proč jsem unavený?',       icon: '😴', color: BRAND.red    },
+  { text: 'Co mám dát k večeři?',           icon: '🍽️', color: BRAND.orange },
+  { text: 'Mám dost bílkovin?',              icon: '💪', color: BRAND.purple },
+  { text: 'Co jíst před tréninkem?',         icon: '⚡', color: BRAND.gold   },
+  { text: 'Co jíst po tréninku?',            icon: '🔄', color: BRAND.blue   },
+  { text: 'Vygeneruj mi jídelníček na dnes', icon: '📋', color: BRAND.green  },
+  { text: 'Mám doma kuřecí prsa a rýži, co uvařit?', icon: '👨‍🍳', color: BRAND.red },
 ];
 
 function normStr(s: string) {
@@ -51,11 +58,9 @@ function buildFoodEntry(food: Food, grams: number, userId: string, date: string)
   };
 }
 
-// Simple markdown renderer: bold, bullet lists, line breaks
 function renderMarkdown(text: string | undefined, color: string) {
   if (!text) return null;
-  const lines = text.split('\n');
-  return lines.map((line, i) => {
+  return text.split('\n').map((line, i) => {
     const isBullet = /^[-•*]\s/.test(line);
     const parts = line.replace(/^[-•*]\s/, '').split(/\*\*(.*?)\*\*/g);
     const nodes = parts.map((part, j) =>
@@ -108,6 +113,36 @@ export default function Chat() {
     }
     setActioned(prev => new Set([...prev, msgId]));
   }, [removeEntry, updateEntry]);
+
+  const handleMealPlan = useCallback(async (msgId: string, meals: MealPlanItem[]) => {
+    for (const meal of meals) {
+      await addEntry({
+        user_id: userId, date: today,
+        meal_slot: meal.slot in SLOT_LABELS ? meal.slot : 'odp_svacina',
+        food_id: `chat_plan_${Date.now()}_${meal.slot}`,
+        food_name: meal.name, grams: meal.grams,
+        kcal: meal.kcal, carbs: meal.carbs, protein: meal.protein, fat: meal.fat,
+        fiber: 0, na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
+      });
+    }
+    setActioned(prev => new Set([...prev, msgId]));
+    showToast(`${meals.length} jídel přidáno do deníku`);
+  }, [addEntry, userId, today]);
+
+  const handleRecipe = useCallback(async (msgId: string, recipe: RecipeSuggestionAction) => {
+    const totalGrams = recipe.ingredients.reduce((s, i) => s + i.grams, 0) || 300;
+    await addEntry({
+      user_id: userId, date: today,
+      meal_slot: 'obed',
+      food_id: `chat_recipe_${Date.now()}`,
+      food_name: recipe.name, grams: totalGrams,
+      kcal: recipe.macros.kcal, carbs: recipe.macros.carbs,
+      protein: recipe.macros.protein, fat: recipe.macros.fat,
+      fiber: 0, na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
+    });
+    setActioned(prev => new Set([...prev, msgId]));
+    showToast(`${recipe.name} přidáno do deníku`);
+  }, [addEntry, userId, today]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); }
@@ -206,7 +241,7 @@ export default function Chat() {
                 fontSize: 15, marginRight: 8, marginTop: 2,
               }}>⚡</div>
             )}
-            <div style={{ maxWidth: '80%', minWidth: 0 }}>
+            <div style={{ maxWidth: '82%', minWidth: 0 }}>
               <div style={{
                 padding:      '11px 14px',
                 borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '4px 16px 16px 16px',
@@ -218,10 +253,7 @@ export default function Chat() {
                 fontSize:     14, lineHeight: 1.65,
                 wordBreak:    'break-word',
               }}>
-                {m.role === 'model'
-                  ? renderMarkdown(m.content, accent)
-                  : m.content
-                }
+                {m.role === 'model' ? renderMarkdown(m.content, accent) : m.content}
               </div>
 
               {/* Food action */}
@@ -285,8 +317,105 @@ export default function Chat() {
                 </button>
               )}
 
-              {/* Done state for any action */}
-              {(m.foodAction || m.diaryAction || m.goalsAction) && actioned.has(m.id) && (
+              {/* Meal plan action */}
+              {m.mealPlanAction && !actioned.has(m.id) && (
+                <div style={{
+                  marginTop: 8, borderRadius: 12,
+                  background: BRAND.green + '0a', border: `1px solid ${BRAND.green}30`,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{ padding: '10px 14px 6px', fontSize: 11, fontWeight: 700, color: BRAND.green, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    📋 Jídelníček na dnes · {m.mealPlanAction.reduce((s, x) => s + x.kcal, 0)} kcal
+                  </div>
+                  {m.mealPlanAction.map((meal, i) => (
+                    <div key={i} style={{
+                      padding: '6px 14px',
+                      borderTop: i === 0 ? `1px solid ${BRAND.green}20` : undefined,
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: T.muted }}>{SLOT_LABELS[meal.slot] ?? meal.slot}</div>
+                        <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{meal.name}</div>
+                        <div style={{ fontSize: 11, color: T.muted }}>
+                          S: {meal.carbs}g · B: {meal.protein}g · T: {meal.fat}g
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.green }}>{meal.kcal}</div>
+                        <div style={{ fontSize: 10, color: T.muted }}>kcal</div>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{ padding: '10px 14px 12px' }}>
+                    <button
+                      onClick={() => handleMealPlan(m.id, m.mealPlanAction!)}
+                      style={{
+                        width: '100%', padding: '10px', borderRadius: 10,
+                        background: BRAND.green + '20', border: `1px solid ${BRAND.green}50`,
+                        color: BRAND.green, fontSize: 13, cursor: 'pointer', fontWeight: 700,
+                      }}
+                    >
+                      + Zapsat všechna jídla do deníku
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Recipe suggestion action */}
+              {m.recipeAction && !actioned.has(m.id) && (
+                <div style={{
+                  marginTop: 8, borderRadius: 12,
+                  background: BRAND.orange + '0a', border: `1px solid ${BRAND.orange}30`,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{ padding: '10px 14px 6px' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 2 }}>
+                      👨‍🍳 {m.recipeAction.name}
+                    </div>
+                    {m.recipeAction.prep_time && (
+                      <div style={{ fontSize: 11, color: T.muted, marginBottom: 6 }}>⏱ {m.recipeAction.prep_time}</div>
+                    )}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                      {[
+                        { label: 'kcal', val: m.recipeAction.macros.kcal, color: BRAND.orange },
+                        { label: 'S', val: `${m.recipeAction.macros.carbs}g`, color: BRAND.gold },
+                        { label: 'B', val: `${m.recipeAction.macros.protein}g`, color: BRAND.green },
+                        { label: 'T', val: `${m.recipeAction.macros.fat}g`, color: BRAND.red },
+                      ].map(x => (
+                        <div key={x.label} style={{
+                          flex: 1, background: T.bg, borderRadius: 8, padding: '6px 4px', textAlign: 'center',
+                        }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: x.color }}>{x.val}</div>
+                          <div style={{ fontSize: 9, color: T.muted }}>{x.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 11, color: T.muted, marginBottom: 4 }}>
+                      {m.recipeAction.ingredients.map(i => `${i.name} (${i.grams}g)`).join(' · ')}
+                    </div>
+                    {m.recipeAction.cycling_note && (
+                      <div style={{ fontSize: 11, color: BRAND.orange, marginTop: 4 }}>
+                        🚴 {m.recipeAction.cycling_note}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ padding: '6px 14px 12px' }}>
+                    <button
+                      onClick={() => handleRecipe(m.id, m.recipeAction!)}
+                      style={{
+                        width: '100%', padding: '10px', borderRadius: 10,
+                        background: BRAND.orange + '20', border: `1px solid ${BRAND.orange}50`,
+                        color: BRAND.orange, fontSize: 13, cursor: 'pointer', fontWeight: 700,
+                      }}
+                    >
+                      + Přidat recept do deníku · {m.recipeAction.macros.kcal} kcal
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Done state */}
+              {(m.foodAction || m.diaryAction || m.goalsAction || m.mealPlanAction || m.recipeAction) && actioned.has(m.id) && (
                 <div style={{ marginTop: 6, fontSize: 12, color: BRAND.green, fontWeight: 600 }}>
                   ✓ Hotovo
                 </div>

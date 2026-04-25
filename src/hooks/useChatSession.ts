@@ -25,14 +25,35 @@ export interface GoalsAction {
   water?:   number;
 }
 
+export interface MealPlanItem {
+  slot:    string;
+  name:    string;
+  grams:   number;
+  kcal:    number;
+  carbs:   number;
+  protein: number;
+  fat:     number;
+}
+
+export interface RecipeSuggestionAction {
+  name:          string;
+  servings:      number;
+  ingredients:   { name: string; grams: number }[];
+  macros:        { kcal: number; carbs: number; protein: number; fat: number };
+  prep_time?:    string;
+  cycling_note?: string;
+}
+
 export interface ChatMessage {
-  id:           string;
-  role:         'user' | 'model';
-  content:      string;
-  ts:           number;
-  foodAction?:  { query: string; grams: number };
-  diaryAction?: DiaryAction;
-  goalsAction?: GoalsAction;
+  id:                    string;
+  role:                  'user' | 'model';
+  content:               string;
+  ts:                    number;
+  foodAction?:           { query: string; grams: number };
+  diaryAction?:          DiaryAction;
+  goalsAction?:          GoalsAction;
+  mealPlanAction?:       MealPlanItem[];
+  recipeAction?:         RecipeSuggestionAction;
 }
 
 function loadHistory(): ChatMessage[] {
@@ -70,10 +91,12 @@ function buildContext(ctx: AppCtx): string {
   ].join('\n');
 }
 
-const FOOD_RE   = /```food-action\s*([\s\S]*?)\s*```/;
-const DELETE_RE = /```delete-entry\s*([\s\S]*?)\s*```/;
-const EDIT_RE   = /```edit-entry\s*([\s\S]*?)\s*```/;
-const GOALS_RE  = /```set-goals\s*([\s\S]*?)\s*```/;
+const FOOD_RE      = /```food-action\s*([\s\S]*?)\s*```/;
+const DELETE_RE    = /```delete-entry\s*([\s\S]*?)\s*```/;
+const EDIT_RE      = /```edit-entry\s*([\s\S]*?)\s*```/;
+const GOALS_RE     = /```set-goals\s*([\s\S]*?)\s*```/;
+const MEAL_PLAN_RE = /```meal-plan\s*([\s\S]*?)\s*```/;
+const RECIPE_RE    = /```recipe-suggestion\s*([\s\S]*?)\s*```/;
 
 const SYSTEM_PROMPT = `Jsi výživový poradce specializovaný na cyklistiku. Odpovídej stručně, prakticky, česky. Nepoužívej markdown (žádné ##, **, atd.) – prostý text.
 
@@ -104,7 +127,19 @@ Akce které SMÍŠ provádět (vždy jen 1 akci na konci odpovědi):
 \`\`\`set-goals
 {"kcal":číslo,"carbs":číslo,"protein":číslo,"fat":číslo,"water":číslo}
 \`\`\`
-(uveď jen pole která chceš změnit, ostatní zůstanou původní)`;
+(uveď jen pole která chceš změnit, ostatní zůstanou původní)
+
+5. Vygenerovat denní jídelníček (slova: "vygeneruj jídelníček", "plán na celý den", "co mám jíst dnes", "navrhni jídla na den"):
+\`\`\`meal-plan
+[{"slot":"snidane","name":"Ovesná kaše s banánem","grams":350,"kcal":380,"carbs":62,"protein":14,"fat":6},{"slot":"obed","name":"Kuřecí prsa s rýží","grams":450,"kcal":520,"carbs":55,"protein":48,"fat":10}]
+\`\`\`
+(použij sloty: snidane, dop_svacina, obed, odp_svacina, pred_tren, behem_tren, po_tren, vecere)
+(celkové kcal musí odpovídat dennímu cíli uživatele; navrhni 4–6 jídel)
+
+6. Navrhnout recept z ingrediencí (slova: "mám doma", "co uvařit z", "navrhni recept", "šéfkuchař"):
+\`\`\`recipe-suggestion
+{"name":"Kuřecí stir-fry s rýží","servings":2,"ingredients":[{"name":"Kuřecí prsa","grams":300},{"name":"Rýže","grams":200},{"name":"Brokolice","grams":150}],"macros":{"kcal":540,"carbs":62,"protein":48,"fat":8},"prep_time":"20 min","cycling_note":"Ideální regenerační jídlo po tréninku"}
+\`\`\``;
 
 export function useChatSession(ctx: AppCtx) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory());
@@ -194,9 +229,11 @@ export function useChatSession(ctx: AppCtx) {
       }
 
       // Parse action blocks
-      let foodAction:  ChatMessage['foodAction'];
-      let diaryAction: ChatMessage['diaryAction'];
-      let goalsAction: ChatMessage['goalsAction'];
+      let foodAction:    ChatMessage['foodAction'];
+      let diaryAction:   ChatMessage['diaryAction'];
+      let goalsAction:   ChatMessage['goalsAction'];
+      let mealPlanAction: ChatMessage['mealPlanAction'];
+      let recipeAction:  ChatMessage['recipeAction'];
 
       const foodMatch = FOOD_RE.exec(fullText);
       if (foodMatch) {
@@ -240,8 +277,26 @@ export function useChatSession(ctx: AppCtx) {
         } catch { /* skip */ }
       }
 
+      const mealPlanMatch = MEAL_PLAN_RE.exec(fullText);
+      if (mealPlanMatch) {
+        try {
+          mealPlanAction = JSON.parse(mealPlanMatch[1]) as MealPlanItem[];
+          fullText = fullText.replace(MEAL_PLAN_RE, '').trim();
+        } catch { /* skip */ }
+      }
+
+      const recipeMatch = RECIPE_RE.exec(fullText);
+      if (recipeMatch) {
+        try {
+          recipeAction = JSON.parse(recipeMatch[1]) as RecipeSuggestionAction;
+          fullText = fullText.replace(RECIPE_RE, '').trim();
+        } catch { /* skip */ }
+      }
+
       setMessages(prev =>
-        prev.map(m => m.id === modelId ? { ...m, content: fullText, foodAction, diaryAction, goalsAction } : m)
+        prev.map(m => m.id === modelId
+          ? { ...m, content: fullText, foodAction, diaryAction, goalsAction, mealPlanAction, recipeAction }
+          : m)
       );
     } catch (e) {
       setMessages(prev => prev.filter(m => m.id !== modelId));

@@ -3,6 +3,8 @@ import { AppContext, type DeficitLevel, DEFICIT_KCAL } from '../App';
 import { T, BRAND, Card, SectionTitle, StatRow, Btn, Spinner } from '../components/UI';
 import { showToast } from '../components/Toast';
 import { calcBMR, calcCalories, calcMacros, calcWater } from '../constants/training';
+import { useNotifications } from '../hooks/useNotifications';
+import { useWeightLog } from '../hooks/useWeightLog';
 
 function SliderField({
   label, value, min, max, step, unit, accent, onChange,
@@ -184,20 +186,13 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
 
 // ─── Weight log button (inline in profile card) ───────────────
 function WeightLogBtn({ userId, currentWeight, accent, onLogged }: { userId: string; currentWeight: number; accent: string; onLogged: () => void }) {
-  const logKey = `cyclofuel_weight_log_${userId}`;
   const today  = new Date().toISOString().split('T')[0];
   const [logged, setLogged] = useState(false);
-
-  const entries: { date: string; weight: number }[] = (() => {
-    try { return JSON.parse(localStorage.getItem(logKey) ?? '[]'); }
-    catch { return []; }
-  })();
+  const { entries, addEntry } = useWeightLog(userId);
   const todayLogged = entries.some(e => e.date === today);
 
-  const log = () => {
-    const next = [...entries.filter(e => e.date !== today), { date: today, weight: currentWeight }]
-      .sort((a, b) => a.date.localeCompare(b.date)).slice(-60);
-    localStorage.setItem(logKey, JSON.stringify(next));
+  const log = async () => {
+    await addEntry(today, currentWeight);
     setLogged(true);
     onLogged();
     setTimeout(() => setLogged(false), 2000);
@@ -220,16 +215,11 @@ function WeightLogBtn({ userId, currentWeight, accent, onLogged }: { userId: str
 }
 
 // ─── Weight tracker ───────────────────────────────────────────
-interface WeightEntry { date: string; weight: number; }
-
 function WeightTracker({ userId, currentWeight, accent }: { userId: string; currentWeight: number; accent: string }) {
-  const logKey    = `cyclofuel_weight_log_${userId}`;
   const targetKey = `cyclofuel_target_weight_${userId}`;
-
-  const [entries] = useState<WeightEntry[]>(() => {
-    try { return JSON.parse(localStorage.getItem(logKey) ?? '[]'); }
-    catch { return []; }
-  });
+  const { entries: rawEntries } = useWeightLog(userId);
+  // Convert to local shape for chart
+  const entries = rawEntries.map(e => ({ date: e.date, weight: e.weight_kg }));
 
   const today        = new Date().toISOString().split('T')[0];
   const targetWeight = Number(localStorage.getItem(targetKey) ?? 0) || null;
@@ -376,6 +366,11 @@ function WeightTracker({ userId, currentWeight, accent }: { userId: string; curr
 export default function Profile() {
   const ctx = useContext(AppContext);
   const { userId, accent, profile, saveProfile, signOut, trainingDay } = ctx;
+
+  const { permission: notifPermission, request: requestNotif } = useNotifications({
+    totals: { kcal: 0, protein: 0 }, goals: { kcal: 0, water: 0, protein: 0 },
+    waterGlasses: 0, intervalsActivitiesJson: '',
+  });
 
   const [weight, setWeight] = useState(profile?.weight ?? 70);
   const [height, setHeight] = useState(profile?.height ?? 175);
@@ -542,6 +537,31 @@ export default function Profile() {
           {apiKeySaved ? '✓ Uloženo' : 'Uložit klíč'}
         </Btn>
       </Card>
+
+      {/* Notifications */}
+      {'Notification' in window && (
+        <>
+          <SectionTitle accent={BRAND.blue}>Notifikace</SectionTitle>
+          <Card style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 13, color: T.muted, marginBottom: 10 }}>
+              Dostávej připomínky pro jídlo, hydrataci a okno na proteiny po tréninku.
+            </div>
+            {notifPermission === 'granted' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: BRAND.green }}>
+                <span>✓</span> Notifikace povoleny
+              </div>
+            ) : notifPermission === 'denied' ? (
+              <div style={{ fontSize: 12, color: T.muted }}>
+                Notifikace jsou zakázány. Povol je v nastavení prohlížeče.
+              </div>
+            ) : (
+              <Btn accent={BRAND.blue} size="sm" onClick={requestNotif}>
+                🔔 Povolit notifikace
+              </Btn>
+            )}
+          </Card>
+        </>
+      )}
 
       {/* About */}
       <Card style={{ marginBottom: 20 }}>
