@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
+import { AppContext } from '../App';
 import { T, Card, Spinner } from './UI';
 import { activityKcal, sportIcon, formatDuration } from '../services/intervalsService';
 import { useIntervalsData } from '../hooks/useIntervalsData';
@@ -118,8 +119,9 @@ function ActivityRow({ a }: { a: Parameters<typeof activityKcal>[0] }) {
 
 // ── Main card ─────────────────────────────────────────────────
 export function IntervalsCard() {
+  const { userId } = useContext(AppContext);
   const { activities, loading, error, stale, isConnected,
-          cacheAge, connect, sync, disconnect } = useIntervalsData(1);
+          cacheAge, connect, sync, disconnect } = useIntervalsData(1, userId);
 
   const handleConnect = async (athleteId: string, apiKey: string) => {
     await connect({ athleteId, apiKey });

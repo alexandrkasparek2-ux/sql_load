@@ -1,3 +1,5 @@
+import { useContext } from 'react';
+import { AppContext } from '../App';
 import { T, BRAND, Spinner } from '../components/UI';
 import {
   activityKcal, sportIcon, formatDuration,
@@ -110,8 +112,9 @@ function ActivityCard({ a }: { a: IntervalsActivity }) {
 }
 
 export default function Plan() {
+  const { userId } = useContext(AppContext);
   const { activities, loading, error, stale, isConnected, cacheAge, sync, disconnect }
-    = useIntervalsData(3);
+    = useIntervalsData(3, userId);
 
   const today = new Date().toISOString().split('T')[0];
 

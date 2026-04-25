@@ -10,6 +10,7 @@ import { useProfile }     from './hooks/useProfile';
 import { useTrainingDay } from './hooks/useTrainingDay';
 import { useFoodEntries } from './hooks/useFoodEntries';
 import { useDailyGoals }  from './hooks/useDailyGoals';
+import { getSetting, setSetting, deleteSetting } from './hooks/useUserSettings';
 
 import type { Profile as ProfileData } from './hooks/useProfile';
 import type { TrainingDay } from './hooks/useTrainingDay';
@@ -204,9 +205,17 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     return (v as DeficitLevel) ?? 'off';
   });
 
+  // Sync deficit level from Supabase on mount
+  useEffect(() => {
+    getSetting<DeficitLevel>(userId, 'deficit_level').then(v => {
+      if (v) { localStorage.setItem(`cyclofuel_deficit_level_${userId}`, v); setDeficitLevelState(v); }
+    });
+  }, [userId]);
+
   const setDeficitLevel = (v: DeficitLevel) => {
     localStorage.setItem(`cyclofuel_deficit_level_${userId}`, v);
     setDeficitLevelState(v);
+    setSetting(userId, 'deficit_level', v);
   };
 
   const trainingType = trainingDay?.training_type ?? 'rest';
@@ -226,7 +235,8 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     );
 
     // Apply weight-loss deficit
-    const targetW = Number(localStorage.getItem(`cyclofuel_target_weight_${userId}`) ?? profile.weight);
+    const storedTarget = localStorage.getItem(`cyclofuel_target_weight_${userId}`);
+    const targetW = storedTarget ? Number(storedTarget) : profile.weight;
     const deficit = deficitLevel !== 'off' && targetW < profile.weight ? DEFICIT_KCAL[deficitLevel] : 0;
     const kcalFinal = Math.max(1200, kcalGoal - deficit);
 

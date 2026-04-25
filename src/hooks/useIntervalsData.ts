@@ -4,6 +4,7 @@ import {
   fetchIntervalsActivities, saveBurnLog,
   type IntervalsActivity, type IntervalsCreds,
 } from '../services/intervalsService';
+import { getSetting, setSetting, deleteSetting } from './useUserSettings';
 
 const CACHE_KEY    = 'cyclofuel_intervals_cache';
 const CACHE_TTL_MS = 15 * 60 * 1000;
@@ -42,7 +43,7 @@ export interface UseIntervalsResult {
   disconnect:  () => void;
 }
 
-export function useIntervalsData(daysBack = 3): UseIntervalsResult {
+export function useIntervalsData(daysBack = 3, userId?: string): UseIntervalsResult {
   const [creds,      setCreds]      = useState<IntervalsCreds | null>(() => loadCreds());
   const [activities, setActivities] = useState<IntervalsActivity[]>(
     () => loadCache(daysBack)?.activities ?? [],
@@ -53,6 +54,14 @@ export function useIntervalsData(daysBack = 3): UseIntervalsResult {
   const [fetchedAt,  setFetchedAt]  = useState<number | null>(
     () => loadCache(daysBack)?.fetchedAt ?? null,
   );
+
+  // On mount: pull credentials from Supabase if not in localStorage
+  useEffect(() => {
+    if (!userId || loadCreds()) return;
+    getSetting<IntervalsCreds>(userId, 'intervals_creds').then(remote => {
+      if (remote) { saveCreds(remote); setCreds(remote); }
+    });
+  }, [userId]);
 
   const sync = useCallback(async (c?: IntervalsCreds) => {
     const activeCreds = c ?? loadCreds();
@@ -77,18 +86,20 @@ export function useIntervalsData(daysBack = 3): UseIntervalsResult {
   const connect = useCallback(async (newCreds: IntervalsCreds) => {
     saveCreds(newCreds);
     setCreds(newCreds);
+    if (userId) setSetting(userId, 'intervals_creds', newCreds);
     await sync(newCreds);
-  }, [sync]);
+  }, [sync, userId]);
 
   const disconnect = useCallback(() => {
     clearCreds();
     localStorage.removeItem(CACHE_KEY);
+    if (userId) deleteSetting(userId, 'intervals_creds');
     setCreds(null);
     setActivities([]);
     setError(null);
     setStale(false);
     setFetchedAt(null);
-  }, []);
+  }, [userId]);
 
   // Auto-sync on mount if cache stale
   useEffect(() => {
