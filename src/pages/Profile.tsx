@@ -4,7 +4,8 @@ import { T, BRAND, Card, SectionTitle, StatRow, Btn, Spinner } from '../componen
 import { showToast } from '../components/Toast';
 import { calcBMR, calcCalories, calcMacros, calcWater } from '../constants/training';
 import { useNotifications } from '../hooks/useNotifications';
-import { useWeightLog } from '../hooks/useWeightLog';
+import { useWeightLog, type WeightEntry } from '../hooks/useWeightLog';
+import { getSetting, setSetting } from '../hooks/useUserSettings';
 
 function SliderField({
   label, value, min, max, step, unit, accent, onChange,
@@ -56,6 +57,18 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
   });
   const [saved, setSaved] = useState(false);
 
+  // Load target_weight from Supabase if not in localStorage
+  useEffect(() => {
+    if (!userId) return;
+    if (localStorage.getItem(storageKey)) return;
+    getSetting<number>(userId, 'target_weight').then(v => {
+      if (v != null) {
+        setTargetWeight(v);
+        localStorage.setItem(storageKey, String(v));
+      }
+    });
+  }, [userId, storageKey]);
+
   // If user increased weight above stored start, update start weight
   useEffect(() => {
     if (currentWeight > startWeight) {
@@ -75,6 +88,7 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
 
   const handleSave = () => {
     localStorage.setItem(storageKey, String(targetWeight));
+    setSetting(userId, 'target_weight', targetWeight);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -185,10 +199,12 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
 }
 
 // ─── Weight log button (inline in profile card) ───────────────
-function WeightLogBtn({ userId, currentWeight, accent, onLogged }: { userId: string; currentWeight: number; accent: string; onLogged: () => void }) {
+function WeightLogBtn({ currentWeight, accent, entries, addEntry, onLogged }: {
+  currentWeight: number; accent: string; onLogged: () => void;
+  entries: WeightEntry[]; addEntry: (date: string, weight_kg: number) => Promise<void>;
+}) {
   const today  = new Date().toISOString().split('T')[0];
   const [logged, setLogged] = useState(false);
-  const { entries, addEntry } = useWeightLog(userId);
   const todayLogged = entries.some(e => e.date === today);
 
   const log = async () => {
@@ -215,11 +231,12 @@ function WeightLogBtn({ userId, currentWeight, accent, onLogged }: { userId: str
 }
 
 // ─── Weight tracker ───────────────────────────────────────────
-function WeightTracker({ userId, currentWeight, accent }: { userId: string; currentWeight: number; accent: string }) {
+function WeightTracker({ userId, currentWeight, accent, weightEntries }: {
+  userId: string; currentWeight: number; accent: string; weightEntries: WeightEntry[];
+}) {
   const targetKey = `cyclofuel_target_weight_${userId}`;
-  const { entries: rawEntries } = useWeightLog(userId);
   // Convert to local shape for chart
-  const entries = rawEntries.map(e => ({ date: e.date, weight: e.weight_kg }));
+  const entries = weightEntries.map(e => ({ date: e.date, weight: e.weight_kg }));
 
   const today        = new Date().toISOString().split('T')[0];
   const targetWeight = Number(localStorage.getItem(targetKey) ?? 0) || null;
@@ -372,15 +389,24 @@ export default function Profile() {
     waterGlasses: 0, intervalsActivitiesJson: '',
   });
 
+  const { entries: weightEntries, addEntry: addWeightEntry } = useWeightLog(userId || undefined);
+
   const [weight, setWeight] = useState(profile?.weight ?? 70);
   const [height, setHeight] = useState(profile?.height ?? 175);
   const [age,    setAge]    = useState(profile?.age    ?? 30);
   const [gender, setGender] = useState<'male' | 'female'>(profile?.gender ?? 'male');
-  const [saving,       setSaving]       = useState(false);
-  const [saved,        setSaved]        = useState(false);
-  const [weightLogKey, setWeightLogKey] = useState(0);
-  const [apiKey,    setApiKey]    = useState(() => localStorage.getItem('anthropic_api_key') ?? '');
+  const [saving,  setSaving]  = useState(false);
+  const [saved,   setSaved]   = useState(false);
+  const [apiKey,     setApiKey]     = useState(() => localStorage.getItem('anthropic_api_key') ?? '');
   const [apiKeySaved, setApiKeySaved] = useState(false);
+
+  // Load anthropic_api_key from Supabase if missing locally
+  useEffect(() => {
+    if (!userId || localStorage.getItem('anthropic_api_key')) return;
+    getSetting<string>(userId, 'anthropic_api_key').then(v => {
+      if (v) { setApiKey(v); localStorage.setItem('anthropic_api_key', v); }
+    });
+  }, [userId]);
 
   useEffect(() => {
     if (profile) {
@@ -457,7 +483,7 @@ export default function Profile() {
           label="Hmotnost" value={weight} min={40} max={150} step={1} unit="kg"
           accent={accent} onChange={setWeight}
         />
-        <WeightLogBtn userId={userId} currentWeight={weight} accent={accent} onLogged={() => setWeightLogKey(k => k + 1)} />
+        <WeightLogBtn currentWeight={weight} accent={accent} entries={weightEntries} addEntry={addWeightEntry} onLogged={() => {}} />
         <SliderField
           label="Výška"    value={height} min={140} max={220} step={1} unit="cm"
           accent={accent} onChange={setHeight}
@@ -480,7 +506,7 @@ export default function Profile() {
 
       {/* Weight tracker */}
       <SectionTitle accent={accent}>Vývoj váhy</SectionTitle>
-      <WeightTracker key={weightLogKey} userId={userId} currentWeight={weight} accent={accent} />
+      <WeightTracker userId={userId} currentWeight={weight} accent={accent} weightEntries={weightEntries} />
 
       {/* Stats summary */}
       <SectionTitle accent={accent}>Parametry těla</SectionTitle>
@@ -529,7 +555,9 @@ export default function Profile() {
           accent={BRAND.gold}
           size="sm"
           onClick={() => {
-            localStorage.setItem('anthropic_api_key', apiKey.trim());
+            const trimmed = apiKey.trim();
+            localStorage.setItem('anthropic_api_key', trimmed);
+            if (userId) setSetting(userId, 'anthropic_api_key', trimmed);
             setApiKeySaved(true);
             showToast('API klíč uložen');
           }}
