@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     if (!image) return res.status(400).json({ error: 'No image provided' });
 
     const apiKey = (userApiKey || process.env.ANTHROPIC_API_KEY || '').trim();
-    if (!apiKey) return res.status(500).json({ error: 'Anthropic API key not configured' });
+    if (!apiKey) return res.status(500).json({ error: 'Chybí Anthropic API klíč. Nastav ho v Profilu → AI Poradce.' });
 
     const prompt = mode === 'recipe' ? RECIPE_PROMPT : FOOD_PROMPT;
 
@@ -46,8 +46,8 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 1024,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 2048,
         system: SYSTEM_INSTRUCTION,
         messages: [{
           role: 'user',
