@@ -3,9 +3,8 @@ import { AppContext, type DeficitLevel, DEFICIT_KCAL } from '../App';
 import { T, BRAND, Card, SectionTitle, StatRow, Btn, Spinner } from '../components/UI';
 import { showToast } from '../components/Toast';
 import { calcBMR, calcCalories, calcMacros, calcWater } from '../constants/training';
-import { useNotifications } from '../hooks/useNotifications';
-import { useWeightLog, type WeightEntry } from '../hooks/useWeightLog';
-import { getSetting, setSetting } from '../hooks/useUserSettings';
+import { useUserSetting } from '../hooks/useUserSetting';
+import { getSetting } from '../hooks/useUserSettings';
 
 function SliderField({
   label, value, min, max, step, unit, accent, onChange,
@@ -41,41 +40,31 @@ function SliderField({
 function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; currentWeight: number; accent: string }) {
   const ctx = useContext(AppContext);
   const { deficitLevel, setDeficitLevel } = ctx;
-
-  const storageKey = `cyclofuel_target_weight_${userId}`;
-  const startKey   = `cyclofuel_start_weight_${userId}`;
-
-  const [targetWeight, setTargetWeight] = useState<number>(() => {
-    const v = localStorage.getItem(storageKey);
-    return v ? Number(v) : Math.max(40, currentWeight - 5);
-  });
-  const [startWeight, setStartWeight] = useState<number>(() => {
-    const v = localStorage.getItem(startKey);
-    if (v) return Number(v);
-    localStorage.setItem(startKey, String(currentWeight));
-    return currentWeight;
-  });
+  const { value: storedTargetWeight, setValue: setStoredTargetWeight } = useUserSetting<number>(
+    userId,
+    'target_weight',
+    Math.max(40, currentWeight - 5),
+    { legacyKey: `cyclofuel_target_weight_${userId}` },
+  );
+  const { value: startWeight, setValue: setStartWeight } = useUserSetting<number>(
+    userId,
+    'start_weight',
+    currentWeight,
+    { legacyKey: `cyclofuel_start_weight_${userId}` },
+  );
+  const [targetWeight, setTargetWeight] = useState<number>(storedTargetWeight);
   const [saved, setSaved] = useState(false);
 
-  // Load target_weight from Supabase if not in localStorage
   useEffect(() => {
-    if (!userId) return;
-    if (localStorage.getItem(storageKey)) return;
-    getSetting<number>(userId, 'target_weight').then(v => {
-      if (v != null) {
-        setTargetWeight(v);
-        localStorage.setItem(storageKey, String(v));
-      }
-    });
-  }, [userId, storageKey]);
+    setTargetWeight(storedTargetWeight);
+  }, [storedTargetWeight]);
 
   // If user increased weight above stored start, update start weight
   useEffect(() => {
     if (currentWeight > startWeight) {
-      localStorage.setItem(startKey, String(currentWeight));
-      setStartWeight(currentWeight);
+      void setStartWeight(currentWeight);
     }
-  }, [currentWeight, startWeight, startKey]);
+  }, [currentWeight, startWeight, setStartWeight]);
 
   const tolose     = parseFloat((currentWeight - targetWeight).toFixed(1));
   const totalGoal  = parseFloat((startWeight - targetWeight).toFixed(1));
@@ -87,8 +76,7 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
   const weeksNeeded    = tolose > 0 && kgPerWeek > 0 ? Math.ceil(tolose / kgPerWeek) : 0;
 
   const handleSave = () => {
-    localStorage.setItem(storageKey, String(targetWeight));
-    setSetting(userId, 'target_weight', targetWeight);
+    void setStoredTargetWeight(targetWeight);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -199,16 +187,24 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
 }
 
 // ─── Weight log button (inline in profile card) ───────────────
-function WeightLogBtn({ currentWeight, accent, entries, addEntry, onLogged }: {
-  currentWeight: number; accent: string; onLogged: () => void;
-  entries: WeightEntry[]; addEntry: (date: string, weight_kg: number) => Promise<void>;
-}) {
+function WeightLogBtn({ userId, currentWeight, accent, onLogged }: { userId: string; currentWeight: number; accent: string; onLogged: () => void }) {
   const today  = new Date().toISOString().split('T')[0];
   const [logged, setLogged] = useState(false);
+  const { value: entries, setValue: setEntries } = useUserSetting<{ date: string; weight: number }[]>(
+    userId,
+    'weight_log',
+    [],
+    {
+      legacyKey: `cyclofuel_weight_log_${userId}`,
+      isEmpty: value => value.length === 0,
+    },
+  );
   const todayLogged = entries.some(e => e.date === today);
 
-  const log = async () => {
-    await addEntry(today, currentWeight);
+  const log = () => {
+    const next = [...entries.filter(e => e.date !== today), { date: today, weight: currentWeight }]
+      .sort((a, b) => a.date.localeCompare(b.date)).slice(-60);
+    void setEntries(next);
     setLogged(true);
     onLogged();
     setTimeout(() => setLogged(false), 2000);
@@ -231,15 +227,27 @@ function WeightLogBtn({ currentWeight, accent, entries, addEntry, onLogged }: {
 }
 
 // ─── Weight tracker ───────────────────────────────────────────
-function WeightTracker({ userId, currentWeight, accent, weightEntries }: {
-  userId: string; currentWeight: number; accent: string; weightEntries: WeightEntry[];
-}) {
-  const targetKey = `cyclofuel_target_weight_${userId}`;
-  // Convert to local shape for chart
-  const entries = weightEntries.map(e => ({ date: e.date, weight: e.weight_kg }));
+interface WeightEntry { date: string; weight: number; }
+
+function WeightTracker({ userId, currentWeight, accent }: { userId: string; currentWeight: number; accent: string }) {
+  const { value: entries } = useUserSetting<WeightEntry[]>(
+    userId,
+    'weight_log',
+    [],
+    {
+      legacyKey: `cyclofuel_weight_log_${userId}`,
+      isEmpty: value => value.length === 0,
+    },
+  );
+  const { value: syncedTargetWeight } = useUserSetting<number>(
+    userId,
+    'target_weight',
+    0,
+    { legacyKey: `cyclofuel_target_weight_${userId}` },
+  );
 
   const today        = new Date().toISOString().split('T')[0];
-  const targetWeight = Number(localStorage.getItem(targetKey) ?? 0) || null;
+  const targetWeight = syncedTargetWeight > 0 ? syncedTargetWeight : null;
 
   // Chart
   const W = 280, H = 110, padL = 34, padR = 8, padT = 12, padB = 24;
@@ -383,14 +391,12 @@ function WeightTracker({ userId, currentWeight, accent, weightEntries }: {
 export default function Profile() {
   const ctx = useContext(AppContext);
   const { userId, accent, profile, saveProfile, signOut, trainingDay } = ctx;
-
-  const { permission: notifPermission, request: requestNotif } = useNotifications({
-    totals: { kcal: 0, protein: 0 }, goals: { kcal: 0, water: 0, protein: 0 },
-    waterGlasses: 0, intervalsActivitiesJson: '',
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth >= 1280;
   });
 
-  const { entries: weightEntries, addEntry: addWeightEntry } = useWeightLog(userId || undefined);
-
+  const [weightLogKey, setWeightLogKey] = useState(0);
   const [weight, setWeight] = useState(profile?.weight ?? 70);
   const [height, setHeight] = useState(profile?.height ?? 175);
   const [age,    setAge]    = useState(profile?.age    ?? 30);
@@ -417,6 +423,15 @@ export default function Profile() {
     }
   }, [profile]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const media = window.matchMedia('(min-width: 1280px)');
+    const sync = () => setIsDesktop(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
+
   const handleSave = useCallback(async () => {
     setSaving(true);
     await saveProfile({ weight, height, age, gender });
@@ -438,8 +453,128 @@ export default function Profile() {
   const bmiLabel = bmi < 18.5 ? 'Podváha' : bmi < 25 ? 'Normální' : bmi < 30 ? 'Nadváha' : 'Obezita';
   const bmiColor = bmi < 18.5 ? '#f59e0b' : bmi < 25 ? '#22c55e' : bmi < 30 ? '#f59e0b' : '#ef4444';
 
+  const profileEditor = (
+    <Card style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 13, color: T.muted, marginBottom: 8 }}>Pohlaví</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(['male', 'female'] as const).map(g => (
+            <button
+              key={g}
+              onClick={() => setGender(g)}
+              style={{
+                flex:         1,
+                padding:      '10px',
+                borderRadius: 10,
+                border:       `1px solid ${gender === g ? accent : T.border}`,
+                background:   gender === g ? accent + '22' : T.bg,
+                color:        gender === g ? accent : T.muted,
+                fontSize:     14,
+                fontWeight:   600,
+                cursor:       'pointer',
+                fontFamily:   'DM Sans, sans-serif',
+                transition:   'all 0.15s',
+              }}
+            >
+              {g === 'male' ? '♂ Muž' : '♀ Žena'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <SliderField
+        label="Hmotnost" value={weight} min={40} max={150} step={1} unit="kg"
+        accent={accent} onChange={setWeight}
+      />
+      <WeightLogBtn userId={userId} currentWeight={weight} accent={accent} onLogged={() => setWeightLogKey(k => k + 1)} />
+      <SliderField
+        label="Výška"    value={height} min={140} max={220} step={1} unit="cm"
+        accent={accent} onChange={setHeight}
+      />
+      <SliderField
+        label="Věk"      value={age}    min={14}  max={80}  step={1} unit="let"
+        accent={accent} onChange={setAge}
+      />
+
+      <Btn accent={accent} size="lg" full onClick={handleSave} disabled={saving}>
+        {saving ? (
+          <><Spinner color="#fff" size={16} /> Ukládám…</>
+        ) : saved ? '✓ Uloženo' : 'Uložit profil'}
+      </Btn>
+    </Card>
+  );
+
+  const statsSummary = (
+    <Card style={{ marginBottom: 16 }}>
+      <StatRow label="BMI"          value={bmi}   sublabel={bmiLabel}                   accent={bmiColor} />
+      <StatRow label="BMR"          value={bmr}   unit="kcal/den" sublabel="Bazální metabolismus" accent={accent} />
+      <StatRow label="Výška"        value={height} unit="cm" />
+      <StatRow label="Hmotnost"     value={weight} unit="kg" />
+      <StatRow label="Pohlaví"      value={gender === 'male' ? 'Muž' : 'Žena'} />
+      <div style={{ borderBottom: 'none' }}>
+        <StatRow label="Věk"        value={age}   unit="let" />
+      </div>
+    </Card>
+  );
+
+  const dailyGoalsSummary = (
+    <Card style={{ marginBottom: 16 }}>
+      <StatRow label="Kalorie"    value={kcal}           unit="kcal" accent={accent} />
+      <StatRow label="Sacharidy"  value={macros.carbs}   unit="g"    accent={BRAND.gold}   />
+      <StatRow label="Bílkoviny"  value={macros.protein} unit="g"    accent={BRAND.green}  />
+      <StatRow label="Tuky"       value={macros.fat}     unit="g"    accent={BRAND.orange} />
+      <div style={{ borderBottom: 'none' }}>
+        <StatRow label="Voda"     value={water}          unit="L"    accent="#06b6d4" />
+      </div>
+    </Card>
+  );
+
+  const apiKeySection = (
+    <Card style={{ marginBottom: 16 }}>
+      <div style={{ fontSize: 13, color: T.muted, marginBottom: 10 }}>
+        Vlož svůj Anthropic API klíč pro funkci AI chatbota.
+      </div>
+      <input
+        type="password"
+        value={apiKey}
+        onChange={e => { setApiKey(e.target.value); setApiKeySaved(false); }}
+        placeholder="sk-ant-api03-..."
+        style={{
+          width: '100%', background: T.bg, border: `1px solid ${T.border}`,
+          borderRadius: 10, padding: '10px 12px', color: T.text, fontSize: 13,
+          outline: 'none', boxSizing: 'border-box', marginBottom: 10,
+          fontFamily: 'monospace',
+        }}
+      />
+      <Btn
+        accent={BRAND.gold}
+        size="sm"
+        onClick={() => {
+          localStorage.setItem('anthropic_api_key', apiKey.trim());
+          setApiKeySaved(true);
+          showToast('API klíč uložen');
+        }}
+      >
+        {apiKeySaved ? '✓ Uloženo' : 'Uložit klíč'}
+      </Btn>
+    </Card>
+  );
+
+  const aboutSection = (
+    <Card style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.7 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 700, color: accent, marginBottom: 6 }}>
+          🚴 CycloFuel v0.1
+        </div>
+        Nutriční tracker navržený pro cyklisty. Cíle kalorií a makronutrientů
+        jsou vypočítány metodou Mifflin-St Jeor a přizpůsobeny tvému typu tréninku.
+        Mikronutrienty jsou škálovány podle tréninkové zátěže.
+      </div>
+    </Card>
+  );
+
   return (
-    <div style={{ padding: '16px 16px 0', position: 'relative' }}>
+    <div style={{ padding: isDesktop ? '0 0 12px' : '16px 16px 0', position: 'relative' }}>
       {/* Gradient overlay */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 300,
@@ -447,161 +582,114 @@ export default function Profile() {
         pointerEvents: 'none', zIndex: 0,
       }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
-      <SectionTitle accent={BRAND.gold}>Profil</SectionTitle>
-
-      {/* Profile card */}
-      <Card style={{ marginBottom: 16 }}>
-        {/* Gender toggle */}
-        <div style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: 13, color: T.muted, marginBottom: 8 }}>Pohlaví</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {(['male', 'female'] as const).map(g => (
-              <button
-                key={g}
-                onClick={() => setGender(g)}
-                style={{
-                  flex:         1,
-                  padding:      '10px',
-                  borderRadius: 10,
-                  border:       `1px solid ${gender === g ? accent : T.border}`,
-                  background:   gender === g ? accent + '22' : T.bg,
-                  color:        gender === g ? accent : T.muted,
-                  fontSize:     14,
-                  fontWeight:   600,
-                  cursor:       'pointer',
-                  fontFamily:   'DM Sans, sans-serif',
-                  transition:   'all 0.15s',
-                }}
-              >
-                {g === 'male' ? '♂ Muž' : '♀ Žena'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <SliderField
-          label="Hmotnost" value={weight} min={40} max={150} step={1} unit="kg"
-          accent={accent} onChange={setWeight}
-        />
-        <WeightLogBtn currentWeight={weight} accent={accent} entries={weightEntries} addEntry={addWeightEntry} onLogged={() => {}} />
-        <SliderField
-          label="Výška"    value={height} min={140} max={220} step={1} unit="cm"
-          accent={accent} onChange={setHeight}
-        />
-        <SliderField
-          label="Věk"      value={age}    min={14}  max={80}  step={1} unit="let"
-          accent={accent} onChange={setAge}
-        />
-
-        <Btn accent={accent} size="lg" full onClick={handleSave} disabled={saving}>
-          {saving ? (
-            <><Spinner color="#fff" size={16} /> Ukládám…</>
-          ) : saved ? '✓ Uloženo' : 'Uložit profil'}
-        </Btn>
-      </Card>
-
-      {/* Weight goal */}
-      <SectionTitle accent={accent}>Hubnutí</SectionTitle>
-      <WeightGoalCard userId={userId} currentWeight={weight} accent={accent} />
-
-      {/* Weight tracker */}
-      <SectionTitle accent={accent}>Vývoj váhy</SectionTitle>
-      <WeightTracker userId={userId} currentWeight={weight} accent={accent} weightEntries={weightEntries} />
-
-      {/* Stats summary */}
-      <SectionTitle accent={accent}>Parametry těla</SectionTitle>
-      <Card style={{ marginBottom: 16 }}>
-        <StatRow label="BMI"          value={bmi}   sublabel={bmiLabel}                   accent={bmiColor} />
-        <StatRow label="BMR"          value={bmr}   unit="kcal/den" sublabel="Bazální metabolismus" accent={accent} />
-        <StatRow label="Výška"        value={height} unit="cm" />
-        <StatRow label="Hmotnost"     value={weight} unit="kg" />
-        <StatRow label="Pohlaví"      value={gender === 'male' ? 'Muž' : 'Žena'} />
-        <div style={{ borderBottom: 'none' }}>
-          <StatRow label="Věk"        value={age}   unit="let" />
-        </div>
-      </Card>
-
-      {/* Daily targets summary */}
-      <SectionTitle accent={accent}>Dnešní cíle</SectionTitle>
-      <Card style={{ marginBottom: 16 }}>
-        <StatRow label="Kalorie"    value={kcal}           unit="kcal" accent={accent} />
-        <StatRow label="Sacharidy"  value={macros.carbs}   unit="g"    accent={BRAND.gold}   />
-        <StatRow label="Bílkoviny"  value={macros.protein} unit="g"    accent={BRAND.green}  />
-        <StatRow label="Tuky"       value={macros.fat}     unit="g"    accent={BRAND.orange} />
-        <div style={{ borderBottom: 'none' }}>
-          <StatRow label="Voda"     value={water}          unit="L"    accent="#06b6d4" />
-        </div>
-      </Card>
-
-      {/* AI API Key */}
-      <SectionTitle accent={BRAND.gold}>AI Poradce</SectionTitle>
-      <Card style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 13, color: T.muted, marginBottom: 10 }}>
-          Vlož svůj Anthropic API klíč pro funkci AI chatbota.
-        </div>
-        <input
-          type="password"
-          value={apiKey}
-          onChange={e => { setApiKey(e.target.value); setApiKeySaved(false); }}
-          placeholder="sk-ant-api03-..."
-          style={{
-            width: '100%', background: T.bg, border: `1px solid ${T.border}`,
-            borderRadius: 10, padding: '10px 12px', color: T.text, fontSize: 13,
-            outline: 'none', boxSizing: 'border-box', marginBottom: 10,
-            fontFamily: 'monospace',
-          }}
-        />
-        <Btn
-          accent={BRAND.gold}
-          size="sm"
-          onClick={() => {
-            const trimmed = apiKey.trim();
-            localStorage.setItem('anthropic_api_key', trimmed);
-            if (userId) setSetting(userId, 'anthropic_api_key', trimmed);
-            setApiKeySaved(true);
-            showToast('API klíč uložen');
-          }}
-        >
-          {apiKeySaved ? '✓ Uloženo' : 'Uložit klíč'}
-        </Btn>
-      </Card>
-
-      {/* Notifications */}
-      {'Notification' in window && (
+      {isDesktop ? (
         <>
-          <SectionTitle accent={BRAND.blue}>Notifikace</SectionTitle>
-          <Card style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 13, color: T.muted, marginBottom: 10 }}>
-              Dostávej připomínky pro jídlo, hydrataci a okno na proteiny po tréninku.
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1.05fr) minmax(360px, 0.95fr)',
+            gap: 20,
+            alignItems: 'start',
+            marginBottom: 16,
+          }}>
+            <div>
+              <SectionTitle accent={BRAND.gold}>Profil</SectionTitle>
+              {profileEditor}
+
+              <SectionTitle accent={accent}>Hubnutí</SectionTitle>
+              <WeightGoalCard userId={userId} currentWeight={weight} accent={accent} />
+
+              <SectionTitle accent={accent}>AI Poradce</SectionTitle>
+              {apiKeySection}
             </div>
-            {notifPermission === 'granted' ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: BRAND.green }}>
-                <span>✓</span> Notifikace povoleny
-              </div>
-            ) : notifPermission === 'denied' ? (
-              <div style={{ fontSize: 12, color: T.muted }}>
-                Notifikace jsou zakázány. Povol je v nastavení prohlížeče.
-              </div>
-            ) : (
-              <Btn accent={BRAND.blue} size="sm" onClick={requestNotif}>
-                🔔 Povolit notifikace
-              </Btn>
-            )}
-          </Card>
+
+            <div>
+              <Card style={{
+                marginBottom: 16,
+                padding: 18,
+                borderRadius: 20,
+                background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))',
+              }}>
+                <div style={{ fontSize: 11, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 10 }}>
+                  Přehled těla
+                </div>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {[
+                    { label: 'BMI', value: `${bmi} · ${bmiLabel}`, color: bmiColor },
+                    { label: 'BMR', value: `${bmr} kcal/den`, color: accent },
+                    { label: 'Typ dne', value: trainingDay?.training_type ?? 'rest', color: BRAND.gold },
+                  ].map(item => (
+                    <div key={item.label} style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      paddingBottom: 10,
+                      borderBottom: `1px solid ${T.border}`,
+                    }}>
+                      <span style={{ fontSize: 12, color: T.muted }}>{item.label}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: item.color }}>{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              <SectionTitle accent={accent}>Vývoj váhy</SectionTitle>
+              <WeightTracker key={weightLogKey} userId={userId} currentWeight={weight} accent={accent} />
+
+              <SectionTitle accent={accent}>Parametry těla</SectionTitle>
+              {statsSummary}
+
+              <SectionTitle accent={accent}>Dnešní cíle</SectionTitle>
+              {dailyGoalsSummary}
+            </div>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) 320px',
+            gap: 20,
+            alignItems: 'start',
+          }}>
+            <div>
+              {aboutSection}
+            </div>
+            <div>
+              <Card style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 8 }}>
+                  Session
+                </div>
+                <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, marginBottom: 14 }}>
+                  Nastavení účtu a cíle jsou na desktopu rozdělené do pracovních panelů pro rychlejší orientaci.
+                </div>
+                <Btn accent="#ef4444" variant="outline" size="lg" full onClick={() => signOut()}>
+                  Odhlásit se
+                </Btn>
+              </Card>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <SectionTitle accent={BRAND.gold}>Profil</SectionTitle>
+          {profileEditor}
+
+          <SectionTitle accent={accent}>Hubnutí</SectionTitle>
+          <WeightGoalCard userId={userId} currentWeight={weight} accent={accent} />
+
+          <SectionTitle accent={accent}>Vývoj váhy</SectionTitle>
+          <WeightTracker key={weightLogKey} userId={userId} currentWeight={weight} accent={accent} />
+
+          <SectionTitle accent={accent}>Parametry těla</SectionTitle>
+          {statsSummary}
+
+          <SectionTitle accent={accent}>Dnešní cíle</SectionTitle>
+          {dailyGoalsSummary}
+
+          <SectionTitle accent={BRAND.gold}>AI Poradce</SectionTitle>
+          {apiKeySection}
+
+          {aboutSection}
         </>
       )}
-
-      {/* About */}
-      <Card style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.7 }}>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 700, color: accent, marginBottom: 6 }}>
-            🚴 CycloFuel v0.1
-          </div>
-          Nutriční tracker navržený pro cyklisty. Cíle kalorií a makronutrientů
-          jsou vypočítány metodou Mifflin-St Jeor a přizpůsobeny tvému typu tréninku.
-          Mikronutrienty jsou škálovány podle tréninkové zátěže.
-        </div>
-      </Card>
 
       {/* Sign out */}
       <div style={{ marginBottom: 16 }}>

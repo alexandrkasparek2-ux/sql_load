@@ -82,6 +82,10 @@ export default function Chat() {
   const { accent, addEntry, removeEntry, updateEntry, setGoalOverride, userId, today } = ctx;
   const { messages, input, setInput, loading, error, send, clearHistory } = useChatSession(ctx);
   const [actioned, setActioned] = useState<Set<string>>(new Set());
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth >= 1440;
+  });
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLTextAreaElement>(null);
@@ -89,6 +93,15 @@ export default function Chat() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const media = window.matchMedia('(min-width: 1440px)');
+    const sync = () => setIsDesktop(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
 
   const handleLog = useCallback(async (msgId: string, query: string, grams: number) => {
     const food = matchFood(query);
@@ -151,11 +164,59 @@ export default function Chat() {
   const isEmpty = messages.length === 0;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 120px)' }}>
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: isDesktop ? '320px minmax(0, 1fr)' : '1fr',
+      height: '100%',
+      minHeight: isDesktop ? 'calc(100dvh - 56px)' : 'calc(100dvh - 120px)',
+    }}>
+      {isDesktop && (
+        <aside style={{
+          borderRight: `1px solid ${T.border}`,
+          padding: '24px 18px',
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))',
+          overflowY: 'auto',
+        }}>
+          <div style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 10 }}>
+            AI Poradce
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: T.text, letterSpacing: '-0.04em', marginBottom: 8 }}>
+            Zeptej se na jídlo, trénink a regeneraci
+          </div>
+          <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.7, marginBottom: 18 }}>
+            Na notebooku má chat vlastní širokou plochu a rychlé návrhy zůstávají bokem místo mačkání hlavní konverzace.
+          </div>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {SUGGESTIONS.map(s => (
+              <button
+                key={s.text}
+                onClick={() => send(s.text)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '12px 14px', borderRadius: 14,
+                  background: s.color + '0d', border: `1px solid ${s.color}28`,
+                  cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                <div style={{
+                  width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                  background: s.color + '18', border: `1px solid ${s.color}30`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16,
+                }}>
+                  {s.icon}
+                </div>
+                <span style={{ fontSize: 14, color: T.text, fontWeight: 500 }}>{s.text}</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
 
       {/* Header */}
       <div style={{
-        padding: '16px 16px 12px',
+        padding: isDesktop ? '18px 22px 14px' : '16px 16px 12px',
         borderBottom: `1px solid ${T.border}`,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0,
@@ -185,9 +246,10 @@ export default function Chat() {
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 0' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: isDesktop ? '20px 22px 0' : '16px 16px 0' }}>
+        <div style={{ maxWidth: isDesktop ? 900 : 'none', margin: isDesktop ? '0 auto' : undefined }}>
 
-        {isEmpty && (
+        {isEmpty && !isDesktop && (
           <div>
             <div style={{
               background: 'linear-gradient(135deg, #0f0f0f, #080808)',
@@ -241,7 +303,7 @@ export default function Chat() {
                 fontSize: 15, marginRight: 8, marginTop: 2,
               }}>⚡</div>
             )}
-            <div style={{ maxWidth: '82%', minWidth: 0 }}>
+            <div style={{ maxWidth: m.role === 'user' ? (isDesktop ? '68%' : '80%') : (isDesktop ? '78%' : '80%'), minWidth: 0 }}>
               <div style={{
                 padding:      '11px 14px',
                 borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '4px 16px 16px 16px',
@@ -462,16 +524,17 @@ export default function Chat() {
         )}
 
         <div ref={bottomRef} />
+        </div>
       </div>
 
       {/* Input */}
       <div style={{
-        padding: '12px 16px 16px',
+        padding: isDesktop ? '14px 22px 18px' : '12px 16px 16px',
         borderTop: `1px solid ${T.border}`,
         background: T.bg,
         flexShrink: 0,
       }}>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', maxWidth: isDesktop ? 900 : 'none', margin: isDesktop ? '0 auto' : undefined }}>
           <textarea
             ref={inputRef}
             value={input}
@@ -522,6 +585,7 @@ export default function Chat() {
           40%            { transform: scale(1);   opacity: 1;   }
         }
       `}</style>
+      </div>
     </div>
   );
 }

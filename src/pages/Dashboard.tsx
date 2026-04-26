@@ -1,4 +1,4 @@
-import { useContext, useState, useCallback } from 'react';
+import { useContext, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext }  from '../App';
 import { T, BRAND, MacroCard, ProgressBar, ProgressRing, SectionTitle, Card, Btn } from '../components/UI';
@@ -589,6 +589,19 @@ function MealRecCard({ trainingType, accent, onAddAll }: {
 export default function Dashboard() {
   const ctx      = useContext(AppContext);
   const navigate = useNavigate();
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth >= 1280;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const media = window.matchMedia('(min-width: 1280px)');
+    const sync = () => setIsDesktop(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
 
   const {
     accent, totals, goals, goalOverride, setGoalOverride,
@@ -650,8 +663,218 @@ export default function Dashboard() {
 
   const pctGoal = goals.kcal > 0 ? Math.round((totals.kcal / goals.kcal) * 100) : 0;
 
+  const trainingBanner = training.id !== 'rest' ? (
+    <div
+      className="stagger-1"
+      onClick={() => navigate('/plan')}
+      style={{
+        background: 'linear-gradient(135deg, #FFD600, #FFA800)',
+        borderRadius: 14, padding: '14px 16px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        marginBottom: 16, color: '#000', cursor: 'pointer',
+        animation: 'pulse-glow 3s ease-in-out infinite',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 34, height: 34, background: 'rgba(0,0,0,0.15)',
+          borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+        }}>
+          {training.icon}
+        </div>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.5px' }}>
+            DNES: {training.label.toUpperCase()}
+          </div>
+          <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>Klikni pro aktivity</div>
+        </div>
+      </div>
+      <span style={{ fontSize: 18, fontWeight: 800 }}>›</span>
+    </div>
+  ) : null;
+
+  const mealRecommendation = primary !== 'rest' ? (
+    <>
+      <SectionTitle accent={BRAND.gold}>Co si vzít s sebou?</SectionTitle>
+      <MealRecCard trainingType={primary} accent={accent} onAddAll={handleAddMealRec} />
+    </>
+  ) : null;
+
+  const hydrationSection = (
+    <>
+      <SectionTitle accent={BRAND.gold}>Hydratace & stimulanty</SectionTitle>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isDesktop ? 'repeat(2, minmax(0, 1fr))' : '1fr',
+        gap: 10,
+        marginBottom: 16,
+      }}>
+        <WaterTracker
+          glasses={trainingDay?.water_glasses ?? 0}
+          goalLitres={goals.water}
+          accent={BRAND.blue}
+          onAdd={handleWaterAdd}
+          onRemove={handleWaterRemove}
+        />
+        <CaffeineTracker
+          cups={trainingDay?.coffee_cups ?? 0}
+          onAdd={handleCoffeeAdd}
+          onRemove={handleCoffeeRemove}
+        />
+      </div>
+    </>
+  );
+
+  const historySection = (
+    <>
+      <SectionTitle
+        accent={BRAND.gold}
+        right={<span style={{ fontSize: 11, color: T.muted }}>14 dní</span>}
+      >
+        Historie kalorií
+      </SectionTitle>
+      <Card style={{ marginBottom: daysWithData.length > 0 ? 8 : 16, padding: '14px 12px 10px' }}>
+        {historyData.length > 0 ? (
+          <>
+            <HistoryChart data={historyData} accent={accent} kcalGoal={goals.kcal} />
+            {historyData.some(d => d.burned > 0) && (
+              <div style={{ display: 'flex', gap: 14, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
+                  <div style={{ width: 14, height: 4, borderRadius: 2, background: accent + '88' }} />
+                  Příjem
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
+                  <div style={{ width: 14, height: 2, borderRadius: 1, background: '#FF6B35' }} />
+                  Výdej (BMR + aktivita)
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
+                  <div style={{ width: 14, height: 0, borderTop: `1.5px dashed ${accent}aa` }} />
+                  Cíl
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '20px 0', color: T.muted, fontSize: 13 }}>
+            Načítám data…
+          </div>
+        )}
+      </Card>
+      {daysWithData.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          {[
+            { label: 'Průměr / den', value: `${avgKcal} kcal`, color: BRAND.gold },
+            { label: 'Aktivní dny',  value: `${daysWithData.length} / 14`, color: T.muted },
+            { label: 'Cíl dnes',     value: `${Math.round(goals.kcal)} kcal`, color: T.muted },
+          ].map(s => (
+            <div key={s.label} style={{
+              flex: 1, background: T.card, border: `1px solid ${T.border}`,
+              borderRadius: 10, padding: '8px 10px', textAlign: 'center',
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: s.color, fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
+              <div style={{ fontSize: 9, color: T.muted, marginTop: 2, textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+
+  const microsSection = (
+    <>
+      <SectionTitle
+        accent={BRAND.gold}
+        right={
+          <button
+            onClick={() => navigate('/micros')}
+            style={{ background: 'none', border: 'none', color: BRAND.gold, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}
+          >
+            Detail →
+          </button>
+        }
+      >
+        Mikronutrienty
+      </SectionTitle>
+      <Card style={{ marginBottom: 16 }}>
+        {topMicros.map((m, i) => {
+          const val  = totals[m.key as keyof typeof totals] as number;
+          const goal = goals.micros[m.key] ?? m.base;
+          const pct  = goal > 0 ? Math.min(100, (val / goal) * 100) : 0;
+          return (
+            <div key={m.key} style={{
+              paddingBottom: i < topMicros.length - 1 ? 10 : 0,
+              marginBottom:  i < topMicros.length - 1 ? 10 : 0,
+              borderBottom:  i < topMicros.length - 1 ? `1px solid ${T.border}` : 'none',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontSize: 13, color: T.text }}>{m.label}</span>
+                <span style={{ fontSize: 12, color: T.muted }}>
+                  {val.toFixed(m.unit === 'µg' ? 1 : 0)} / {goal.toFixed(m.unit === 'µg' ? 1 : 0)} {m.unit}
+                  <span style={{ marginLeft: 6, color: pct >= 100 ? BRAND.green : T.muted }}>{pct.toFixed(0)}%</span>
+                </span>
+              </div>
+              <ProgressBar value={val} max={goal} color={m.color} height={4} />
+            </div>
+          );
+        })}
+      </Card>
+    </>
+  );
+
+  const emptyStateSection = noEntries ? (
+    <div style={{
+      background: 'linear-gradient(135deg, #0f0f0f, #0a0a0a)',
+      border: `1px solid rgba(255,214,0,0.15)`,
+      borderRadius: 18, padding: 24, marginBottom: 16, textAlign: 'center',
+      position: 'relative', overflow: 'hidden',
+    }}>
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(135deg, rgba(255,214,0,0.04), transparent)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{ fontSize: 36, marginBottom: 8 }}>🍽️</div>
+      <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 6 }}>
+        Zatím žádná jídla
+      </div>
+      <div style={{ fontSize: 14, color: T.muted, marginBottom: 16 }}>
+        Začni sledovat svůj nutriční příjem a plň denní cíle.
+      </div>
+      <button
+        onClick={() => navigate('/foods')}
+        style={{
+          width: '100%', background: 'linear-gradient(135deg, #FFD600, #FFA800)',
+          color: '#000', border: 'none', padding: '13px', borderRadius: 12,
+          fontSize: 12, fontWeight: 800, letterSpacing: '1.5px',
+          textTransform: 'uppercase' as const, cursor: 'pointer',
+        }}
+      >
+        + Přidat první jídlo
+      </button>
+    </div>
+  ) : null;
+
+  const tipsSection = (
+    <>
+      <SectionTitle accent={BRAND.gold}>Tipy pro dnešek</SectionTitle>
+      <Card style={{ marginBottom: 16 }}>
+        {training.tips.map((tip, i) => (
+          <div key={i} style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+            paddingBottom: i < training.tips.length - 1 ? 10 : 0,
+            marginBottom:  i < training.tips.length - 1 ? 10 : 0,
+            borderBottom:  i < training.tips.length - 1 ? `1px solid ${T.border}` : 'none',
+          }}>
+            <span style={{ color: BRAND.gold, fontSize: 14, marginTop: 1 }}>◆</span>
+            <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.5 }}>{tip}</span>
+          </div>
+        ))}
+      </Card>
+    </>
+  );
+
   return (
-    <div style={{ padding: '16px 16px 0', position: 'relative' }}>
+    <div style={{ padding: isDesktop ? '0 0 12px' : '16px 16px 0', position: 'relative' }}>
 
       {/* Gradient overlay at top */}
       <div style={{
@@ -663,48 +886,209 @@ export default function Dashboard() {
       {/* Content wrapper above overlay */}
       <div style={{ position: 'relative', zIndex: 1 }}>
 
-        {/* Training banner */}
-        {training.id !== 'rest' && (
-          <div
-            className="stagger-1"
-            onClick={() => navigate('/plan')}
-            style={{
-              background: 'linear-gradient(135deg, #FFD600, #FFA800)',
-              borderRadius: 14, padding: '14px 16px',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              marginBottom: 16, color: '#000', cursor: 'pointer',
-              animation: 'pulse-glow 3s ease-in-out infinite',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 34, height: 34, background: 'rgba(0,0,0,0.15)',
-                borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-              }}>
-                {training.icon}
-              </div>
+        {isDesktop ? (
+          <>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(0, 1.35fr) minmax(320px, 0.65fr)',
+              gap: 20,
+              alignItems: 'start',
+              marginBottom: 18,
+            }}>
               <div>
-                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.5px' }}>
-                  DNES: {training.label.toUpperCase()}
+                <StretchingChecklist userId={userId} today={today} accent={accent} />
+
+                <div className="stagger-2" style={{
+                  background: 'linear-gradient(180deg, #0f0f0f, #080808)',
+                  border: '1px solid #181818',
+                  borderRadius: 26, padding: '30px 24px 24px',
+                  marginBottom: 16, textAlign: 'center',
+                  position: 'relative', overflow: 'hidden',
+                }}>
+                  <div style={{
+                    position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%',
+                    background: 'radial-gradient(circle at center, rgba(255,214,0,0.04) 0%, transparent 40%)',
+                    pointerEvents: 'none',
+                  }} />
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(240px, 320px) minmax(0, 1fr)',
+                    gap: 24,
+                    alignItems: 'center',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                      <ProgressRing value={totals.kcal} max={goals.kcal} size={240}>
+                        <div style={{
+                          fontSize: 50, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1,
+                          background: 'linear-gradient(180deg, #fff 40%, #888)',
+                          WebkitBackgroundClip: 'text', backgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent', fontVariantNumeric: 'tabular-nums',
+                          textAlign: 'center',
+                        }}>
+                          {Math.round(totals.kcal)}
+                        </div>
+                        <div style={{
+                          fontSize: 10, color: T.muted, letterSpacing: '2px',
+                          textTransform: 'uppercase' as const, marginTop: 6, textAlign: 'center',
+                        }}>
+                          kcal příjem
+                        </div>
+                        <div style={{
+                          fontSize: 11, color: BRAND.gold, marginTop: 10, fontWeight: 600,
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          padding: '4px 10px', background: 'rgba(255,214,0,0.1)', borderRadius: 10,
+                        }}>
+                          {pctGoal}% cíle
+                        </div>
+                      </ProgressRing>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: 11, color: T.muted, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
+                        Denní výkon
+                      </div>
+                      <div style={{ fontSize: 34, fontWeight: 800, color: T.text, letterSpacing: '-0.05em', marginBottom: 6 }}>
+                        {Math.max(0, Math.round(goals.kcal - totals.kcal))} kcal zbývá
+                      </div>
+                      <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.6, marginBottom: 18 }}>
+                        Desktop přehled teď zvýrazňuje energii, makra a historii jako pracovní cockpit pro rychlé rozhodování během dne.
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+                        {[
+                          { label: 'Zbývá',   value: Math.max(0, Math.round(goals.kcal - totals.kcal)), unit: 'kcal' },
+                          { label: 'Cíl',     value: Math.round(goals.kcal), unit: 'kcal' },
+                          { label: 'Splněno', value: pctGoal, unit: '%' },
+                        ].map(s => (
+                          <div key={s.label} style={{
+                            background: T.bg, borderRadius: 12,
+                            padding: '10px 12px', textAlign: 'left',
+                            position: 'relative',
+                          }}>
+                            {s.label === 'Cíl' && goalOverride && (
+                              <button
+                                onClick={() => setGoalOverride(null)}
+                                title="Obnovit výchozí cíle"
+                                style={{
+                                  position: 'absolute', top: 6, right: 6,
+                                  background: 'none', border: 'none', cursor: 'pointer',
+                                  color: BRAND.gold, fontSize: 13, lineHeight: 1, padding: 0, opacity: 0.8,
+                                }}
+                              >
+                                ↺
+                              </button>
+                            )}
+                            <div style={{
+                              fontSize: 18, fontWeight: 700, color: BRAND.gold,
+                              fontVariantNumeric: 'tabular-nums', marginBottom: 4,
+                            }}>
+                              {s.value}
+                              <span style={{ fontSize: 10, color: T.muted, marginLeft: 4 }}>{s.unit}</span>
+                            </div>
+                            <div style={{
+                              fontSize: 10, color: T.muted,
+                              textTransform: 'uppercase' as const, letterSpacing: '0.08em',
+                            }}>
+                              {s.label}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>Klikni pro aktivity</div>
+
+                <SectionTitle accent={BRAND.gold}>Makroživiny</SectionTitle>
+                <div className="stagger-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
+                  <MacroCard label="Sach."  value={totals.carbs}   target={goals.carbs}   unit="g" color={BRAND.gold}   />
+                  <MacroCard label="Bílk."  value={totals.protein} target={goals.protein} unit="g" color={BRAND.green}  />
+                  <MacroCard label="Tuky"   value={totals.fat}     target={goals.fat}     unit="g" color={BRAND.orange} />
+                </div>
+
+                {(() => {
+                  const fv   = Math.round(totals.fiber * 10) / 10;
+                  const fg   = goals.fiber;
+                  const done = fv >= fg;
+                  return (
+                    <div style={{
+                      background: T.card, border: `1px solid ${T.border}`,
+                      borderRadius: 12, padding: '10px 14px', marginBottom: 16,
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, color: T.muted, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const }}>
+                          Vláknina
+                        </span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: done ? BRAND.green : T.text }}>
+                          {fv} <span style={{ fontWeight: 400, color: T.muted, fontSize: 11 }}>/ {fg} g</span>
+                          {done && <span style={{ marginLeft: 6, fontSize: 11, color: BRAND.green }}>✓</span>}
+                        </span>
+                      </div>
+                      <ProgressBar value={fv} max={fg} color={BRAND.green} height={4} />
+                    </div>
+                  );
+                })()}
+
+                {historySection}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {trainingBanner}
+
+                <Card style={{
+                  padding: 18,
+                  borderRadius: 20,
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))',
+                }}>
+                  <div style={{ fontSize: 11, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 10 }}>
+                    Rychlý přehled
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {[
+                      { label: 'Průměr 14 dní', value: avgKcal > 0 ? `${avgKcal} kcal` : '—', color: BRAND.gold },
+                      { label: 'Aktivní dny', value: `${daysWithData.length} / 14`, color: T.text },
+                      { label: 'Typ dne', value: training.label, color: accent },
+                    ].map(item => (
+                      <div key={item.label} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingBottom: 10,
+                        borderBottom: `1px solid ${T.border}`,
+                      }}>
+                        <span style={{ fontSize: 12, color: T.muted }}>{item.label}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: item.color }}>{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <IntervalsCard />
+                {mealRecommendation}
+                {hydrationSection}
               </div>
             </div>
-            <span style={{ fontSize: 18, fontWeight: 800 }}>›</span>
-          </div>
-        )}
 
-        {/* Stretching checklist */}
-        <StretchingChecklist userId={userId} today={today} accent={accent} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(320px, 0.9fr)', gap: 20, alignItems: 'start' }}>
+              <div>
+                {microsSection}
+                {emptyStateSection}
+              </div>
+              <div>
+                {tipsSection}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {trainingBanner}
+            <StretchingChecklist userId={userId} today={today} accent={accent} />
 
-        {/* Hero ProgressRing card */}
-        <div className="stagger-2" style={{
-          background: 'linear-gradient(180deg, #0f0f0f, #080808)',
-          border: '1px solid #181818',
-          borderRadius: 22, padding: '24px 20px 20px',
-          marginBottom: 16, textAlign: 'center',
-          position: 'relative', overflow: 'hidden',
-        }}>
+            <div className="stagger-2" style={{
+              background: 'linear-gradient(180deg, #0f0f0f, #080808)',
+              border: '1px solid #181818',
+              borderRadius: 22, padding: '24px 20px 20px',
+              marginBottom: 16, textAlign: 'center',
+              position: 'relative', overflow: 'hidden',
+            }}>
           <div style={{
             position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%',
             background: 'radial-gradient(circle at center, rgba(255,214,0,0.04) 0%, transparent 40%)',
@@ -832,176 +1216,30 @@ export default function Dashboard() {
         />
 
         {/* Training meal recommendation */}
-        {primary !== 'rest' && (
-          <>
-            <SectionTitle accent={BRAND.gold}>Co si vzít s sebou?</SectionTitle>
-            <MealRecCard trainingType={primary} accent={accent} onAddAll={handleAddMealRec} />
-          </>
-        )}
+        {mealRecommendation}
 
         {/* Water + Caffeine trackers */}
-        <SectionTitle accent={BRAND.gold}>Hydratace & stimulanty</SectionTitle>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-          <WaterTracker
-            glasses={trainingDay?.water_glasses ?? 0}
-            goalLitres={goals.water}
-            accent={BRAND.blue}
-            onAdd={handleWaterAdd}
-            onRemove={handleWaterRemove}
-          />
-          <CaffeineTracker
-            cups={trainingDay?.coffee_cups ?? 0}
-            onAdd={handleCoffeeAdd}
-            onRemove={handleCoffeeRemove}
-          />
-        </div>
+        {hydrationSection}
 
         {/* 14-day history */}
-        <SectionTitle
-          accent={BRAND.gold}
-          right={<span style={{ fontSize: 11, color: T.muted }}>14 dní</span>}
-        >
-          Historie kalorií
-        </SectionTitle>
-        <Card style={{ marginBottom: daysWithData.length > 0 ? 8 : 16, padding: '14px 12px 10px' }}>
-          {historyData.length > 0 ? (
-            <>
-              <HistoryChart data={historyData} accent={accent} kcalGoal={goals.kcal} />
-              {historyData.some(d => d.burned > 0) && (
-                <div style={{ display: 'flex', gap: 14, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
-                    <div style={{ width: 14, height: 4, borderRadius: 2, background: accent + '88' }} />
-                    Příjem
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
-                    <div style={{ width: 14, height: 2, borderRadius: 1, background: '#FF6B35' }} />
-                    Výdej (BMR + aktivita)
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
-                    <div style={{ width: 14, height: 0, borderTop: `1.5px dashed ${accent}aa` }} />
-                    Cíl
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '20px 0', color: T.muted, fontSize: 13 }}>
-              Načítám data…
-            </div>
-          )}
-        </Card>
-        {daysWithData.length > 0 && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {[
-              { label: 'Průměr / den', value: `${avgKcal} kcal`, color: BRAND.gold },
-              { label: 'Aktivní dny',  value: `${daysWithData.length} / 14`, color: T.muted },
-              { label: 'Cíl dnes',     value: `${Math.round(goals.kcal)} kcal`, color: T.muted },
-            ].map(s => (
-              <div key={s.label} style={{
-                flex: 1, background: T.card, border: `1px solid ${T.border}`,
-                borderRadius: 10, padding: '8px 10px', textAlign: 'center',
-              }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: s.color, fontVariantNumeric: 'tabular-nums' }}>{s.value}</div>
-                <div style={{ fontSize: 9, color: T.muted, marginTop: 2, textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
+        {historySection}
 
         {/* Weekly summary */}
         <SectionTitle accent={BRAND.gold}>Týdenní přehled</SectionTitle>
         <WeeklySummaryCard historyData={historyData} accent={accent} />
 
         {/* Micros preview */}
-        <SectionTitle
-          accent={BRAND.gold}
-          right={
-            <button
-              onClick={() => navigate('/micros')}
-              style={{ background: 'none', border: 'none', color: BRAND.gold, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}
-            >
-              Detail →
-            </button>
-          }
-        >
-          Mikronutrienty
-        </SectionTitle>
-        <Card style={{ marginBottom: 16 }}>
-          {topMicros.map((m, i) => {
-            const val  = totals[m.key as keyof typeof totals] as number;
-            const goal = goals.micros[m.key] ?? m.base;
-            const pct  = goal > 0 ? Math.min(100, (val / goal) * 100) : 0;
-            return (
-              <div key={m.key} style={{
-                paddingBottom: i < topMicros.length - 1 ? 10 : 0,
-                marginBottom:  i < topMicros.length - 1 ? 10 : 0,
-                borderBottom:  i < topMicros.length - 1 ? `1px solid ${T.border}` : 'none',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 13, color: T.text }}>{m.label}</span>
-                  <span style={{ fontSize: 12, color: T.muted }}>
-                    {val.toFixed(m.unit === 'µg' ? 1 : 0)} / {goal.toFixed(m.unit === 'µg' ? 1 : 0)} {m.unit}
-                    <span style={{ marginLeft: 6, color: pct >= 100 ? BRAND.green : T.muted }}>{pct.toFixed(0)}%</span>
-                  </span>
-                </div>
-                <ProgressBar value={val} max={goal} color={m.color} height={4} />
-              </div>
-            );
-          })}
-        </Card>
+        {microsSection}
 
         {/* CTA if no entries */}
-        {noEntries && (
-          <div style={{
-            background: 'linear-gradient(135deg, #0f0f0f, #0a0a0a)',
-            border: `1px solid rgba(255,214,0,0.15)`,
-            borderRadius: 18, padding: 24, marginBottom: 16, textAlign: 'center',
-            position: 'relative', overflow: 'hidden',
-          }}>
-            <div style={{
-              position: 'absolute', inset: 0,
-              background: 'linear-gradient(135deg, rgba(255,214,0,0.04), transparent)',
-              pointerEvents: 'none',
-            }} />
-            <div style={{ fontSize: 36, marginBottom: 8 }}>🍽️</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 6 }}>
-              Zatím žádná jídla
-            </div>
-            <div style={{ fontSize: 14, color: T.muted, marginBottom: 16 }}>
-              Začni sledovat svůj nutriční příjem a plň denní cíle.
-            </div>
-            <button
-              onClick={() => navigate('/foods')}
-              style={{
-                width: '100%', background: 'linear-gradient(135deg, #FFD600, #FFA800)',
-                color: '#000', border: 'none', padding: '13px', borderRadius: 12,
-                fontSize: 12, fontWeight: 800, letterSpacing: '1.5px',
-                textTransform: 'uppercase' as const, cursor: 'pointer',
-              }}
-            >
-              + Přidat první jídlo
-            </button>
-          </div>
-        )}
+        {emptyStateSection}
 
         {/* Training tips */}
-        <SectionTitle accent={BRAND.gold}>Tipy pro dnešek</SectionTitle>
-        <Card style={{ marginBottom: 16 }}>
-          {training.tips.map((tip, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'flex-start', gap: 10,
-              paddingBottom: i < training.tips.length - 1 ? 10 : 0,
-              marginBottom:  i < training.tips.length - 1 ? 10 : 0,
-              borderBottom:  i < training.tips.length - 1 ? `1px solid ${T.border}` : 'none',
-            }}>
-              <span style={{ color: BRAND.gold, fontSize: 14, marginTop: 1 }}>◆</span>
-              <span style={{ fontSize: 13, color: T.muted, lineHeight: 1.5 }}>{tip}</span>
-            </div>
-          ))}
-        </Card>
+        {tipsSection}
+          </>
+        )}
 
       </div>
     </div>
   );
 }
-

@@ -6,6 +6,7 @@ import { FOODS, FOOD_CATEGORIES, type Food } from '../constants/foods';
 import { MEAL_SLOTS }    from '../constants/training';
 import type { FoodEntry } from '../hooks/useFoodEntries';
 import { useSavedMeals, type SavedMeal } from '../hooks/useSavedMeals';
+import { useUserSetting } from '../hooks/useUserSetting';
 import BarcodeScanner    from '../components/BarcodeScanner';
 import FoodScanner      from '../components/FoodScanner';
 
@@ -65,6 +66,10 @@ interface FoodPickerProps {
 }
 
 function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCustomFood, onSaveMeal, onUpdateSavedMeal, onDeleteSavedMeal, savedMeals, userId, date, allFoods }: FoodPickerProps) {
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth >= 1280;
+  });
   type Step = 'browse' | 'portion' | 'custom' | 'recipe' | 'saved_portion';
   const [step,        setStep]        = useState<Step>('browse');
   // browse / portion
@@ -108,6 +113,15 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
   useEffect(() => {
     setSavedMealGramsInput(String(savedMealGrams));
   }, [savedMealGrams]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const media = window.matchMedia('(min-width: 1280px)');
+    const sync = () => setIsDesktop(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
 
   const categories = useMemo(() => {
     const used = new Set(allFoods.map(f => f.cat));
@@ -432,26 +446,35 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
       {/* Backdrop */}
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100, backdropFilter: 'blur(4px)' }} />
 
-      {/* Bottom sheet */}
+      {/* Picker shell */}
       <div style={{
-        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-        width: '100%', maxWidth: 500, background: T.card,
-        borderRadius: '20px 20px 0 0', border: `1px solid ${T.border}`, borderBottom: 'none',
+        position: 'fixed',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: isDesktop ? 'min(1040px, calc(100vw - 64px))' : '100%',
+        maxWidth: isDesktop ? 1040 : 500,
+        bottom: isDesktop ? 'auto' : 0,
+        top: isDesktop ? 32 : 'auto',
+        background: T.card,
+        borderRadius: isDesktop ? 24 : '20px 20px 0 0',
+        border: `1px solid ${T.border}`,
+        borderBottom: isDesktop ? `1px solid ${T.border}` : 'none',
         zIndex: 101,
-        height: 'min(88dvh, calc(100dvh - 12px))',
+        height: isDesktop ? 'min(880px, calc(100dvh - 64px))' : 'min(88dvh, calc(100dvh - 12px))',
         display: 'flex',
         flexDirection: 'column',
+        boxShadow: isDesktop ? '0 40px 120px rgba(0,0,0,0.45)' : undefined,
       }}>
         {/* Handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 10, opacity: isDesktop ? 0 : 1 }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: T.border }} />
         </div>
 
         {/* Header */}
-        <div style={{ padding: '10px 16px 12px', borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
+        <div style={{ padding: isDesktop ? '18px 22px 16px' : '10px 16px 12px', borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 16, fontWeight: 700, color: T.text }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: isDesktop ? 20 : 16, fontWeight: 700, color: T.text }}>
                 {stepTitle[step]}
               </div>
               <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{mealLabel}</div>
@@ -469,11 +492,55 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '12px 16px 16px' }}>
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: isDesktop ? '18px 22px 22px' : '12px 16px 16px' }}>
 
           {/* ── BROWSE ── */}
           {step === 'browse' && (
             <>
+              {isDesktop && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 1fr) 300px',
+                  gap: 18,
+                  marginBottom: 18,
+                  padding: 16,
+                  borderRadius: 18,
+                  border: `1px solid ${T.border}`,
+                  background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))',
+                }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 8 }}>
+                      Desktop picker
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: T.text, letterSpacing: '-0.04em', marginBottom: 6 }}>
+                      Vyber jídlo pro {mealLabel.toLowerCase()}
+                    </div>
+                    <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.6 }}>
+                      Na notebooku je picker širší a počítá s rychlým hledáním, vlastními jídly i recepty bez bottom-sheet pocitu.
+                    </div>
+                  </div>
+                  <Card style={{ padding: 16, margin: 0 }}>
+                    <div style={{ fontSize: 11, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>
+                      Rychlé akce
+                    </div>
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      <button
+                        onClick={() => setStep('custom')}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: 12, fontSize: 13, cursor: 'pointer', background: accent + '18', border: `1px solid ${accent}33`, color: accent, fontWeight: 600, textAlign: 'left' }}
+                      >
+                        ✏️ Vlastní jídlo
+                      </button>
+                      <button
+                        onClick={() => setStep('recipe')}
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: 12, fontSize: 13, cursor: 'pointer', background: T.bg, border: `1px solid ${T.border}`, color: T.text, textAlign: 'left' }}
+                      >
+                        🍳 Složit recept
+                      </button>
+                    </div>
+                  </Card>
+                </div>
+              )}
+
               {/* Saved meals section */}
               {savedMeals.length > 0 && (
                 <div style={{ marginBottom: 16 }}>
@@ -554,14 +621,18 @@ function FoodPicker({ mealSlot, mealLabel, accent, onClose, onConfirm, onSaveCus
               </div>
 
               {/* Food list */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isDesktop ? 'repeat(2, minmax(0, 1fr))' : '1fr',
+                gap: 6,
+              }}>
                 {!search && !selCat && (
-                  <div style={{ textAlign: 'center', color: T.muted, padding: '30px 0', fontSize: 14 }}>
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: T.muted, padding: '30px 0', fontSize: 14 }}>
                     🔍 Vyhledej potravinu nebo vyber kategorii
                   </div>
                 )}
                 {(search || selCat) && filtered.length === 0 && (
-                  <div style={{ textAlign: 'center', color: T.muted, padding: '30px 0', fontSize: 14 }}>Žádná potravina nenalezena.</div>
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: T.muted, padding: '30px 0', fontSize: 14 }}>Žádná potravina nenalezena.</div>
                 )}
                 {filtered.map(f => (
                   <button key={f.id} onClick={() => handleSelectFood(f)}
@@ -915,6 +986,19 @@ function MacroLine({ label, value, color, unit }: { label: string; value: number
 export default function Foods() {
   const ctx = useContext(AppContext);
   const { accent, entries, addEntry, removeEntry, updateEntry, updateEntryMacros, userId, today, goals } = ctx;
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth >= 1280;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const media = window.matchMedia('(min-width: 1280px)');
+    const sync = () => setIsDesktop(media.matches);
+    sync();
+    media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
 
   const [activePicker,  setActivePicker]  = useState<string | null>(null);
   const [confirmDel,    setConfirmDel]    = useState<string | null>(null);
@@ -927,11 +1011,16 @@ export default function Foods() {
   const [ingAddName,      setIngAddName]      = useState('');
   const [ingAddGrams,     setIngAddGrams]     = useState('');
   const [ingAddKcal,      setIngAddKcal]      = useState('');
-  const [customFoods,   setCustomFoods]   = useState<Food[]>(() => {
-    try { return JSON.parse(localStorage.getItem('cyclofuel_custom_foods') ?? '[]'); }
-    catch { return []; }
-  });
-  const { savedMeals, saveMeal, updateMeal, deleteMeal } = useSavedMeals();
+  const { value: customFoods, setValue: setCustomFoods } = useUserSetting<Food[]>(
+    userId,
+    'custom_foods',
+    [],
+    {
+      legacyKey: 'cyclofuel_custom_foods',
+      isEmpty: value => value.length === 0,
+    },
+  );
+  const { savedMeals, saveMeal, updateMeal, deleteMeal } = useSavedMeals(userId);
 
   const allFoods = useMemo(() => {
     // Deduplicate by ID — FOODS take priority, customFoods fill in anything extra
@@ -945,8 +1034,7 @@ export default function Foods() {
 
   const saveCustomFood = (food: Food) => {
     const updated = [...customFoods, food];
-    localStorage.setItem('cyclofuel_custom_foods', JSON.stringify(updated));
-    setCustomFoods(updated);
+    void setCustomFoods(updated);
   };
 
   const startEdit = (id: string, currentGrams: number, currentMealSlot: string, entry: FoodEntry) => {
@@ -998,7 +1086,7 @@ export default function Foods() {
     entriesForSlot(slotId).reduce((s, e) => s + e.kcal, 0);
 
   return (
-    <div style={{ padding: '16px 16px 0', position: 'relative' }}>
+    <div style={{ padding: isDesktop ? '0 0 12px' : '16px 16px 0', position: 'relative' }}>
       {/* Gradient overlay */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 300,
@@ -1006,23 +1094,81 @@ export default function Foods() {
         pointerEvents: 'none', zIndex: 0,
       }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
-      <SectionTitle
-        accent={BRAND.gold}
-        right={
-          <div style={{ fontSize: 12, color: BRAND.gold, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-            {Math.round(ctx.totals.kcal)} / {Math.round(goals.kcal)} kcal
+      {isDesktop ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 20, alignItems: 'start', marginBottom: 18 }}>
+          <div>
+            <SectionTitle
+              accent={BRAND.gold}
+              right={
+                <div style={{ fontSize: 12, color: BRAND.gold, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                  {Math.round(ctx.totals.kcal)} / {Math.round(goals.kcal)} kcal
+                </div>
+              }
+            >
+              Jídelní deník
+            </SectionTitle>
+            <div style={{ marginBottom: 16 }}>
+              <ProgressBar value={ctx.totals.kcal} max={goals.kcal} color={BRAND.gold} height={6} showLabel />
+            </div>
+            <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.6 }}>
+              Notebooková verze ti dává rychlejší přehled nad celým dnem. Jednotlivé sloty jsou rozložené do pracovního gridu, aby šlo snadněji zapisovat a upravovat více jídel najednou.
+            </div>
           </div>
-        }
-      >
-        Jídelní deník
-      </SectionTitle>
 
-      {/* Overall progress bar */}
-      <div style={{ marginBottom: 16 }}>
-        <ProgressBar value={ctx.totals.kcal} max={goals.kcal} color={BRAND.gold} height={5} showLabel />
-      </div>
+          <Card style={{
+            padding: 18,
+            borderRadius: 20,
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))',
+          }}>
+            <div style={{ fontSize: 11, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 10 }}>
+              Souhrn dne
+            </div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {[
+                { label: 'Kalorie', value: `${Math.round(ctx.totals.kcal)} kcal`, color: BRAND.gold },
+                { label: 'Sacharidy', value: `${ctx.totals.carbs.toFixed(0)} g`, color: BRAND.gold },
+                { label: 'Bílkoviny', value: `${ctx.totals.protein.toFixed(0)} g`, color: BRAND.green },
+                { label: 'Tuky', value: `${ctx.totals.fat.toFixed(0)} g`, color: BRAND.orange },
+              ].map(item => (
+                <div key={item.label} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingBottom: 10,
+                  borderBottom: `1px solid ${T.border}`,
+                }}>
+                  <span style={{ fontSize: 12, color: T.muted }}>{item.label}</span>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: item.color }}>{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      ) : (
+        <>
+          <SectionTitle
+            accent={BRAND.gold}
+            right={
+              <div style={{ fontSize: 12, color: BRAND.gold, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                {Math.round(ctx.totals.kcal)} / {Math.round(goals.kcal)} kcal
+              </div>
+            }
+          >
+            Jídelní deník
+          </SectionTitle>
 
-      {/* Meal slots */}
+          <div style={{ marginBottom: 16 }}>
+            <ProgressBar value={ctx.totals.kcal} max={goals.kcal} color={BRAND.gold} height={5} showLabel />
+          </div>
+        </>
+      )}
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isDesktop ? 'repeat(2, minmax(0, 1fr))' : '1fr',
+        gap: 12,
+        alignItems: 'start',
+      }}>
       {MEAL_SLOTS.map(slot => {
         const slotEntries = entriesForSlot(slot.id);
         const kcal        = slotKcal(slot.id);
@@ -1242,8 +1388,10 @@ export default function Foods() {
         );
       })}
 
+      </div>
+
       {/* Totals bar */}
-      <Card style={{ marginBottom: 16 }}>
+      <Card style={{ marginBottom: 16, marginTop: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <TotalItem label="Celkem"    value={`${Math.round(ctx.totals.kcal)} kcal`}    color={BRAND.gold}   />
           <TotalItem label="Sacharidy" value={`${ctx.totals.carbs.toFixed(0)} g`}        color={BRAND.gold}   />

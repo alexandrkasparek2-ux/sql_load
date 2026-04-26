@@ -29,45 +29,44 @@ export default async function handler(req, res) {
   }
 
   try {
-    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
-    if (!apiKey) return res.status(500).json({ error: 'Gemini API key not configured' });
-
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-    const { image, mediaType = 'image/jpeg', mode = 'food' } = body;
+    const { image, mediaType = 'image/jpeg', mode = 'food', apiKey: userApiKey } = body;
     if (!image) return res.status(400).json({ error: 'No image provided' });
+
+    const apiKey = (userApiKey || process.env.ANTHROPIC_API_KEY || '').trim();
+    if (!apiKey) return res.status(500).json({ error: 'Anthropic API key not configured' });
 
     const prompt = mode === 'recipe' ? RECIPE_PROMPT : FOOD_PROMPT;
 
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-          contents: [{
-            parts: [
-              { inline_data: { mime_type: mediaType, data: image } },
-              { text: prompt },
-            ],
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 8192,
-            response_mime_type: 'application/json',
-          },
-        }),
-      }
-    );
+    const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5',
+        max_tokens: 1024,
+        system: SYSTEM_INSTRUCTION,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: image } },
+            { type: 'text', text: prompt },
+          ],
+        }],
+      }),
+    });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      console.error('Gemini error:', geminiRes.status, errText);
-      return res.status(502).json({ error: `API error ${geminiRes.status}: ${errText.slice(0, 200)}` });
+    if (!claudeRes.ok) {
+      const errText = await claudeRes.text();
+      console.error('Claude error:', claudeRes.status, errText);
+      return res.status(502).json({ error: `API error ${claudeRes.status}: ${errText.slice(0, 200)}` });
     }
 
-    const data = await geminiRes.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const data = await claudeRes.json();
+    const rawText = data.content?.[0]?.text || '';
 
     let result;
     // 1) přímý parse

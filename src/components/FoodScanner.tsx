@@ -148,7 +148,12 @@ export default function FoodScanner({ accent, userId, date, mealSlot, onResult, 
       const res  = await fetch('/api/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: imageData.base64, mediaType: imageData.mediaType, mode }),
+        body: JSON.stringify({
+          image: imageData.base64,
+          mediaType: imageData.mediaType,
+          mode,
+          apiKey: localStorage.getItem('anthropic_api_key') || undefined,
+        }),
         signal: AbortSignal.timeout(40_000),
       });
       const data = await res.json();
