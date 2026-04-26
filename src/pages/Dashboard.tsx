@@ -65,10 +65,9 @@ interface IntervalsAct {
   name:             string;
 }
 
-function TrainingTimingCard({ activities, goals, accent }: {
+function TrainingTimingCard({ activities, goals }: {
   activities: IntervalsAct[];
   goals: { protein: number; carbs: number };
-  accent: string;
 }) {
   const now     = Date.now();
   const todayStr = new Date().toISOString().split('T')[0];
@@ -1205,7 +1204,6 @@ export default function Dashboard() {
         <TrainingTimingCard
           activities={intervalsActivities}
           goals={{ protein: goals.protein, carbs: goals.carbs }}
-          accent={accent}
         />
 
         {/* Electrolytes for long rides */}
