@@ -698,6 +698,44 @@ export default function Dashboard() {
     <>
       <SectionTitle accent={BRAND.gold}>Co si vzít s sebou?</SectionTitle>
       <MealRecCard trainingType={primary} accent={accent} onAddAll={handleAddMealRec} />
+      <Card
+        onClick={() => navigate('/plan')}
+        style={{
+          marginBottom: 16,
+          borderColor: BRAND.blue + '33',
+          background: 'linear-gradient(135deg, rgba(79,195,247,0.10), rgba(255,214,0,0.05))',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 11, color: BRAND.blue, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>
+              Fueling Lab
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 4 }}>
+              Otevřít 3 fáze plánování
+            </div>
+            <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.55 }}>
+              Nutriční plán na dnešní trénink, carbs/h, meal builder, fueling score i recovery debt na jednom místě.
+            </div>
+          </div>
+          <div style={{
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            background: BRAND.blue + '18',
+            border: `1px solid ${BRAND.blue}33`,
+            color: BRAND.blue,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            fontSize: 18,
+            fontWeight: 800,
+          }}>
+            →
+          </div>
+        </div>
+      </Card>
     </>
   ) : null;
 
