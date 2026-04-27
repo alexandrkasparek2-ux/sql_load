@@ -1,6 +1,6 @@
 import { useContext, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppContext }  from '../App';
+import { AppContext, DEFICIT_KCAL }  from '../App';
 import { T, BRAND, MacroCard, ProgressBar, ProgressRing, SectionTitle, Card, Btn } from '../components/UI';
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
 import { FOODS } from '../constants/foods';
@@ -606,9 +606,11 @@ export default function Dashboard() {
     accent, totals, goals, goalOverride, setGoalOverride,
     trainingDay, upsertTrainingDay,
     entries, userId, today, addEntry, profile,
+    deficitLevel,
   } = ctx;
 
-  const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal);
+  const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
+  const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
   const { activities: intervalsActivities } = useIntervalsData(1, userId);
 
   const allTypes   = trainingDay ? [trainingDay.training_type, ...(trainingDay.extra_types ?? [])] : ['rest'];

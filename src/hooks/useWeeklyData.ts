@@ -36,10 +36,11 @@ function dayNum(dateStr: string): number {
 }
 
 export function useWeeklyData(
-  userId:  string | undefined,
-  days = 14,
-  profile?: CalcProfile | null,
+  userId:      string | undefined,
+  days        = 14,
+  profile?:    CalcProfile | null,
   fallbackGoal = 0,
+  deficitKcal  = 0,
 ) {
   const [data,    setData]    = useState<DayKcal[]>([]);
   const [loading, setLoading] = useState(false);
@@ -72,20 +73,23 @@ export function useWeeklyData(
       const dayRows  = (rows      ?? []).filter(r => r.date === date);
       const trainRow = (trainRows ?? []).find(r  => r.date === date);
 
-      // Priority: 1) DB training type → recalculate, 2) localStorage, 3) rest-day baseline, 4) fallback
+      // Goal = intake target = expenditure – deficit
+      // Priority: 1) Intervals burn log (most accurate), 2) DB training type,
+      //           3) rest-day baseline, 4) storedGoals, 5) fallback
       let goal = fallbackGoal;
-      if (trainRow && profile) {
-        goal = Math.round(calcCalories(
-          profile,
-          trainRow.training_type,
-          trainRow.ride_hours ?? 0,
-        ));
+      if (profile) {
+        let rawKcal: number;
+        if (typeof burnLog[date] === 'number') {
+          // Actual activity data from Intervals — most accurate
+          rawKcal = Math.round(calcBMR(profile) + burnLog[date]);
+        } else if (trainRow) {
+          rawKcal = Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0));
+        } else {
+          rawKcal = Math.round(calcCalories(profile, 'rest', 0));
+        }
+        goal = Math.max(1200, rawKcal - deficitKcal);
       } else if (storedGoals[date]) {
         goal = storedGoals[date];
-      } else if (profile) {
-        // No training record for this day — use rest-day calories as baseline
-        // so the goal line reflects a real number instead of today's training goal
-        goal = Math.round(calcCalories(profile, 'rest', 0));
       }
 
       // Total expenditure = BMR + activity (same formula as goal calculation)
@@ -117,7 +121,7 @@ export function useWeeklyData(
 
     setData(grouped);
     setLoading(false);
-  }, [userId, days, profile, fallbackGoal]);
+  }, [userId, days, profile, fallbackGoal, deficitKcal]);
 
   useEffect(() => { load(); }, [load]);
 
