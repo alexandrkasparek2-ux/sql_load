@@ -72,7 +72,7 @@ export function useWeeklyData(
       const dayRows  = (rows      ?? []).filter(r => r.date === date);
       const trainRow = (trainRows ?? []).find(r  => r.date === date);
 
-      // Priority: 1) DB training type → recalculate, 2) localStorage, 3) fallback
+      // Priority: 1) DB training type → recalculate, 2) localStorage, 3) rest-day baseline, 4) fallback
       let goal = fallbackGoal;
       if (trainRow && profile) {
         goal = Math.round(calcCalories(
@@ -82,6 +82,10 @@ export function useWeeklyData(
         ));
       } else if (storedGoals[date]) {
         goal = storedGoals[date];
+      } else if (profile) {
+        // No training record for this day — use rest-day calories as baseline
+        // so the goal line reflects a real number instead of today's training goal
+        goal = Math.round(calcCalories(profile, 'rest', 0));
       }
 
       // Total expenditure = BMR + activity (same formula as goal calculation)

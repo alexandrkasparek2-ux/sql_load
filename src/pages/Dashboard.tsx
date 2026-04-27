@@ -267,6 +267,7 @@ function HistoryChart({ data, accent, kcalGoal }: { data: DayKcal[]; accent: str
     ...data.map(d => d.kcal),
     ...data.map(d => d.goal || kcalGoal),
     ...data.map(d => d.burned),
+    kcalGoal,
     1,
   );
   const barW   = 22;
@@ -286,7 +287,6 @@ function HistoryChart({ data, accent, kcalGoal }: { data: DayKcal[]; accent: str
           const barH       = maxVal > 0 ? (d.kcal / maxVal) * H : 0;
           const y          = H - barH;
           const isToday    = d.date === today;
-          // Použij uložený cíl pro daný den, jinak dnešní cíl jako fallback
           const dayGoal    = d.goal > 0 ? d.goal : kcalGoal;
           const goalY      = dayGoal > 0 ? H - (dayGoal / maxVal) * H : -1;
           const overGoal   = d.kcal > 0 && dayGoal > 0 && d.kcal > dayGoal * 1.1;
