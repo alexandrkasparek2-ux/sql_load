@@ -22,6 +22,7 @@ import {
   calcCaloriesMulti, calcCalories, calcMacros, calcWater, calcMicroGoals,
   type TrainingType,
 } from './constants/training';
+import { APP_NAV_ITEMS, getActiveNavItem } from './constants/navigation';
 
 import Login           from './pages/Login';
 import Dashboard       from './pages/Dashboard';
@@ -388,15 +389,6 @@ const NavIcons: Record<string, React.ReactNode> = {
   ),
 };
 
-const NAV_ITEMS = [
-  { to: '/',            label: 'Přehled'  },
-  { to: '/foods',       label: 'Jídla'    },
-  { to: '/chat',        label: 'AI'       },
-  { to: '/plan',        label: 'Plán'     },
-  { to: '/supplements', label: 'Supl.'    },
-  { to: '/profile',     label: 'Profil'   },
-] as const;
-
 interface AppLayoutProps {
   today:    string;
   setToday: (date: string) => void;
@@ -470,11 +462,8 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
     return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)} · ${dateShort}`;
   })();
 
-  const pageTitle = NAV_ITEMS.find(item =>
-    item.to === '/'
-      ? location.pathname === '/'
-      : location.pathname.startsWith(item.to)
-  )?.label ?? 'CycloFuel';
+  const activeNav = getActiveNavItem(location.pathname);
+  const pageTitle = activeNav.subtitle;
   const isChatPage = location.pathname.startsWith('/chat');
 
   const routes = (
@@ -648,7 +637,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
             </div>
 
             <nav style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, overflowX: 'auto', paddingBottom: 2 }}>
-              {NAV_ITEMS.map(item => (
+              {APP_NAV_ITEMS.map(item => (
                 <NavLink
                   key={item.to}
                   to={item.to}
@@ -672,7 +661,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                     }}>
                       <span style={{ display: 'flex', color: 'inherit' }}>{NavIcons[item.to]}</span>
                       <span style={{ fontSize: 12, fontWeight: isActive ? 700 : 600, letterSpacing: '0.02em' }}>
-                        {item.label}
+                        {item.shortLabel}
                       </span>
                     </div>
                   )}
@@ -850,7 +839,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
         height:           75,
         alignItems:       'center',
       }}>
-        {NAV_ITEMS.map(item => (
+          {APP_NAV_ITEMS.map(item => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -892,7 +881,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                   textTransform: 'uppercase' as const,
                   color:         'inherit',
                 }}>
-                  {item.label}
+                  {item.shortLabel}
                 </span>
               </div>
             )}
