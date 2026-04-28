@@ -9,6 +9,7 @@ import { useSavedMeals, type SavedMeal } from '../hooks/useSavedMeals';
 import { useUserSetting } from '../hooks/useUserSetting';
 import BarcodeScanner    from '../components/BarcodeScanner';
 import FoodScanner      from '../components/FoodScanner';
+import { MealBuilder, SegmentedTabs, type MealSuggestion } from '../components/performance-ui';
 
 // ─── helpers ────────────────────────────────────────────────
 function scaleNutrient(val: number, grams: number) {
@@ -1002,6 +1003,7 @@ export default function Foods() {
 
   const [activeTab, setActiveTab] = useState<'denik' | 'meal_builder'>('denik');
   const [activePicker,  setActivePicker]  = useState<string | null>(null);
+  const [activeTab,     setActiveTab]     = useState('diary');
   const [confirmDel,    setConfirmDel]    = useState<string | null>(null);
   const [editingEntry,  setEditingEntry]  = useState<string | null>(null);
   const [editGrams,     setEditGrams]     = useState(100);
@@ -1032,6 +1034,42 @@ export default function Foods() {
     }
     return result;
   }, [customFoods]);
+
+  const remaining = {
+    kcal: Math.max(0, goals.kcal - ctx.totals.kcal),
+    carbs: Math.max(0, goals.carbs - ctx.totals.carbs),
+    protein: Math.max(0, goals.protein - ctx.totals.protein),
+    fat: Math.max(0, goals.fat - ctx.totals.fat),
+  };
+
+  const mealBuilderSuggestions = useMemo<MealSuggestion[]>(() => {
+    return allFoods
+      .filter(food => food.kcal > 0 && food.per > 0)
+      .map(food => {
+        const factor = food.per / 100;
+        const carbs = food.carbs * factor;
+        const protein = food.protein * factor;
+        const fat = food.fat * factor;
+        const kcal = food.kcal * factor;
+        const coverage =
+          Math.min(carbs / Math.max(remaining.carbs, 1), 1) +
+          Math.min(protein / Math.max(remaining.protein, 1), 1) +
+          Math.min(fat / Math.max(remaining.fat, 1), 1);
+        const match: MealSuggestion['match'] = coverage > 2.1 ? 'perfect' : coverage > 1.25 ? 'good' : 'partial';
+        return {
+          name: food.name,
+          weight: `${food.per} g`,
+          kcal,
+          carbs,
+          protein,
+          fat,
+          match,
+          score: coverage - (remaining.kcal > 0 && kcal > remaining.kcal * 1.4 ? 0.5 : 0),
+        };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6);
+  }, [allFoods, remaining.carbs, remaining.fat, remaining.kcal, remaining.protein]);
 
   const saveCustomFood = (food: Food) => {
     const updated = [...customFoods, food];
@@ -1201,6 +1239,21 @@ export default function Foods() {
         </>
       )}
 
+      <SegmentedTabs
+        tabs={[
+          { id: 'diary', label: 'Deník' },
+          { id: 'builder', label: 'Meal Builder' },
+        ]}
+        active={activeTab}
+        onChange={setActiveTab}
+      />
+
+      {activeTab === 'builder' ? (
+        <div style={{ maxWidth: isDesktop ? 760 : 'none', marginBottom: 16 }}>
+          <MealBuilder remaining={remaining} suggestions={mealBuilderSuggestions} />
+        </div>
+      ) : (
+      <>
       <div style={{
         display: 'grid',
         gridTemplateColumns: isDesktop ? 'repeat(2, minmax(0, 1fr))' : '1fr',
