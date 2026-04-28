@@ -12,6 +12,7 @@ import { useTrainingPlan } from '../hooks/useTrainingPlan';
 import { WorkoutFuelPlannerCard } from '../components/WorkoutFuelPlannerCard';
 import { comparePlannedVsActual } from '../services/fuelingPlanner';
 import { WeekChart, TrainingBanner, MacroRingRow } from '../components/PerformanceCards';
+import { PriorityCard } from '../components/performance-ui/PriorityCard';
 
 // ─── Weekly summary ───────────────────────────────────────────
 function WeeklySummaryCard({ historyData, accent }: { historyData: DayKcal[]; accent: string }) {
@@ -637,6 +638,15 @@ export default function Dashboard() {
   const recentRecoveryDebt = Math.round(
     historyData.slice(-4, -1).reduce((sum, day) => sum + Math.max(0, day.burned - day.kcal), 0),
   );
+  const liveActivity = intervalsActivities.find(activity => {
+    const start = new Date(activity.start_date_local).getTime();
+    const end = start + activity.moving_time * 1000;
+    const now = Date.now();
+    return activity.start_date_local.startsWith(today) && now >= start && now <= end;
+  });
+  const liveElapsedMin = liveActivity
+    ? Math.max(1, Math.round((Date.now() - new Date(liveActivity.start_date_local).getTime()) / 60_000))
+    : 0;
 
   // Live Mode: today has recorded activities in Intervals.icu
   const todayActivities = intervalsActivities.filter(a => a.start_date_local.startsWith(today));
@@ -711,6 +721,38 @@ export default function Dashboard() {
       />
     </>
   );
+
+  const liveModeSection = liveActivity ? (
+    <Card style={{
+      marginBottom: 16,
+      borderColor: 'rgba(255,107,53,0.35)',
+      background: 'linear-gradient(135deg, rgba(255,107,53,0.10), rgba(13,13,13,0.98))',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <LiveBadge variant="live" />
+            <span style={{ fontSize: 11, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>During training</span>
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: T.text, marginBottom: 4 }}>{liveActivity.name}</div>
+          <div style={{ fontSize: 12, color: T.muted }}>{liveElapsedMin} min elapsed · sleduj příjem během výkonu</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 26, fontWeight: 800, color: BRAND.orange, fontVariantNumeric: 'tabular-nums' }}>
+            {Math.round(liveActivity.calories ?? 0)}
+          </div>
+          <div style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>kcal burn</div>
+        </div>
+      </div>
+      <PriorityCard
+        priorities={[
+          { number: 1, text: 'Každých 15-20 min zkontroluj pití a sacharidy.', color: 'action' },
+          { number: 2, text: 'Po tréninku zapiš recovery meal do slotu Po tréninku.', color: 'success' },
+          { number: 3, text: 'Detailní carbs/h tracking otevřeš v Labu.', color: 'analytics' },
+        ]}
+      />
+    </Card>
+  ) : null;
 
   const mealRecommendation = primary !== 'rest' ? (
     <>
@@ -1090,6 +1132,7 @@ export default function Dashboard() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {liveModeSection}
                 {trainingBanner}
 
                 <Card style={{
@@ -1139,6 +1182,7 @@ export default function Dashboard() {
         ) : (
           <>
             {trainingBanner}
+            {liveModeSection}
             <StretchingChecklist userId={userId} today={today} accent={accent} />
 
             <div className="stagger-2" style={{
