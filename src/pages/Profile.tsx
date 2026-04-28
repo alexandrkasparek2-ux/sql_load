@@ -645,6 +645,12 @@ export default function Profile() {
         pointerEvents: 'none', zIndex: 0,
       }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
+      <TopBar
+        title="Tvůj profil"
+        subtitle="Nastavení"
+        showLiveBadge
+        liveBadgeVariant="sync"
+      />
       {isDesktop ? (
         <>
           <div style={{
