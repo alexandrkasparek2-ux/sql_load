@@ -500,10 +500,20 @@ export default function Plan() {
     [groupedActivities],
   );
 
-  const trainingTypes = getAllTrainingTypes(trainingDay);
-  const totalHours = getTrainingHours(trainingDay);
+  const icuTypes = getAllTrainingTypes(trainingDay);
+  const icuHours = getTrainingHours(trainingDay);
+  const icuIsRest = icuTypes.every(t => t === 'rest') && icuHours === 0;
+  const tpToday = tp.todayWorkout;
+  const usingTP = icuIsRest && !!tpToday;
+
+  const trainingTypes: TrainingType[] = usingTP
+    ? [tpToday!.sportType as TrainingType]
+    : icuTypes;
+  const totalHours = usingTP ? tpToday!.durationMin / 60 : icuHours;
   const primaryTraining = primaryType(trainingTypes);
-  const trainingMeta = TRAINING_TYPES.find(item => item.id === (trainingDay?.training_type ?? 'rest')) ?? TRAINING_TYPES[0];
+  const trainingMeta = TRAINING_TYPES.find(item =>
+    item.id === (usingTP ? tpToday!.sportType : (trainingDay?.training_type ?? 'rest'))
+  ) ?? TRAINING_TYPES[0];
   const dayType = getDayType(trainingTypes, totalHours);
   const dayTypeMeta = DAY_TYPE_META[dayType];
 
@@ -777,9 +787,20 @@ export default function Plan() {
                 {trainingMeta.icon}
               </div>
               <div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: dayTypeMeta.color }}>{dayTypeMeta.label}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: dayTypeMeta.color }}>{dayTypeMeta.label}</div>
+                  {usingTP && (
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, color: BRAND.purple,
+                      background: BRAND.purple + '18', border: `1px solid ${BRAND.purple}33`,
+                      borderRadius: 6, padding: '2px 6px', letterSpacing: '0.08em', textTransform: 'uppercase',
+                    }}>
+                      TrainingPeaks
+                    </span>
+                  )}
+                </div>
                 <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
-                  {trainingMeta.label} • {totalHours > 0 ? `${totalHours.toFixed(1)} h` : 'bez zadané délky'}
+                  {usingTP ? tpToday!.title : trainingMeta.label} • {totalHours > 0 ? `${totalHours.toFixed(1)} h` : 'bez zadané délky'}
                 </div>
               </div>
             </div>
@@ -797,11 +818,24 @@ export default function Plan() {
             <SectionTitle accent={BRAND.gold}>Fáze 1 — největší praktický dopad</SectionTitle>
             <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3, minmax(0, 1fr))' : '1fr', gap: 14, marginBottom: 20 }}>
               <Card accent={accent} glow>
-                <div style={{ fontSize: 18, fontWeight: 800, color: T.text, marginBottom: 8 }}>
-                  Nutriční plán na konkrétní trénink
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: T.text }}>
+                    Nutriční plán na konkrétní trénink
+                  </div>
+                  {usingTP && (
+                    <span style={{
+                      fontSize: 9, fontWeight: 700, color: BRAND.purple, flexShrink: 0,
+                      background: BRAND.purple + '18', border: `1px solid ${BRAND.purple}33`,
+                      borderRadius: 6, padding: '3px 7px', letterSpacing: '0.08em', textTransform: 'uppercase',
+                    }}>
+                      TP
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.6, marginBottom: 14 }}>
-                  Konkrétní rozpad na příjem před výkonem, během a po něm. Vychází z dnešního typu tréninku a délky.
+                  {usingTP
+                    ? `Plán na „${tpToday!.title}" — ${tpToday!.durationMin} min, TSS ${tpToday!.tss || '?'}.`
+                    : 'Konkrétní rozpad na příjem před výkonem, během a po něm. Vychází z dnešního typu tréninku a délky.'}
                 </div>
                 <StatRow label="Před tréninkem" value={sessionPlan.preCarbs} unit="g S" accent={BRAND.gold} />
                 <StatRow label="Během tréninku" value={sessionPlan.duringTotal} unit="g S" accent={BRAND.gold} sublabel={`${carbRange.min}-${carbRange.max} g/h`} />
