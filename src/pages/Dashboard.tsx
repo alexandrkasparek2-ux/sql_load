@@ -402,6 +402,29 @@ function CaffeineTracker({
   );
 }
 
+function clampScore(value: number) {
+  return Math.min(100, Math.max(0, value));
+}
+
+function calcDashboardFuelingScore({
+  totals,
+  goals,
+  waterGlasses,
+  postWorkoutProtein,
+}: {
+  totals: { carbs: number; protein: number };
+  goals: { carbs: number; protein: number; water: number };
+  waterGlasses: number;
+  postWorkoutProtein: number;
+}) {
+  const carbScore = clampScore((totals.carbs / Math.max(goals.carbs, 1)) * 32);
+  const proteinScore = clampScore((totals.protein / Math.max(goals.protein, 1)) * 32);
+  const waterGoalGlasses = Math.max(1, Math.round(goals.water * 4));
+  const hydrationScore = clampScore((waterGlasses / waterGoalGlasses) * 22);
+  const recoveryScore = clampScore((postWorkoutProtein / 25) * 14);
+  return Math.round(carbScore + proteinScore + hydrationScore + recoveryScore);
+}
+
 // ─── Training meal recommendation card ───────────────────────
 function MealRecCard({ trainingType, accent, onAddAll }: {
   trainingType: string;
@@ -602,6 +625,18 @@ export default function Dashboard() {
     : 0;
 
   const pctGoal = goals.kcal > 0 ? Math.round((totals.kcal / goals.kcal) * 100) : 0;
+  const postWorkoutProtein = entries
+    .filter(entry => entry.meal_slot === 'po_tren')
+    .reduce((sum, entry) => sum + entry.protein, 0);
+  const fuelingScore = calcDashboardFuelingScore({
+    totals,
+    goals,
+    waterGlasses: trainingDay?.water_glasses ?? 0,
+    postWorkoutProtein,
+  });
+  const recentRecoveryDebt = Math.round(
+    historyData.slice(-4, -1).reduce((sum, day) => sum + Math.max(0, day.burned - day.kcal), 0),
+  );
 
   // Live Mode: today has recorded activities in Intervals.icu
   const todayActivities = intervalsActivities.filter(a => a.start_date_local.startsWith(today));
@@ -623,6 +658,59 @@ export default function Dashboard() {
       />
     </div>
   ) : null;
+
+  const performanceMetricsSection = (
+    <>
+      <SectionTitle accent={BRAND.blue}>Performance Lab</SectionTitle>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isDesktop ? 'minmax(0, 0.9fr) minmax(0, 1.1fr)' : '1fr 1fr',
+        gap: 10,
+        marginBottom: 16,
+      }}>
+        <Card style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: 142,
+          borderColor: BRAND.gold + '33',
+          background: 'linear-gradient(135deg, rgba(255,214,0,0.06), #0d0d0d)',
+        }}>
+          <ScoreRing score={fuelingScore} label="FUELING SCORE" />
+        </Card>
+        <RecoveryDebtCard
+          debt={recentRecoveryDebt}
+          context={recentRecoveryDebt > 0 ? 'Akumulováno z posledních dní' : 'Stabilní bilance'}
+          recommendation={
+            recentRecoveryDebt > 900
+              ? 'Dnes drž sacharidy i protein výš a nepodceň post-workout jídlo.'
+              : 'Energetický dluh je pod kontrolou. Stačí držet dnešní plán.'
+          }
+        />
+      </div>
+      <PriorityCard
+        priorities={[
+          {
+            number: 1,
+            text: primary !== 'rest'
+              ? 'Otevři Lab a zkontroluj carbs/h pro dnešní trénink.'
+              : 'Drž jednoduchý příjem a nepřestřel tuky v odpočinkový den.',
+            color: 'action',
+          },
+          {
+            number: 2,
+            text: `${Math.max(0, Math.round(goals.protein - totals.protein))} g proteinu zbývá do denního cíle.`,
+            color: 'success',
+          },
+          {
+            number: 3,
+            text: `${trainingDay?.water_glasses ?? 0} / ${Math.round(goals.water * 4)} sklenic vody zatím splněno.`,
+            color: 'analytics',
+          },
+        ]}
+      />
+    </>
+  );
 
   const mealRecommendation = primary !== 'rest' ? (
     <>
@@ -996,6 +1084,8 @@ export default function Dashboard() {
                   );
                 })()}
 
+                {performanceMetricsSection}
+
                 {historySection}
               </div>
 
@@ -1182,6 +1272,8 @@ export default function Dashboard() {
             </div>
           );
         })()}
+
+        {performanceMetricsSection}
 
         {/* Intervals.icu card */}
         <IntervalsCard />
