@@ -4,6 +4,7 @@ import { T, BRAND, ProgressBar } from '../components/UI';
 import { showToast } from '../components/Toast';
 import { SUPPLEMENTS, SUPPLEMENT_CATEGORIES } from '../constants/supplements';
 import { useSupplements } from '../hooks/useSupplements';
+import { MetricBox, TopBar } from '../components/performance-ui';
 
 function SupplementItem({
   supp, taken, dose, onToggle, onDoseChange,
@@ -132,6 +133,12 @@ export default function Supplements() {
       }} />
 
       <div style={{ position: 'relative', zIndex: 1 }}>
+        <TopBar
+          title="Doplňky stravy"
+          subtitle={`Dnes · ${takenCount} z ${totalSupplements}`}
+          showLiveBadge
+          liveBadgeVariant={pct >= 70 ? 'sync' : 'rest'}
+        />
 
         {/* Hero progress card */}
         <div className="stagger-1" style={{
@@ -168,6 +175,11 @@ export default function Supplements() {
             </div>
           </div>
           <ProgressBar value={takenCount} max={totalSupplements} color={BRAND.green} height={5} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginTop: 14 }}>
+            <MetricBox label="Hotovo" value={takenCount} variant="success" />
+            <MetricBox label="Zbývá" value={Math.max(0, totalSupplements - takenCount)} variant="warning" />
+            <MetricBox label="Splněno" value={pct} unit="%" variant="analytics" />
+          </div>
           {takenCount > 0 && (
             <div style={{ fontSize: 11, color: BRAND.green, marginTop: 8, fontWeight: 600 }}>
               {pct}% splněno dnes
