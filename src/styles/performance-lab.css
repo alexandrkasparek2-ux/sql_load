@@ -124,6 +124,14 @@ button:active,
   transform: scale(0.97);
 }
 
+.tap-feedback {
+  transition: transform 140ms ease, opacity 140ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.tap-feedback:active {
+  transform: scale(0.97);
+}
+
 .screen {
   background: var(--bg-primary);
   padding: 20px 16px 100px;
@@ -165,6 +173,31 @@ button:active,
 
 .fade-in-up {
   animation: fadeInUp 220ms ease-out both;
+}
+
+.tab-transition {
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+.skeleton-line {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, #111 25%, #1c1c1c 50%, #111 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.empty-state {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--bg-card), var(--bg-secondary));
+  color: var(--text-tertiary);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.metric-number {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
 .stagger-50 {
