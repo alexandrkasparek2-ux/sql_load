@@ -3,6 +3,7 @@ import { AppContext } from '../App';
 import { T, BRAND } from '../components/UI';
 import { useChatSession } from '../hooks/useChatSession';
 import type { MealPlanItem, RecipeSuggestionAction } from '../hooks/useChatSession';
+import { useTrainingPlan } from '../hooks/useTrainingPlan';
 import { showToast } from '../components/Toast';
 import { FOODS, type Food } from '../constants/foods';
 import type { FoodEntry } from '../hooks/useFoodEntries';
@@ -80,7 +81,14 @@ function renderMarkdown(text: string | undefined, color: string) {
 export default function Chat() {
   const ctx = useContext(AppContext);
   const { accent, addEntry, removeEntry, updateEntry, setGoalOverride, userId, today } = ctx;
-  const { messages, input, setInput, loading, error, send, clearHistory } = useChatSession(ctx);
+  const { todayWorkout, upcoming } = useTrainingPlan();
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const tomorrowWorkout = upcoming.find(w => w.date === tomorrowStr) ?? null;
+  const { messages, input, setInput, loading, error, send, clearHistory } = useChatSession(ctx, {
+    today: todayWorkout,
+    tomorrow: tomorrowWorkout,
+  });
   const [actioned, setActioned] = useState<Set<string>>(new Set());
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === 'undefined') return false;

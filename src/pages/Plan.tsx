@@ -11,7 +11,8 @@ import { FOODS, type Food } from '../constants/foods';
 import { TRAINING_TYPES, primaryType, type TrainingType } from '../constants/training';
 import { activityKcal, formatDuration, sportIcon, type IntervalsActivity } from '../services/intervalsService';
 import { useTrainingPlan } from '../hooks/useTrainingPlan';
-import { workoutNutritionTip, sportIcon as tpSportIcon } from '../services/trainingPeaksService';
+import { sportIcon as tpSportIcon } from '../services/trainingPeaksService';
+import { CompactFuelingBadges } from '../components/WorkoutFuelPlannerCard';
 
 type FuelPhase = 'phase1' | 'phase2' | 'phase3';
 type DayTypeKey = 'rest' | 'easy_endurance' | 'quality' | 'double_load' | 'gym_support' | 'race_prep';
@@ -1229,9 +1230,7 @@ export default function Plan() {
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: 11, color: BRAND.green, lineHeight: 1.5 }}>
-                        {workoutNutritionTip(w)}
-                      </div>
+                      <CompactFuelingBadges workout={w} />
                     </div>
                   </div>
                 </div>

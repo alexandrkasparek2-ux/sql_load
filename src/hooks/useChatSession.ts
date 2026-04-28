@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { AppCtx } from '../App';
+import type { PlannedWorkout } from '../services/trainingPeaksService';
+import { classifyWorkout, calculateFuelingTargets, FUEL_TYPE_META } from '../services/fuelingPlanner';
 
 const HISTORY_KEY = 'cyclofuel_chat_v1';
 const MAX_STORED  = 80;
@@ -65,7 +67,12 @@ function saveHistory(msgs: ChatMessage[]) {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(msgs.slice(-MAX_STORED)));
 }
 
-function buildContext(ctx: AppCtx): string {
+interface TPContext {
+  today?:    PlannedWorkout | null;
+  tomorrow?: PlannedWorkout | null;
+}
+
+function buildContext(ctx: AppCtx, tp?: TPContext): string {
   const { profile, goals, totals, trainingDay, entries } = ctx;
   if (!profile) return 'Profil není vyplněn.';
   const trainLabel: Record<string, string> = {
@@ -82,9 +89,29 @@ function buildContext(ctx: AppCtx): string {
         `  [${e.id}] ${MEAL_SLOT_LABELS[e.meal_slot] ?? e.meal_slot}: ${e.food_name} ${e.grams}g = ${Math.round(e.kcal)} kcal (S:${e.carbs}g B:${e.protein}g T:${e.fat}g)`
       ).join('\n');
 
+  const tpLines: string[] = [];
+  if (tp?.today) {
+    const w = tp.today;
+    const wType = classifyWorkout(w);
+    const targets = calculateFuelingTargets(w, wType);
+    const meta = FUEL_TYPE_META[wType];
+    tpLines.push(
+      `TrainingPeaks dnes: "${w.title}" — ${meta.label}, ${w.durationMin > 0 ? `${w.durationMin} min` : 'délka neznámá'}${w.tss > 0 ? `, TSS ${w.tss}` : ''}`,
+      `  Doporučení fueling: ${targets.carbsPerHourMin}–${targets.carbsPerHourMax} g sacharidů/h, celkem ${targets.totalCarbsDuring} g`,
+      `  Tekutiny: ${targets.fluidsPerHourMl} ml/h | Před: ${targets.preWorkoutCarbs} g S + ${targets.preWorkoutProtein} g B | Po: ${targets.postWorkoutProtein} g B + ${targets.postWorkoutCarbs} g S`,
+    );
+  }
+  if (tp?.tomorrow) {
+    const w = tp.tomorrow;
+    const wType = classifyWorkout(w);
+    const meta = FUEL_TYPE_META[wType];
+    tpLines.push(`TrainingPeaks zítra: "${w.title}" — ${meta.label}${w.durationMin > 0 ? `, ${w.durationMin} min` : ''}${w.tss > 0 ? `, TSS ${w.tss}` : ''}`);
+  }
+
   return [
     `Cyklista: ${profile.weight}kg, ${profile.height}cm, ${profile.age}let, ${profile.gender === 'male' ? 'muž' : 'žena'}`,
-    `Trénink: ${trainLabel[type] ?? type}${h > 0 ? ` ${h}h` : ''}`,
+    `Trénink (Intervals.icu): ${trainLabel[type] ?? type}${h > 0 ? ` ${h}h` : ''}`,
+    ...(tpLines.length > 0 ? tpLines : ['TrainingPeaks: nepropojeno nebo žádný plán']),
     `Příjem dnes: ${Math.round(totals.kcal)}/${Math.round(goals.kcal)} kcal (zbývá ${rem})`,
     `Makra: S: ${totals.carbs.toFixed(0)}/${goals.carbs}g  B: ${totals.protein.toFixed(0)}/${goals.protein}g  T: ${totals.fat.toFixed(0)}/${goals.fat}g`,
     `Záznamy v deníku dnes:\n${diaryLines}`,
@@ -141,7 +168,7 @@ Akce které SMÍŠ provádět (vždy jen 1 akci na konci odpovědi):
 {"name":"Kuřecí stir-fry s rýží","servings":2,"ingredients":[{"name":"Kuřecí prsa","grams":300},{"name":"Rýže","grams":200},{"name":"Brokolice","grams":150}],"macros":{"kcal":540,"carbs":62,"protein":48,"fat":8},"prep_time":"20 min","cycling_note":"Ideální regenerační jídlo po tréninku"}
 \`\`\``;
 
-export function useChatSession(ctx: AppCtx) {
+export function useChatSession(ctx: AppCtx, tp?: TPContext) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory());
   const [input,    setInput]    = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -193,7 +220,7 @@ export function useChatSession(ctx: AppCtx) {
           stream:     true,
           system: [
             { type: 'text', text: SYSTEM_PROMPT,                                cache_control: { type: 'ephemeral' } },
-            { type: 'text', text: `Aktuální data uživatele:\n${buildContext(ctx)}` },
+            { type: 'text', text: `Aktuální data uživatele:\n${buildContext(ctx, tp)}` },
           ],
           messages: history,
         }),
