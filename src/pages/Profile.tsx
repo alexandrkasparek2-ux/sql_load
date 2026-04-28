@@ -5,6 +5,7 @@ import { showToast } from '../components/Toast';
 import { calcBMR, calcCalories, calcMacros, calcWater } from '../constants/training';
 import { useUserSetting } from '../hooks/useUserSetting';
 import { getSetting } from '../hooks/useUserSettings';
+import { loadTPUrl, saveTPUrl, clearTPCache, fetchTPPlan } from '../services/trainingPeaksService';
 
 function SliderField({
   label, value, min, max, step, unit, accent, onChange,
@@ -405,6 +406,9 @@ export default function Profile() {
   const [saved,   setSaved]   = useState(false);
   const [apiKey,     setApiKey]     = useState(() => localStorage.getItem('anthropic_api_key') ?? '');
   const [apiKeySaved, setApiKeySaved] = useState(false);
+  const [tpUrl,     setTpUrl]     = useState(() => loadTPUrl());
+  const [tpSaved,   setTpSaved]   = useState(false);
+  const [tpSyncing, setTpSyncing] = useState(false);
 
   // Load anthropic_api_key from Supabase if missing locally
   useEffect(() => {
@@ -560,6 +564,65 @@ export default function Profile() {
     </Card>
   );
 
+  const trainingPlanSection = (
+    <Card style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <span style={{ fontSize: 18 }}>📅</span>
+        <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 700, color: T.text }}>
+          TrainingPeaks kalendář
+        </span>
+      </div>
+      <div style={{ fontSize: 12, color: T.muted, marginBottom: 10, lineHeight: 1.6 }}>
+        V TrainingPeaks: Calendar → tři tečky → <strong style={{ color: T.text }}>Subscribe to Calendar</strong> → zkopíruj webcal:// URL.
+      </div>
+      <input
+        type="text"
+        value={tpUrl}
+        onChange={e => { setTpUrl(e.target.value); setTpSaved(false); }}
+        placeholder="webcal://www.trainingpeaks.com/ical/..."
+        style={{
+          width: '100%', background: T.bg, border: `1px solid ${T.border}`,
+          borderRadius: 10, padding: '10px 12px', color: T.text, fontSize: 12,
+          outline: 'none', boxSizing: 'border-box', marginBottom: 10,
+          fontFamily: 'monospace',
+        }}
+      />
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Btn
+          accent={BRAND.blue}
+          size="sm"
+          onClick={() => {
+            saveTPUrl(tpUrl);
+            clearTPCache();
+            setTpSaved(true);
+            showToast('URL uložena');
+          }}
+        >
+          {tpSaved ? '✓ Uloženo' : 'Uložit URL'}
+        </Btn>
+        {tpUrl && (
+          <Btn
+            accent={BRAND.green}
+            size="sm"
+            onClick={async () => {
+              setTpSyncing(true);
+              try {
+                await fetchTPPlan(tpUrl);
+                showToast('Plán synchronizován');
+              } catch (e) {
+                showToast('Chyba synchronizace');
+              } finally {
+                setTpSyncing(false);
+              }
+            }}
+          >
+            {tpSyncing ? '…' : '↻ Sync'}
+          </Btn>
+        )}
+      </div>
+    </Card>
+  );
+
   const aboutSection = (
     <Card style={{ marginBottom: 20 }}>
       <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.7 }}>
@@ -600,6 +663,9 @@ export default function Profile() {
 
               <SectionTitle accent={accent}>AI Poradce</SectionTitle>
               {apiKeySection}
+
+              <SectionTitle accent={BRAND.blue}>Tréninkový plán</SectionTitle>
+              {trainingPlanSection}
             </div>
 
             <div>
@@ -686,6 +752,9 @@ export default function Profile() {
 
           <SectionTitle accent={BRAND.gold}>AI Poradce</SectionTitle>
           {apiKeySection}
+
+          <SectionTitle accent={BRAND.blue}>Tréninkový plán</SectionTitle>
+          {trainingPlanSection}
 
           {aboutSection}
         </>

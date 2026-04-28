@@ -10,6 +10,8 @@ import { IntervalsCard } from '../components/IntervalsCard';
 import { FOODS, type Food } from '../constants/foods';
 import { TRAINING_TYPES, primaryType, type TrainingType } from '../constants/training';
 import { activityKcal, formatDuration, sportIcon, type IntervalsActivity } from '../services/intervalsService';
+import { useTrainingPlan } from '../hooks/useTrainingPlan';
+import { workoutNutritionTip, sportIcon as tpSportIcon } from '../services/trainingPeaksService';
 
 type FuelPhase = 'phase1' | 'phase2' | 'phase3';
 type DayTypeKey = 'rest' | 'easy_endurance' | 'quality' | 'double_load' | 'gym_support' | 'race_prep';
@@ -417,6 +419,16 @@ function ActivityCard({ act }: { act: IntervalsActivity }) {
   );
 }
 
+const CS_DAYS = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So'];
+function planDateLabel(iso: string): string {
+  const today = new Date().toISOString().split('T')[0];
+  const tom   = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
+  if (iso === today) return 'Dnes';
+  if (iso === tom)   return 'Zítra';
+  const d = new Date(iso + 'T00:00:00');
+  return `${CS_DAYS[d.getDay()]} ${d.getDate()}.${d.getMonth() + 1}.`;
+}
+
 export default function Plan() {
   const navigate = useNavigate();
   const ctx = useContext(AppContext);
@@ -432,6 +444,7 @@ export default function Plan() {
     addEntry,
     setGoalOverride,
   } = ctx;
+  const tp = useTrainingPlan();
 
   const [activePhase, setActivePhase] = useState<FuelPhase>('phase1');
   const [isDesktop, setIsDesktop] = useState(() => {
@@ -1116,6 +1129,92 @@ export default function Plan() {
               </Card>
             </div>
           </>
+        )}
+
+        {/* ── TrainingPeaks upcoming plan ── */}
+        {tp.isConnected && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: BRAND.purple, textTransform: 'uppercase', letterSpacing: '1.5px' }}>
+                📅 Plánované tréninky
+              </div>
+              <button
+                onClick={() => tp.sync()}
+                disabled={tp.loading}
+                style={{
+                  background: 'none', border: 'none', cursor: tp.loading ? 'default' : 'pointer',
+                  fontSize: 12, color: T.muted, padding: '2px 6px',
+                }}
+              >
+                {tp.loading ? <Spinner color={BRAND.purple} size={12} /> : '↻'}
+              </button>
+            </div>
+
+            {tp.error && (
+              <div style={{ fontSize: 12, color: BRAND.red, background: BRAND.red + '15', borderRadius: 10, padding: '8px 12px', marginBottom: 10 }}>
+                ⚠️ {tp.error}
+              </div>
+            )}
+
+            {tp.upcoming.length === 0 && !tp.loading ? (
+              <div style={{ fontSize: 12, color: T.muted, textAlign: 'center', padding: '16px 0' }}>
+                Žádné plánované tréninky na příštích 21 dní.
+              </div>
+            ) : (
+              tp.upcoming.map(w => (
+                <div key={w.date} style={{
+                  background: T.card, border: `1px solid ${BRAND.purple}33`,
+                  borderRadius: 14, padding: '12px 14px', marginBottom: 10,
+                }}>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                      background: BRAND.purple + '18', border: `1px solid ${BRAND.purple}30`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+                    }}>
+                      {tpSportIcon(w.sportType)}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {w.title}
+                        </span>
+                        <span style={{ fontSize: 10, color: w.date === today ? BRAND.gold : T.muted, fontWeight: w.date === today ? 700 : 400, flexShrink: 0 }}>
+                          {planDateLabel(w.date)}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                        {w.durationMin > 0 && (
+                          <span style={{ fontSize: 10, color: T.muted, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 6, padding: '2px 7px' }}>
+                            ⏱ {w.durationMin >= 60 ? `${Math.floor(w.durationMin / 60)}h${w.durationMin % 60 > 0 ? ` ${w.durationMin % 60}min` : ''}` : `${w.durationMin} min`}
+                          </span>
+                        )}
+                        {w.tss > 0 && (
+                          <span style={{ fontSize: 10, color: T.muted, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 6, padding: '2px 7px' }}>
+                            📊 TSS {w.tss}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: BRAND.green, lineHeight: 1.5 }}>
+                        {workoutNutritionTip(w)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+            <div style={{ height: 1, background: T.border, marginBottom: 20 }} />
+          </div>
+        )}
+
+        {!tp.isConnected && (
+          <div style={{
+            background: BRAND.purple + '0e', border: `1px solid ${BRAND.purple}33`,
+            borderRadius: 14, padding: '12px 14px', marginBottom: 20,
+            fontSize: 12, color: T.muted, lineHeight: 1.6,
+          }}>
+            📅 <strong style={{ color: T.text }}>Propoj TrainingPeaks</strong> — v Profilu → Tréninkový plán vlož svůj iCal kalendář pro nutriční doporučení.
+          </div>
         )}
 
         <SectionTitle

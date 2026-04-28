@@ -7,6 +7,8 @@ import { FOODS } from '../constants/foods';
 import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
 import { useIntervalsData } from '../hooks/useIntervalsData';
 import { IntervalsCard } from '../components/IntervalsCard';
+import { useTrainingPlan } from '../hooks/useTrainingPlan';
+import { workoutNutritionTip, sportIcon as tpSportIcon } from '../services/trainingPeaksService';
 
 // ─── Weekly summary ───────────────────────────────────────────
 function WeeklySummaryCard({ historyData, accent }: { historyData: DayKcal[]; accent: string }) {
@@ -612,6 +614,7 @@ export default function Dashboard() {
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
   const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
   const { activities: intervalsActivities } = useIntervalsData(1, userId);
+  const { todayWorkout } = useTrainingPlan();
 
   const allTypes   = trainingDay ? [trainingDay.training_type, ...(trainingDay.extra_types ?? [])] : ['rest'];
   const primary    = primaryType(allTypes as any);
@@ -1239,6 +1242,40 @@ export default function Dashboard() {
 
         {/* Intervals.icu card */}
         <IntervalsCard />
+
+        {/* Today's planned workout from TrainingPeaks */}
+        {todayWorkout && (
+          <div style={{
+            background: BRAND.purple + '0e', border: `1px solid ${BRAND.purple}33`,
+            borderRadius: 14, padding: '12px 16px', marginBottom: 14,
+            display: 'flex', gap: 12, alignItems: 'flex-start',
+          }}>
+            <span style={{ fontSize: 24, flexShrink: 0 }}>{tpSportIcon(todayWorkout.sportType)}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', marginBottom: 3 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: BRAND.purple, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  Dnešní plán
+                </span>
+                {todayWorkout.durationMin > 0 && (
+                  <span style={{ fontSize: 10, color: T.muted }}>
+                    ⏱ {todayWorkout.durationMin >= 60
+                      ? `${Math.floor(todayWorkout.durationMin / 60)}h${todayWorkout.durationMin % 60 > 0 ? ` ${todayWorkout.durationMin % 60}min` : ''}`
+                      : `${todayWorkout.durationMin} min`}
+                  </span>
+                )}
+                {todayWorkout.tss > 0 && (
+                  <span style={{ fontSize: 10, color: T.muted }}>· TSS {todayWorkout.tss}</span>
+                )}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {todayWorkout.title}
+              </div>
+              <div style={{ fontSize: 11, color: BRAND.green, lineHeight: 1.55 }}>
+                {workoutNutritionTip(todayWorkout)}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Post-workout protein timing alert */}
         <TrainingTimingCard
