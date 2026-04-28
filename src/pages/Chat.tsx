@@ -7,6 +7,7 @@ import { useTrainingPlan } from '../hooks/useTrainingPlan';
 import { showToast } from '../components/Toast';
 import { FOODS, type Food } from '../constants/foods';
 import type { FoodEntry } from '../hooks/useFoodEntries';
+import { MetricBox } from '../components/performance-ui';
 
 const SLOT_LABELS: Record<string, string> = {
   snidane: 'Snídaně', dop_svacina: 'Dop. svačina', obed: 'Oběd',
@@ -194,6 +195,11 @@ export default function Chat() {
           <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.7, marginBottom: 18 }}>
             Na notebooku má chat vlastní širokou plochu a rychlé návrhy zůstávají bokem místo mačkání hlavní konverzace.
           </div>
+          <div style={{ display: 'grid', gap: 8, marginBottom: 18 }}>
+            <MetricBox label="Dnešní cíl" value={Math.round(goals.kcal)} unit="kcal" variant="warning" />
+            <MetricBox label="Snědeno" value={Math.round(totals.kcal)} unit="kcal" variant="default" />
+            <MetricBox label="Trénink" value={trainingDay?.training_type ?? 'rest'} variant="analytics" />
+          </div>
           <div style={{ display: 'grid', gap: 8 }}>
             {SUGGESTIONS.map(s => (
               <button
@@ -264,6 +270,11 @@ export default function Chat() {
               border: `1px solid ${BRAND.gold}22`,
               borderRadius: 18, padding: '20px 18px', marginBottom: 20,
             }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
+                <MetricBox label="Cíl" value={Math.round(goals.kcal)} variant="warning" />
+                <MetricBox label="Jídlo" value={Math.round(totals.kcal)} variant="default" />
+                <MetricBox label="Typ" value={trainingDay?.training_type ?? 'rest'} variant="analytics" />
+              </div>
               <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.7 }}>
                 Zeptej se na <span style={{ color: BRAND.gold, fontWeight: 600 }}>výživu</span>,{' '}
                 <span style={{ color: BRAND.orange, fontWeight: 600 }}>trénink</span> nebo{' '}
