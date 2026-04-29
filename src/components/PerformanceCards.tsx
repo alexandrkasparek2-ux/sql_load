@@ -114,15 +114,16 @@ export function WeekChart({ data, accent, kcalGoal, showBurn = true }: WeekChart
 // IntakeRing — compact single-macro ring
 // ──────────────────────────────────────────────────────────
 interface IntakeRingProps {
-  value:  number;
-  target: number;
-  label:  string;
-  unit:   string;
-  color:  string;
-  size?:  number;
+  value:      number;
+  target:     number;
+  label:      string;
+  unit:       string;
+  color:      string;
+  size?:      number;
+  displayFn?: (v: number) => string;
 }
 
-export function IntakeRing({ value, target, label, unit, color, size = 64 }: IntakeRingProps) {
+export function IntakeRing({ value, target, label, unit, color, size = 64, displayFn }: IntakeRingProps) {
   const sw    = Math.max(3, size * 0.06);
   const r     = (size - sw * 2) / 2;
   const circ  = 2 * Math.PI * r;
@@ -147,7 +148,7 @@ export function IntakeRing({ value, target, label, unit, color, size = 64 }: Int
           gap: 0,
         }}>
           <span style={{ fontSize: size * 0.22, fontWeight: 800, color: c, lineHeight: 1, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
-            {Math.round(value)}
+            {displayFn ? displayFn(value) : String(Math.round(value))}
           </span>
           <span style={{ fontSize: size * 0.14, color: T.muted, lineHeight: 1 }}>{unit}</span>
         </div>
@@ -156,7 +157,7 @@ export function IntakeRing({ value, target, label, unit, color, size = 64 }: Int
         {label}
       </span>
       <span style={{ fontSize: 8, color: T.muted, opacity: 0.7 }}>
-        / {Math.round(target)}
+        / {displayFn ? displayFn(target) : String(Math.round(target))}
       </span>
     </div>
   );
@@ -178,7 +179,8 @@ export function MacroRingRow({ totals, goals, accent = BRAND.gold, size = 70 }: 
       <IntakeRing value={totals.carbs}   target={goals.carbs}   label="Sacharidy" unit="g" color={accent}       size={size} />
       <IntakeRing value={totals.protein} target={goals.protein} label="Bílkoviny" unit="g" color={BRAND.green}  size={size} />
       <IntakeRing value={totals.fat}     target={goals.fat}     label="Tuky"      unit="g" color={BRAND.orange} size={size} />
-      <IntakeRing value={totals.kcal / 1000} target={goals.kcal / 1000} label="Kalorie" unit="k" color={BRAND.blue} size={size} />
+      <IntakeRing value={totals.kcal} target={goals.kcal} label="Kalorie" unit="" color={BRAND.blue} size={size}
+        displayFn={v => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v))} />
     </div>
   );
 }
