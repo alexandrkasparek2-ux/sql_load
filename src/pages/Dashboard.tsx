@@ -10,6 +10,7 @@ import { IntervalsCard } from '../components/IntervalsCard';
 import { useTrainingPlan } from '../hooks/useTrainingPlan';
 import { WorkoutFuelPlannerCard } from '../components/WorkoutFuelPlannerCard';
 import { comparePlannedVsActual } from '../services/fuelingPlanner';
+import { WeekChart, TrainingBanner, MacroRingRow } from '../components/PerformanceCards';
 
 // ─── Weekly summary ───────────────────────────────────────────
 function WeeklySummaryCard({ historyData, accent }: { historyData: DayKcal[]; accent: string }) {
@@ -668,33 +669,18 @@ export default function Dashboard() {
 
   const pctGoal = goals.kcal > 0 ? Math.round((totals.kcal / goals.kcal) * 100) : 0;
 
+  const allHours = trainingDay ? (trainingDay.ride_hours ?? 0) : 0;
   const trainingBanner = training.id !== 'rest' ? (
-    <div
-      className="stagger-1"
-      onClick={() => navigate('/plan')}
-      style={{
-        background: 'linear-gradient(135deg, #FFD600, #FFA800)',
-        borderRadius: 14, padding: '14px 16px',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: 16, color: '#000', cursor: 'pointer',
-        animation: 'pulse-glow 3s ease-in-out infinite',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 34, height: 34, background: 'rgba(0,0,0,0.15)',
-          borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-        }}>
-          {training.icon}
-        </div>
-        <div>
-          <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.5px' }}>
-            DNES: {training.label.toUpperCase()}
-          </div>
-          <div style={{ fontSize: 10, opacity: 0.7, marginTop: 2 }}>Klikni pro aktivity</div>
-        </div>
-      </div>
-      <span style={{ fontSize: 18, fontWeight: 800 }}>›</span>
+    <div className="stagger-1" onClick={() => navigate('/plan')} style={{ cursor: 'pointer', marginBottom: 16 }}>
+      <TrainingBanner
+        trainingLabel={training.label}
+        trainingIcon={training.icon}
+        totalHours={allHours}
+        accent={accent}
+        message={training.tips[0] ?? 'Klikni pro detailní plán výkonu a fueling.'}
+        usingTP={!!todayWorkout && training.id === 'rest'}
+        tpTitle={todayWorkout?.title}
+      />
     </div>
   ) : null;
 
@@ -779,7 +765,7 @@ export default function Dashboard() {
       <Card style={{ marginBottom: daysWithData.length > 0 ? 8 : 16, padding: '14px 12px 10px' }}>
         {historyData.length > 0 ? (
           <>
-            <HistoryChart data={historyData} accent={accent} kcalGoal={goals.kcal} />
+            <WeekChart data={historyData} accent={accent} kcalGoal={goals.kcal} />
             {historyData.some(d => d.burned > 0) && (
               <div style={{ display: 'flex', gap: 14, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
@@ -1209,12 +1195,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Macro 3-column grid */}
+        {/* Macro rings row */}
         <SectionTitle accent={BRAND.gold}>Makroživiny</SectionTitle>
-        <div className="stagger-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
-          <MacroCard label="Sach."  value={totals.carbs}   target={goals.carbs}   unit="g" color={BRAND.gold}   />
-          <MacroCard label="Bílk."  value={totals.protein} target={goals.protein} unit="g" color={BRAND.green}  />
-          <MacroCard label="Tuky"   value={totals.fat}     target={goals.fat}     unit="g" color={BRAND.orange} />
+        <div className="stagger-3" style={{
+          background: T.card, border: `1px solid ${T.border}`,
+          borderRadius: 16, padding: '12px 8px', marginBottom: 12,
+        }}>
+          <MacroRingRow totals={totals} goals={goals} accent={accent} size={72} />
         </div>
 
         {/* Fiber bar */}
