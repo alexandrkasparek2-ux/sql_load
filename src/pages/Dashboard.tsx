@@ -1,11 +1,12 @@
 import { useContext, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext, DEFICIT_KCAL }  from '../App';
-import { T, BRAND, MacroCard, ProgressBar, ProgressRing, SectionTitle, Card, Btn } from '../components/UI';
+import { T, BRAND, MacroCard, ProgressBar, ProgressRing, SectionTitle, Card, Btn, LiveBadge } from '../components/UI';
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
 import { FOODS } from '../constants/foods';
 import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
 import { useIntervalsData } from '../hooks/useIntervalsData';
+import { activityKcal } from '../services/intervalsService';
 import { IntervalsCard } from '../components/IntervalsCard';
 import { useTrainingPlan } from '../hooks/useTrainingPlan';
 import { WorkoutFuelPlannerCard } from '../components/WorkoutFuelPlannerCard';
@@ -669,6 +670,13 @@ export default function Dashboard() {
 
   const pctGoal = goals.kcal > 0 ? Math.round((totals.kcal / goals.kcal) * 100) : 0;
 
+  // Live Mode: today has recorded activities in Intervals.icu
+  const todayActivities = intervalsActivities.filter(a => a.start_date_local.startsWith(today));
+  const isLive = todayActivities.length > 0;
+  const liveKcalBurned = todayActivities.reduce((s, a) => s + activityKcal(a), 0);
+  const liveTSS = todayActivities.reduce((s, a) => s + (a.icu_training_load ?? 0), 0);
+  const liveMinutes = todayActivities.reduce((s, a) => s + Math.round(a.moving_time / 60), 0);
+
   const allHours = trainingDay ? (trainingDay.ride_hours ?? 0) : 0;
   const trainingBanner = training.id !== 'rest' ? (
     <div className="stagger-1" onClick={() => navigate('/plan')} style={{ cursor: 'pointer', marginBottom: 16 }}>
@@ -1149,6 +1157,21 @@ export default function Dashboard() {
               </div>
             </ProgressRing>
           </div>
+
+          {/* Live mode strip */}
+          {isLive && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              gap: 10, marginTop: 10, marginBottom: 2,
+            }}>
+              <LiveBadge />
+              <div style={{ display: 'flex', gap: 14, fontSize: 11 }}>
+                {liveKcalBurned > 0 && <span style={{ color: BRAND.orange }}>{liveKcalBurned} kcal výdej</span>}
+                {liveTSS > 0 && <span style={{ color: BRAND.purple }}>TSS {Math.round(liveTSS)}</span>}
+                {liveMinutes > 0 && <span style={{ color: T.muted }}>{liveMinutes} min</span>}
+              </div>
+            </div>
+          )}
 
           {/* Stats below ring */}
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
