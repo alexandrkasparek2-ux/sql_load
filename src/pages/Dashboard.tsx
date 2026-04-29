@@ -770,7 +770,7 @@ export default function Dashboard() {
       >
         Historie kalorií
       </SectionTitle>
-      <Card style={{ marginBottom: daysWithData.length > 0 ? 8 : 16, padding: '14px 12px 10px' }}>
+      <Card style={{ marginBottom: daysWithData.length > 0 ? 8 : 16, padding: '14px 12px 10px', animation: 'cardReveal 0.5s ease-out 0.4s both' }}>
         {historyData.length > 0 ? (
           <>
             <WeekChart data={historyData} accent={accent} kcalGoal={goals.kcal} />
@@ -1233,7 +1233,7 @@ export default function Dashboard() {
           const fg   = goals.fiber;
           const done = fv >= fg;
           return (
-            <div style={{
+            <div className="stagger-4" style={{
               background: T.card, border: `1px solid ${T.border}`,
               borderRadius: 12, padding: '10px 14px', marginBottom: 16,
             }}>
@@ -1305,7 +1305,9 @@ export default function Dashboard() {
 
         {/* Weekly summary */}
         <SectionTitle accent={BRAND.gold}>Týdenní přehled</SectionTitle>
-        <WeeklySummaryCard historyData={historyData} accent={accent} />
+        <div className="stagger-5">
+          <WeeklySummaryCard historyData={historyData} accent={accent} />
+        </div>
 
         {/* Micros preview */}
         {microsSection}

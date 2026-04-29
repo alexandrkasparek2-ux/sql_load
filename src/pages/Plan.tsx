@@ -730,7 +730,7 @@ export default function Plan() {
           />
         </div>
 
-        {activeTab === 'lab' && (<>
+        {activeTab === 'lab' && (<div style={{ animation: 'tabSlide 0.25s ease-out both' }}>
         <div style={{
           display: 'grid',
           gridTemplateColumns: isDesktop ? 'minmax(0, 1.35fr) minmax(320px, 0.65fr)' : '1fr',
@@ -1181,11 +1181,11 @@ export default function Plan() {
           </>
         )}
 
-        </>)} {/* end activeTab === 'lab' */}
+        </div>)} {/* end activeTab === 'lab' */}
 
         {/* ── Carbs/h tab ── */}
         {activeTab === 'carbs' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'tabSlide 0.25s ease-out both' }}>
             <Card style={{
               background: 'linear-gradient(180deg, rgba(255,214,0,0.07), rgba(13,13,13,0.95))',
               borderColor: `${BRAND.gold}33`,
@@ -1344,7 +1344,7 @@ export default function Plan() {
         )}
 
         {activeTab === 'aktivity' && (
-        <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'minmax(0, 1fr) minmax(300px, 0.72fr)' : '1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'minmax(0, 1fr) minmax(300px, 0.72fr)' : '1fr', gap: 16, animation: 'tabSlide 0.25s ease-out both' }}>
           <div>
             {loading && !activities.length ? (
               <Card style={{ textAlign: 'center', padding: '56px 0' }}>
