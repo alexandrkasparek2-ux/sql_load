@@ -1,6 +1,6 @@
 import { useState, useContext, useMemo, useEffect } from 'react';
 import { AppContext }    from '../App';
-import { T, BRAND, Card, SectionTitle, ProgressBar, Btn } from '../components/UI';
+import { T, BRAND, Card, SectionTitle, ProgressBar, Btn, SegmentedTabs, MetricBox } from '../components/UI';
 import { showToast }    from '../components/Toast';
 import { FOODS, FOOD_CATEGORIES, type Food } from '../constants/foods';
 import { MEAL_SLOTS }    from '../constants/training';
@@ -1000,6 +1000,7 @@ export default function Foods() {
     return () => media.removeEventListener('change', sync);
   }, []);
 
+  const [activeTab, setActiveTab] = useState<'denik' | 'meal_builder'>('denik');
   const [activePicker,  setActivePicker]  = useState<string | null>(null);
   const [confirmDel,    setConfirmDel]    = useState<string | null>(null);
   const [editingEntry,  setEditingEntry]  = useState<string | null>(null);
@@ -1094,7 +1095,44 @@ export default function Foods() {
         pointerEvents: 'none', zIndex: 0,
       }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
-      {isDesktop ? (
+        <div style={{ marginBottom: 16 }}>
+          <SegmentedTabs
+            tabs={[
+              { id: 'denik', label: 'Deník' },
+              { id: 'meal_builder', label: 'Meal Builder' },
+            ]}
+            active={activeTab}
+            onChange={(id) => setActiveTab(id as 'denik' | 'meal_builder')}
+          />
+        </div>
+
+      {activeTab === 'meal_builder' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <Card style={{ borderColor: `${BRAND.green}30` }}>
+            <div style={{ fontSize: 11, color: BRAND.green, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+              Meal Builder
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: T.text, marginBottom: 8, letterSpacing: '-0.03em' }}>
+              Sestav jídelníček na celý den
+            </div>
+            <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.7, marginBottom: 16 }}>
+              Otevři AI poradce a napiš: <span style={{ color: T.text }}>"Vygeneruj jídelníček na celý den"</span>. Doporučím konkrétní jídla pro všechny sloty s makry přesně na tvoje cíle.
+            </div>
+            <Btn accent={BRAND.green} full onClick={() => { window.location.href = '/chat'; }}>
+              Otevřít AI poradce
+            </Btn>
+          </Card>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+            <MetricBox label="Cíl kcal" value={Math.round(goals.kcal)} unit="kcal" color={BRAND.gold} />
+            <MetricBox label="Zbývá" value={Math.max(0, Math.round(goals.kcal - ctx.totals.kcal))} unit="kcal" color={BRAND.orange} />
+            <MetricBox label="Sacharidy" value={`${ctx.totals.carbs.toFixed(0)}/${goals.carbs}`} unit="g" color={BRAND.gold} />
+            <MetricBox label="Bílkoviny" value={`${ctx.totals.protein.toFixed(0)}/${goals.protein}`} unit="g" color={BRAND.green} />
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'denik' && (
+      <>{isDesktop ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 20, alignItems: 'start', marginBottom: 18 }}>
           <div>
             <SectionTitle
@@ -1399,6 +1437,8 @@ export default function Foods() {
           <TotalItem label="Tuky"      value={`${ctx.totals.fat.toFixed(0)} g`}          color={BRAND.orange} />
         </div>
       </Card>
+
+      </> )} {/* end activeTab === 'denik' */}
 
       </div>
     {activePicker && (

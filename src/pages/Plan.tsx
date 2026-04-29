@@ -1,7 +1,7 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext } from '../App';
-import { Btn, Card, ProgressBar, SectionTitle, Spinner, StatRow, T, BRAND } from '../components/UI';
+import { Btn, Card, ProgressBar, SegmentedTabs, SectionTitle, Spinner, StatRow, T, BRAND } from '../components/UI';
 import { useIntervalsData } from '../hooks/useIntervalsData';
 import { useUserSetting } from '../hooks/useUserSetting';
 import { useWeeklyData } from '../hooks/useWeeklyData';
@@ -448,6 +448,7 @@ export default function Plan() {
   const tp = useTrainingPlan();
 
   const [activePhase, setActivePhase] = useState<FuelPhase>('phase1');
+  const [activeTab, setActiveTab] = useState<'lab' | 'aktivity' | 'plan' | 'carbs'>('lab');
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.innerWidth >= 1280;
@@ -716,6 +717,20 @@ export default function Plan() {
       }} />
 
       <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ marginBottom: 16 }}>
+          <SegmentedTabs
+            tabs={[
+              { id: 'lab',    label: 'Fueling Lab' },
+              { id: 'carbs',  label: 'Carbs/h' },
+              { id: 'plan',   label: 'Plán tréninků' },
+              { id: 'aktivity', label: 'Aktivity' },
+            ]}
+            active={activeTab}
+            onChange={(id) => setActiveTab(id as 'lab' | 'aktivity' | 'plan' | 'carbs')}
+          />
+        </div>
+
+        {activeTab === 'lab' && (<>
         <div style={{
           display: 'grid',
           gridTemplateColumns: isDesktop ? 'minmax(0, 1.35fr) minmax(320px, 0.65fr)' : '1fr',
@@ -1166,8 +1181,64 @@ export default function Plan() {
           </>
         )}
 
-        {/* ── TrainingPeaks upcoming plan ── */}
-        {tp.isConnected && (
+        </>)} {/* end activeTab === 'lab' */}
+
+        {/* ── Carbs/h tab ── */}
+        {activeTab === 'carbs' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <Card style={{
+              background: 'linear-gradient(180deg, rgba(255,214,0,0.07), rgba(13,13,13,0.95))',
+              borderColor: `${BRAND.gold}33`,
+            }}>
+              <div style={{ fontSize: 11, color: BRAND.gold, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>
+                Carbs / h — dnešní výkon
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ flex: 1, background: T.bg, borderRadius: 12, padding: '14px' }}>
+                  <div style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Doporučení</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: BRAND.gold, letterSpacing: '-0.04em' }}>
+                    {carbRange.min === 0 ? '—' : `${carbRange.min}–${carbRange.max}`}
+                    <span style={{ fontSize: 13, color: T.muted, fontWeight: 400 }}> g/h</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>{dayTypeMeta.message.slice(0, 50)}</div>
+                </div>
+                <div style={{ flex: 1, background: T.bg, borderRadius: 12, padding: '14px' }}>
+                  <div style={{ fontSize: 10, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Realita dnes</div>
+                  <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', color: carbsPerHourActual >= carbRange.min && carbRange.min > 0 ? BRAND.green : BRAND.orange }}>
+                    {totalHours > 0 ? carbsPerHourActual.toFixed(1) : '0.0'}
+                    <span style={{ fontSize: 13, color: T.muted, fontWeight: 400 }}> g/h</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>{duringCarbs.toFixed(0)} g zalogováno během výkonu</div>
+                </div>
+              </div>
+              <ProgressBar
+                value={carbsPerHourActual}
+                max={Math.max(carbRange.max || 1, 1)}
+                color={carbsPerHourActual >= carbRange.min && carbRange.min > 0 ? BRAND.green : BRAND.orange}
+                height={6}
+              />
+              {totalHours >= 1 && (
+                <div style={{ fontSize: 12, color: T.muted, marginTop: 10, lineHeight: 1.6 }}>
+                  Na {totalHours.toFixed(1)} h výkonu cíl: <span style={{ color: T.text, fontWeight: 700 }}>{sessionPlan.duringTotal} g</span> celkem
+                  ({carbRange.min}–{carbRange.max} g/h).
+                </div>
+              )}
+            </Card>
+            <Card>
+              <div style={{ fontSize: 11, color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>
+                Dnešní kontext
+              </div>
+              <StatRow label="Trénink" value={usingTP ? tpToday!.title : trainingMeta.label} accent={BRAND.gold} />
+              <StatRow label="Délka" value={totalHours > 0 ? `${totalHours.toFixed(1)} h` : 'nezadána'} />
+              <StatRow label="Carbs / h rozsah" value={carbRange.min === 0 ? 'volitelné' : `${carbRange.min}–${carbRange.max}`} unit={carbRange.min === 0 ? '' : 'g'} accent={BRAND.gold} />
+              <StatRow label="Fueling score" value={fuelingScore} unit="/100" accent={fuelingScore >= 80 ? BRAND.green : fuelingScore >= 60 ? BRAND.gold : BRAND.orange} />
+              <StatRow label="Recovery debt" value={recoveryDebt.adjusted} unit="kcal" accent={recoveryDebt.level === 'Vysoký' ? BRAND.red : recoveryDebt.level === 'Střední' ? BRAND.orange : BRAND.green} />
+            </Card>
+          </div>
+        )}
+
+        {/* ── TrainingPeaks upcoming plan tab ── */}
+        {activeTab === 'plan' && tp.isConnected && (
           <div style={{ marginBottom: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: BRAND.purple, textTransform: 'uppercase', letterSpacing: '1.5px' }}>
@@ -1240,7 +1311,7 @@ export default function Plan() {
           </div>
         )}
 
-        {!tp.isConnected && (
+        {activeTab === 'plan' && !tp.isConnected && (
           <div style={{
             background: BRAND.purple + '0e', border: `1px solid ${BRAND.purple}33`,
             borderRadius: 14, padding: '12px 14px', marginBottom: 20,
@@ -1250,14 +1321,15 @@ export default function Plan() {
           </div>
         )}
 
+        {activeTab === 'aktivity' && (
         <SectionTitle
           accent={ICU}
           right={cacheAge ? <span style={{ fontSize: 11, color: T.muted }}>{cacheAge}</span> : undefined}
         >
           Aktivity & realita
-        </SectionTitle>
+        </SectionTitle>)}
 
-        {stale && (
+        {activeTab === 'aktivity' && stale && (
           <div style={{
             background: '#f59e0b18',
             border: '1px solid #f59e0b44',
@@ -1271,6 +1343,7 @@ export default function Plan() {
           </div>
         )}
 
+        {activeTab === 'aktivity' && (
         <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'minmax(0, 1fr) minmax(300px, 0.72fr)' : '1fr', gap: 16 }}>
           <div>
             {loading && !activities.length ? (
@@ -1357,6 +1430,8 @@ export default function Plan() {
             </Card>
           </div>
         </div>
+        )} {/* end activeTab === 'aktivity' */}
+
       </div>
     </div>
   );
