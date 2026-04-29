@@ -1,5 +1,4 @@
-import React from 'react';
-import { T, BRAND, Card } from './UI';
+import { T, BRAND } from './UI';
 import type { DayKcal } from '../hooks/useWeeklyData';
 import type { IntervalsActivity } from '../services/intervalsService';
 import type { PlannedWorkout } from '../services/trainingPeaksService';

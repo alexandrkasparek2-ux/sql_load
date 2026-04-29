@@ -264,106 +264,6 @@ function StretchingChecklist({ userId, today, accent }: { userId: string; today:
   );
 }
 
-// ─── 14-day history chart ─────────────────────────────────────
-function HistoryChart({ data, accent, kcalGoal }: { data: DayKcal[]; accent: string; kcalGoal: number }) {
-  const today   = new Date().toISOString().split('T')[0];
-  const hasBurn = data.some(d => d.burned > 0);
-  const maxVal  = Math.max(
-    ...data.map(d => d.kcal),
-    ...data.map(d => d.goal || kcalGoal),
-    ...data.map(d => d.burned),
-    kcalGoal,
-    1,
-  );
-  const barW   = 22;
-  const gap    = 7;
-  const H      = 70;
-
-  return (
-    <div style={{ overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
-      <svg
-        viewBox={`0 0 ${data.length * (barW + gap)} ${H + 32}`}
-        width={data.length * (barW + gap)}
-        height={H + 32}
-        style={{ display: 'block', overflow: 'visible', minWidth: '100%' }}
-      >
-        {data.map((d, i) => {
-          const x          = i * (barW + gap);
-          const barH       = maxVal > 0 ? (d.kcal / maxVal) * H : 0;
-          const y          = H - barH;
-          const isToday    = d.date === today;
-          const dayGoal    = d.goal > 0 ? d.goal : kcalGoal;
-          const goalY      = dayGoal > 0 ? H - (dayGoal / maxVal) * H : -1;
-          const overGoal   = d.kcal > 0 && dayGoal > 0 && d.kcal > dayGoal * 1.1;
-          const barColor   = isToday ? accent
-            : overGoal ? '#ef444488'
-            : d.kcal > 0 ? accent + '55'
-            : T.border;
-
-          return (
-            <g key={d.date}>
-              {/* Background track */}
-              <rect x={x} y={0} width={barW} height={H} rx={3} fill={T.border + '80'} />
-              {/* Filled bar */}
-              {d.kcal > 0 && (
-                <rect
-                  x={x} y={y} width={barW} height={barH} rx={3}
-                  fill={barColor}
-                  style={{ filter: isToday ? `drop-shadow(0 0 4px ${accent}88)` : 'none' }}
-                />
-              )}
-              {/* Goal line – per-day */}
-              {dayGoal > 0 && goalY >= 0 && (
-                <line
-                  x1={x} y1={goalY} x2={x + barW} y2={goalY}
-                  stroke={accent + 'aa'} strokeWidth={1.5} strokeDasharray="3,2"
-                />
-              )}
-              {/* Burn line – from Intervals.icu */}
-              {hasBurn && d.burned > 0 && (() => {
-                const burnY = H - (d.burned / maxVal) * H;
-                return (
-                  <line
-                    x1={x} y1={burnY} x2={x + barW} y2={burnY}
-                    stroke="#FF6B35" strokeWidth={2} strokeLinecap="round"
-                  />
-                );
-              })()}
-              {/* Day label */}
-              <text
-                x={x + barW / 2} y={H + 12}
-                textAnchor="middle" fontSize={8}
-                fill={isToday ? accent : '#6b7280'}
-                fontWeight={isToday ? '700' : '400'}
-              >
-                {d.label}
-              </text>
-              {/* Date number */}
-              <text
-                x={x + barW / 2} y={H + 23}
-                textAnchor="middle" fontSize={7}
-                fill={isToday ? accent + 'cc' : '#4b5563'}
-              >
-                {d.dateNum}
-              </text>
-              {/* Value label */}
-              {d.kcal > 0 && (
-                <text
-                  x={x + barW / 2} y={Math.max(y - 3, 9)}
-                  textAnchor="middle" fontSize={7}
-                  fill={isToday ? accent : '#6b7280'}
-                >
-                  {d.kcal >= 1000 ? `${(d.kcal / 1000).toFixed(1)}k` : String(Math.round(d.kcal))}
-                </text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
 // ─── Water tracker ───────────────────────────────────────────
 function WaterTracker({
   glasses, goalLitres, accent, onAdd, onRemove,
@@ -686,8 +586,7 @@ export default function Dashboard() {
         totalHours={allHours}
         accent={accent}
         message={training.tips[0] ?? 'Klikni pro detailní plán výkonu a fueling.'}
-        usingTP={!!todayWorkout && training.id === 'rest'}
-        tpTitle={todayWorkout?.title}
+        usingTP={false}
       />
     </div>
   ) : null;
