@@ -7,6 +7,17 @@ import {
 
 export type { PlannedWorkout };
 
+// Cycling > running > other > walking/hiking/yoga — determines which workout
+// is shown as "today's primary" when multiple workouts exist on the same day.
+const SPORT_PRIORITY: Record<string, number> = {
+  hard: 0, race: 1, medium: 2, light: 3, cycling_indoor: 4,
+  running: 5, swimming: 6, strength: 7, walking: 8, hiking: 9,
+  yoga: 10, skiing: 11,
+};
+function sportPriority(type: string): number {
+  return SPORT_PRIORITY[type] ?? 99;
+}
+
 export function useTrainingPlan() {
   const [icalUrl,  setIcalUrlState] = useState(() => loadTPUrl());
   const [workouts, setWorkouts]     = useState<PlannedWorkout[]>(() => loadTPCache());
@@ -66,8 +77,17 @@ export function useTrainingPlan() {
     return () => window.removeEventListener(TP_FORCE_SYNC_EVENT, handler);
   }, [icalUrl, sync]);
 
-  const todayWorkout = workouts.find(w => w.date === today) ?? null;
-  const upcoming     = workouts.filter(w => w.date >= today);
+  const todayWorkout = workouts
+    .filter(w => w.date === today)
+    .sort((a, b) => sportPriority(a.sportType) - sportPriority(b.sportType))[0] ?? null;
+
+  const upcoming = workouts
+    .filter(w => w.date >= today)
+    .sort((a, b) =>
+      a.date !== b.date
+        ? a.date.localeCompare(b.date)
+        : sportPriority(a.sportType) - sportPriority(b.sportType),
+    );
 
   return {
     workouts,
