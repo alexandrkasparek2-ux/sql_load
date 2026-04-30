@@ -81,7 +81,7 @@ export function useWeeklyData(
         let rawKcal: number;
         if (typeof burnLog[date] === 'number') {
           // Actual activity data from Intervals — most accurate
-          rawKcal = Math.round(calcBMR(profile) + burnLog[date]);
+          rawKcal = Math.round(calcBMR(profile) * 1.15 + burnLog[date]);
         } else if (trainRow) {
           rawKcal = Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0));
         } else {
@@ -98,7 +98,10 @@ export function useWeeklyData(
       let burned = 0;
       if (profile) {
         if (typeof burnLog[date] === 'number') {
-          burned = Math.round(calcBMR(profile) + burnLog[date]);
+          // BMR × 1.15 = non-exercise daily metabolism (NEAT); plus actual exercise kcal.
+          // Rest-day baseline uses ×1.2; we use ×1.15 here to avoid double-counting
+          // with logged activities that may include low-intensity movement.
+          burned = Math.round(calcBMR(profile) * 1.15 + burnLog[date]);
         } else {
           burned = trainRow
             ? Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0))

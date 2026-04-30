@@ -29,8 +29,26 @@ function WeeklySummaryCard({ historyData, accent }: { historyData: DayKcal[]; ac
     if (d.goal > 0)   return s + (d.goal   - d.kcal);
     return s;
   }, 0);
-  const avgDeficit = withData.length > 0 ? deficitSum / 7 : 0;
-  const totalTSS   = 0; // placeholder — extended via Intervals data when available
+  const avgDeficit = withData.length > 0 ? deficitSum / 7 : null;
+
+  // Projected weekly weight change: 7700 kcal ≈ 1 kg body fat
+  const weeklyDeltaG  = avgDeficit != null ? Math.round((avgDeficit * 7) / 7700 * 1000) : null;
+  const deficitColor  = avgDeficit == null ? T.muted
+                      : avgDeficit > 100   ? BRAND.green
+                      : avgDeficit < -100  ? BRAND.red
+                      : BRAND.orange;
+  const deficitLabel  = avgDeficit == null ? '—'
+                      : avgDeficit > 100   ? `−${Math.round(avgDeficit)}`
+                      : avgDeficit < -100  ? `+${Math.round(-avgDeficit)}`
+                      : `~${Math.round(Math.abs(avgDeficit))}`;
+
+  let weightHint = '';
+  if (weeklyDeltaG != null) {
+    const absG = Math.abs(weeklyDeltaG);
+    if (avgDeficit! > 100)       weightHint = `≈ −${absG > 999 ? (absG/1000).toFixed(1)+'kg' : absG+'g'}/týden`;
+    else if (avgDeficit! < -100) weightHint = `≈ +${absG > 999 ? (absG/1000).toFixed(1)+'kg' : absG+'g'}/týden`;
+    else                          weightHint = 'Udržuješ váhu';
+  }
 
   return (
     <Card style={{ marginBottom: 16 }}>
@@ -44,28 +62,35 @@ function WeeklySummaryCard({ historyData, accent }: { historyData: DayKcal[]; ac
         <span style={{ fontSize: 10, color: T.muted }}>posledních 7 dní</span>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
-        {[
-          { label: 'Průměr / den', value: `${avgKcal}`, unit: 'kcal', color: accent },
-          { label: 'Dny v cíli',   value: `${onTarget}/${withData.length}`, unit: '', color: BRAND.green },
-          { label: 'Průměrný deficit', value: avgDeficit > 0 ? `${Math.round(avgDeficit)}` : '—', unit: avgDeficit > 0 ? 'kcal' : '', color: BRAND.orange },
-          { label: 'Aktivní dny', value: `${withData.length}`, unit: '/ 7', color: T.muted },
-        ].map(s => (
-          <div key={s.label} style={{ background: T.bg, borderRadius: 10, padding: '10px 12px' }}>
-            <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase' as const, letterSpacing: '1.5px', marginBottom: 4 }}>
-              {s.label}
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: s.color, fontVariantNumeric: 'tabular-nums' }}>
-              {s.value}
-              {s.unit && <span style={{ fontSize: 10, color: T.muted, marginLeft: 3 }}>{s.unit}</span>}
-            </div>
+        <div style={{ background: T.bg, borderRadius: 10, padding: '10px 12px' }}>
+          <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase' as const, letterSpacing: '1.5px', marginBottom: 4 }}>Průměr / den</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: accent, fontVariantNumeric: 'tabular-nums' }}>
+            {avgKcal}<span style={{ fontSize: 10, color: T.muted, marginLeft: 3 }}>kcal</span>
           </div>
-        ))}
-      </div>
-      {totalTSS > 0 && (
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}`, fontSize: 12, color: T.muted }}>
-          Celkový TSS za týden: <span style={{ color: BRAND.purple, fontWeight: 700 }}>{Math.round(totalTSS)}</span>
         </div>
-      )}
+        <div style={{ background: T.bg, borderRadius: 10, padding: '10px 12px' }}>
+          <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase' as const, letterSpacing: '1.5px', marginBottom: 4 }}>Dny v cíli</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: BRAND.green, fontVariantNumeric: 'tabular-nums' }}>
+            {onTarget}/{withData.length}
+          </div>
+        </div>
+        <div style={{ background: T.bg, borderRadius: 10, padding: '10px 12px' }}>
+          <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase' as const, letterSpacing: '1.5px', marginBottom: 4 }}>Energetická bilance</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: deficitColor, fontVariantNumeric: 'tabular-nums' }}>
+            {deficitLabel}
+            {avgDeficit != null && <span style={{ fontSize: 10, color: T.muted, marginLeft: 3 }}>kcal/den</span>}
+          </div>
+          {weightHint && (
+            <div style={{ fontSize: 10, color: deficitColor, opacity: 0.8, marginTop: 2 }}>{weightHint}</div>
+          )}
+        </div>
+        <div style={{ background: T.bg, borderRadius: 10, padding: '10px 12px' }}>
+          <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase' as const, letterSpacing: '1.5px', marginBottom: 4 }}>Aktivní dny</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: T.muted, fontVariantNumeric: 'tabular-nums' }}>
+            {withData.length}<span style={{ fontSize: 10, color: T.muted, marginLeft: 3 }}>/ 7</span>
+          </div>
+        </div>
+      </div>
     </Card>
   );
 }
