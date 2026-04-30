@@ -449,6 +449,7 @@ export default function Plan() {
 
   const [activePhase, setActivePhase] = useState<FuelPhase>('phase1');
   const [activeTab, setActiveTab] = useState<'lab' | 'aktivity' | 'plan' | 'carbs'>('lab');
+  const [manualHours, setManualHours] = useState<number | null>(null);
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.innerWidth >= 1280;
@@ -511,7 +512,8 @@ export default function Plan() {
   const trainingTypes: TrainingType[] = usingTP
     ? [tpToday!.sportType as TrainingType]
     : icuTypes;
-  const totalHours = usingTP ? tpToday!.durationMin / 60 : icuHours;
+  const tpHours = usingTP ? tpToday!.durationMin / 60 : icuHours;
+  const totalHours = manualHours !== null ? manualHours : tpHours;
   const primaryTraining = primaryType(trainingTypes);
   const trainingMeta = TRAINING_TYPES.find(item =>
     item.id === (usingTP ? tpToday!.sportType : (trainingDay?.training_type ?? 'rest'))
@@ -1217,6 +1219,30 @@ export default function Plan() {
                 color={carbsPerHourActual >= carbRange.min && carbRange.min > 0 ? BRAND.green : BRAND.orange}
                 height={6}
               />
+              {/* Manual duration input — shown when TP doesn't provide duration */}
+              {tpHours === 0 && (
+                <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 12, color: T.muted, flexShrink: 0 }}>Délka výkonu:</span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[0.5, 1, 1.5, 2, 2.5, 3, 4].map(h => (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => setManualHours(manualHours === h ? null : h)}
+                        style={{
+                          padding: '5px 8px', borderRadius: 8, fontSize: 11, fontWeight: 700,
+                          border: `1px solid ${manualHours === h ? BRAND.gold : T.border}`,
+                          background: manualHours === h ? `${BRAND.gold}18` : T.bg,
+                          color: manualHours === h ? BRAND.gold : T.muted,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {h}h
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {totalHours >= 1 && (
                 <div style={{ fontSize: 12, color: T.muted, marginTop: 10, lineHeight: 1.6 }}>
                   Na {totalHours.toFixed(1)} h výkonu cíl: <span style={{ color: T.text, fontWeight: 700 }}>{sessionPlan.duringTotal} g</span> celkem
@@ -1229,7 +1255,7 @@ export default function Plan() {
                 Dnešní kontext
               </div>
               <StatRow label="Trénink" value={usingTP ? tpToday!.title : trainingMeta.label} accent={BRAND.gold} />
-              <StatRow label="Délka" value={totalHours > 0 ? `${totalHours.toFixed(1)} h` : 'nezadána'} />
+              <StatRow label="Délka" value={totalHours > 0 ? `${totalHours.toFixed(1)} h${manualHours !== null ? ' *' : ''}` : 'nezadána'} />
               <StatRow label="Carbs / h rozsah" value={carbRange.min === 0 ? 'volitelné' : `${carbRange.min}–${carbRange.max}`} unit={carbRange.min === 0 ? '' : 'g'} accent={BRAND.gold} />
               <StatRow label="Fueling score" value={fuelingScore} unit="/100" accent={fuelingScore >= 80 ? BRAND.green : fuelingScore >= 60 ? BRAND.gold : BRAND.orange} />
               <StatRow label="Recovery debt" value={recoveryDebt.adjusted} unit="kcal" accent={recoveryDebt.level === 'Vysoký' ? BRAND.red : recoveryDebt.level === 'Střední' ? BRAND.orange : BRAND.green} />

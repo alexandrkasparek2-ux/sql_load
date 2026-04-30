@@ -34,6 +34,28 @@ function parseDuration(text) {
   return 0;
 }
 
+// Parse ISO 8601 duration: PT1H30M, P2DT3H, PT90M, etc.
+function parseIsoDuration(val) {
+  if (!val) return 0;
+  const m = val.match(/P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?/i);
+  if (!m) return 0;
+  return (parseInt(m[1] || '0') * 1440) +
+         (parseInt(m[2] || '0') * 60) +
+          parseInt(m[3] || '0');
+}
+
+// Parse a full iCal datetime value into a JS Date (or null)
+function parseDatetime(prop) {
+  if (!prop) return null;
+  const v = prop.value.trim();
+  // Date-only: YYYYMMDD — no time info, skip for duration calc
+  if (/^\d{8}$/.test(v) || (prop.params || '').includes('VALUE=DATE')) return null;
+  // Datetime: YYYYMMDDTHHmmss[Z]
+  const m = v.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)$/);
+  if (!m) return null;
+  return new Date(Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]));
+}
+
 function parseTSS(text) {
   if (!text) return 0;
   const m = text.match(/\bTSS[:\s]+(\d+)/i);
@@ -97,7 +119,22 @@ function parseIcal(text) {
       const description = e.DESCRIPTION?.value || '';
       const categories  = e.CATEGORIES?.value  || '';
 
-      const durationMin = parseDuration(description) || parseDuration(summary);
+      // Duration priority: 1) DURATION property (ISO 8601), 2) DTEND−DTSTART,
+      // 3) free-text in description, 4) free-text in summary
+      const dtstart = e.DTSTART;
+      const dtend   = e.DTEND;
+      const isoDur  = parseIsoDuration(e.DURATION?.value ?? '');
+      let durationMin = 0;
+      if (isoDur > 0) {
+        durationMin = isoDur;
+      } else {
+        const tStart = parseDatetime(dtstart);
+        const tEnd   = parseDatetime(dtend);
+        if (tStart && tEnd && tEnd > tStart) {
+          durationMin = Math.round((tEnd - tStart) / 60000);
+        }
+      }
+      if (!durationMin) durationMin = parseDuration(description) || parseDuration(summary);
       const tss         = parseTSS(description) || parseTSS(summary);
       const sportType   = mapSport(categories, summary);
 
