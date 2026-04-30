@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   fetchTPPlan, loadTPCache, loadTPUrl, saveTPUrl, clearTPCache,
+  TP_FORCE_SYNC_EVENT,
   type PlannedWorkout,
 } from '../services/trainingPeaksService';
 
@@ -52,6 +53,18 @@ export function useTrainingPlan() {
       sync();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Force sync when header SYNC button dispatches the event
+  useEffect(() => {
+    const handler = () => {
+      if (!icalUrl) return;
+      clearTPCache();
+      setWorkouts([]);
+      sync();
+    };
+    window.addEventListener(TP_FORCE_SYNC_EVENT, handler);
+    return () => window.removeEventListener(TP_FORCE_SYNC_EVENT, handler);
+  }, [icalUrl, sync]);
 
   const todayWorkout = workouts.find(w => w.date === today) ?? null;
   const upcoming     = workouts.filter(w => w.date >= today);

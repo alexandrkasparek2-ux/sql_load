@@ -44,6 +44,8 @@ export function clearTPCache() {
   localStorage.removeItem(CACHE_KEY);
 }
 
+export const TP_FORCE_SYNC_EVENT = 'cyclofuel-tp-force-sync';
+
 export async function fetchTPPlan(icalUrl: string): Promise<PlannedWorkout[]> {
   const res = await fetch(`/api/ical?url=${encodeURIComponent(icalUrl)}`, {
     signal: AbortSignal.timeout(15_000),

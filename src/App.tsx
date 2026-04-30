@@ -35,6 +35,7 @@ import WhoopCallback   from './pages/WhoopCallback';
 import StravaCallback  from './pages/StravaCallback';
 
 import { T, Spinner } from './components/UI';
+import { clearTPCache, TP_FORCE_SYNC_EVENT } from './services/trainingPeaksService';
 import { ToastHost }     from './components/Toast';
 import FloatingChat      from './components/FloatingChat';
 
@@ -451,6 +452,16 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
 
   const isToday = today === realToday;
 
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = useCallback(() => {
+    if (isSyncing) return;
+    clearTPCache();
+    window.dispatchEvent(new CustomEvent(TP_FORCE_SYNC_EVENT));
+    setIsSyncing(true);
+    setTimeout(() => setIsSyncing(false), 2000);
+  }, [isSyncing]);
+
   // Topbar date string: "Neděle · 19. 4."
   const topbarDate = (() => {
     const d = new Date(today + 'T00:00:00');
@@ -714,22 +725,30 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Live badge */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '5px 10px',
-              background: 'rgba(0, 229, 176, 0.1)',
-              border: '1px solid rgba(0, 229, 176, 0.3)',
-              borderRadius: 6,
-              fontSize: 9, fontWeight: 700, color: '#00E5B0',
-              letterSpacing: '1px', textTransform: 'uppercase' as const,
-            }}>
-              <div style={{
-                width: 6, height: 6, background: '#00E5B0',
-                borderRadius: '50%', animation: 'pulse 2s infinite',
-              }} />
+            {/* SYNC button — clears TP cache and forces re-fetch */}
+            <button
+              type="button"
+              onClick={handleSync}
+              disabled={isSyncing}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '5px 10px',
+                background: isSyncing ? 'rgba(0, 229, 176, 0.18)' : 'rgba(0, 229, 176, 0.1)',
+                border: '1px solid rgba(0, 229, 176, 0.3)',
+                borderRadius: 6,
+                fontSize: 9, fontWeight: 700, color: '#00E5B0',
+                letterSpacing: '1px', textTransform: 'uppercase' as const,
+                cursor: isSyncing ? 'default' : 'pointer',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+              aria-label="Synchronizovat TrainingPeaks"
+            >
+              {isSyncing
+                ? <Spinner color="#00E5B0" size={8} />
+                : <div style={{ width: 6, height: 6, background: '#00E5B0', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
+              }
               Sync
-            </div>
+            </button>
             {/* Avatar */}
             <div style={{
               width: 38, height: 38,
