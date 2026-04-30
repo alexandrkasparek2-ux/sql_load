@@ -21,7 +21,15 @@ function WeeklySummaryCard({ historyData, accent }: { historyData: DayKcal[]; ac
 
   const avgKcal    = Math.round(withData.reduce((s, d) => s + d.kcal, 0) / withData.length);
   const onTarget   = withData.filter(d => d.goal > 0 && d.kcal >= d.goal * 0.88 && d.kcal <= d.goal * 1.12).length;
-  const avgDeficit = withData.reduce((s, d) => s + (d.burned > 0 ? d.burned - d.kcal : 0), 0) / withData.length;
+
+  // Deficit = burn (or goal as fallback) minus intake, always averaged over 7 days
+  const deficitSum = last7.reduce((s, d) => {
+    if (!d.kcal) return s;
+    if (d.burned > 0) return s + (d.burned - d.kcal);
+    if (d.goal > 0)   return s + (d.goal   - d.kcal);
+    return s;
+  }, 0);
+  const avgDeficit = withData.length > 0 ? deficitSum / 7 : 0;
   const totalTSS   = 0; // placeholder — extended via Intervals data when available
 
   return (
