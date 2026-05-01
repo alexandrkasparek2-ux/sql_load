@@ -513,7 +513,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                   width: 42,
                   height: 42,
                   borderRadius: 12,
-                  background: 'linear-gradient(135deg, #FFD600, #FF6B35)',
+                  background: '#ff5b1f',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -575,7 +575,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                     <span style={{
                       fontSize: 14,
                       fontWeight: isToday ? 700 : 500,
-                      color: isToday ? '#FFD600' : T.text,
+                      color: isToday ? 'var(--accent-2)' : T.text,
                     }}>
                       {dateLabel}
                     </span>
@@ -651,11 +651,11 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                       gap: 8,
                       padding: '10px 14px',
                       borderRadius: 999,
-                      border: `1px solid ${isActive ? 'rgba(255,214,0,0.24)' : T.border}`,
+                      border: `1px solid ${isActive ? 'rgba(255,91,31,0.3)' : T.border}`,
                       background: isActive
-                        ? 'linear-gradient(135deg, rgba(255,214,0,0.14), rgba(255,107,53,0.10))'
+                        ? 'rgba(255,91,31,0.12)'
                         : 'rgba(255,255,255,0.02)',
-                      color: isActive ? '#FFD600' : '#9a9a9a',
+                      color: isActive ? '#ff5b1f' : '#9a9a9a',
                       transition: 'all 0.2s ease',
                       whiteSpace: 'nowrap',
                     }}>
@@ -741,7 +741,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
             {/* Avatar */}
             <div style={{
               width: 38, height: 38,
-              background: 'linear-gradient(135deg, #FFD600, #FF6B35)',
+              background: '#ff5b1f',
               borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 18, fontWeight: 800, color: '#000',
@@ -779,7 +779,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
           }}>
             <span style={{
               fontSize: 14, fontWeight: isToday ? 700 : 400,
-              color: isToday ? '#FFD600' : T.muted, transition: 'color 0.2s',
+              color: isToday ? 'var(--accent-2)' : T.muted, transition: 'color 0.2s',
               pointerEvents: 'none',
             }}>
               {dateLabel}
@@ -856,7 +856,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                 gap:            4,
                 padding:        '8px 4px 0',
                 position:       'relative',
-                color:          isActive ? '#FFD600' : '#555555',
+                color:          isActive ? '#ff5b1f' : '#555555',
                 transition:     'color 0.2s',
               }}>
                 {isActive && (
@@ -867,7 +867,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                     transform:    'translateX(-50%)',
                     width:        24,
                     height:       3,
-                    background:   'linear-gradient(90deg, #FFD600, #FF6B35)',
+                    background:   '#ff5b1f',
                     borderRadius: '0 0 3px 3px',
                   }} />
                 )}
@@ -906,10 +906,10 @@ function AppRoutes() {
         alignItems: 'center', justifyContent: 'center', gap: 16,
         background: T.bg,
       }}>
-        <span style={{ fontSize: 24, fontWeight: 800, color: '#FFD600', letterSpacing: '-0.5px' }}>
+        <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-0.5px' }}>
           🚴 CycloFuel
         </span>
-        <Spinner color="#FFD600" size={32} />
+        <Spinner color="#ff5b1f" size={32} />
       </div>
     );
   }
@@ -948,7 +948,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, EBSta
           alignItems: 'center', justifyContent: 'center', gap: 16,
           background: '#080c14', padding: 24, textAlign: 'center',
         }}>
-          <span style={{ fontSize: 24, fontWeight: 800, color: '#FFD600' }}>🚴 CycloFuel</span>
+          <span style={{ fontSize: 24, fontWeight: 800, color: '#ff5b1f' }}>🚴 CycloFuel</span>
           <div style={{ fontSize: 14, color: '#ef4444', fontWeight: 600 }}>Chyba aplikace</div>
           <div style={{
             fontSize: 12, color: '#888', background: '#111', borderRadius: 10,
@@ -959,7 +959,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, EBSta
           <button
             onClick={() => { localStorage.clear(); window.location.reload(); }}
             style={{
-              padding: '10px 20px', borderRadius: 10, background: '#FFD600',
+              padding: '10px 20px', borderRadius: 10, background: '#ff5b1f',
               color: '#000', fontWeight: 700, fontSize: 14, cursor: 'pointer', border: 'none',
             }}
           >

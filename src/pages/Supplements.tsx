@@ -1,10 +1,10 @@
 import { useContext, useState } from 'react';
 import { AppContext } from '../App';
-import { T, BRAND, ProgressBar } from '../components/UI';
+import { T } from '../components/UI';
+import { Ring, Chip } from '../components/primitives';
 import { showToast } from '../components/Toast';
 import { SUPPLEMENTS, SUPPLEMENT_CATEGORIES } from '../constants/supplements';
 import { useSupplements } from '../hooks/useSupplements';
-import { MetricBox, TopBar } from '../components/performance-ui';
 
 function SupplementItem({
   supp, taken, dose, onToggle, onDoseChange,
@@ -48,7 +48,7 @@ function SupplementItem({
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: taken ? BRAND.green : T.text, marginBottom: 2 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: taken ? T.muted : T.text, marginBottom: 2, textDecoration: taken ? 'line-through' : 'none', transition: 'all 0.2s' }}>
           {supp.name}
         </div>
         <div style={{ fontSize: 11, color: T.muted, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -82,14 +82,14 @@ function SupplementItem({
 
       {/* Checkbox */}
       <div style={{
-        width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-        border: `2px solid ${taken ? BRAND.green : '#2a2a2a'}`,
-        background: taken ? BRAND.green : 'transparent',
+        width: 26, height: 26, borderRadius: 7, flexShrink: 0,
+        border: `1.5px solid ${taken ? 'var(--accent)' : T.border2}`,
+        background: taken ? 'var(--accent)' : 'transparent',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'all 0.2s',
       }}>
         {taken && (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="3.5">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         )}
@@ -133,85 +133,38 @@ export default function Supplements() {
       }} />
 
       <div style={{ position: 'relative', zIndex: 1 }}>
-        <TopBar
-          title="Doplňky stravy"
-          subtitle={`Dnes · ${takenCount} z ${totalSupplements}`}
-          showLiveBadge
-          liveBadgeVariant={pct >= 70 ? 'sync' : 'rest'}
-        />
-
-        {/* Hero progress card */}
+        {/* ── Hero: Ring progress ─────────────────────── */}
         <div className="stagger-1" style={{
-          background: 'linear-gradient(180deg, #0f0f0f, #080808)',
-          border: '1px solid #181818',
-          borderRadius: 22, padding: '20px 20px 16px',
-          marginBottom: 16, position: 'relative', overflow: 'hidden',
+          background: T.card, border: `1px solid ${T.border}`,
+          borderRadius: 16, padding: '18px 20px 16px',
+          marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <div style={{
-            position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%',
-            background: 'radial-gradient(circle at center, rgba(255,214,0,0.03) 0%, transparent 40%)',
-            pointerEvents: 'none',
-          }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-            <div>
-              <div style={{ fontSize: 9, color: T.muted, letterSpacing: '1.5px', textTransform: 'uppercase' as const, marginBottom: 6, fontWeight: 600 }}>
-                Doplňky stravy
-              </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                <span style={{
-                  fontSize: 44, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1,
-                  background: 'linear-gradient(180deg, #fff 40%, #888)',
-                  WebkitBackgroundClip: 'text', backgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent', fontVariantNumeric: 'tabular-nums',
-                }}>
-                  {takenCount}
-                </span>
-                <span style={{ fontSize: 18, color: T.muted, fontWeight: 400 }}>/ {totalSupplements}</span>
-              </div>
-              <div style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>vzato dnes</div>
+          <div>
+            <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>
+              Doplňky stravy
             </div>
-            <div style={{ fontSize: 36 }}>
-              {takenCount === 0 ? '💊' : pct >= 70 ? '🏆' : '✅'}
+            <div style={{ fontFamily: "'Space Grotesk', Inter, sans-serif", fontSize: 36, fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+              {takenCount}<span style={{ fontSize: 18, color: T.muted, fontWeight: 400 }}> / {totalSupplements}</span>
             </div>
-          </div>
-          <ProgressBar value={takenCount} max={totalSupplements} color={BRAND.green} height={5} />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginTop: 14 }}>
-            <MetricBox label="Hotovo" value={takenCount} variant="success" />
-            <MetricBox label="Zbývá" value={Math.max(0, totalSupplements - takenCount)} variant="warning" />
-            <MetricBox label="Splněno" value={pct} unit="%" variant="analytics" />
-          </div>
-          {takenCount > 0 && (
-            <div style={{ fontSize: 11, color: BRAND.green, marginTop: 8, fontWeight: 600 }}>
+            <div style={{ fontSize: 12, color: T.text2, marginTop: 6 }}>
               {pct}% splněno dnes
             </div>
-          )}
+          </div>
+          <Ring size={72} stroke={7} value={takenCount} max={totalSupplements} color="var(--accent)" track={T.border}>
+            <span style={{ fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
+          </Ring>
         </div>
 
         {/* Category filter chips */}
         <div className="stagger-2" style={{
           display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 14,
-          paddingBottom: 4, scrollbarWidth: 'none',
+          paddingBottom: 4, scrollbarWidth: 'none' as const,
         }}>
-          {categories.map(cat => {
-            const isActive = cat === activeCategory;
-            return (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                style={{
-                  flexShrink: 0, padding: '5px 12px', borderRadius: 20,
-                  border: `1px solid ${isActive ? 'rgba(255,214,0,0.3)' : T.border}`,
-                  background: isActive ? 'rgba(255,214,0,0.1)' : 'transparent',
-                  color: isActive ? BRAND.gold : T.muted,
-                  fontSize: 11, fontWeight: isActive ? 700 : 400,
-                  cursor: 'pointer', transition: 'all 0.15s',
-                  whiteSpace: 'nowrap', letterSpacing: '0.5px',
-                }}
-              >
-                {cat}
-              </button>
-            );
-          })}
+          {categories.map(cat => (
+            <Chip key={cat} active={cat === activeCategory} onClick={() => setActiveCategory(cat)}>
+              {cat}
+            </Chip>
+          ))}
         </div>
 
         {/* Supplement list */}
@@ -223,7 +176,8 @@ export default function Supplements() {
               <div key={cat}>
                 <div style={{
                   fontSize: 10, color: T.muted, textTransform: 'uppercase' as const,
-                  letterSpacing: '1.5px', fontWeight: 700, marginBottom: 8, marginTop: 4,
+                  letterSpacing: '0.18em', fontFamily: 'JetBrains Mono, monospace',
+                  marginBottom: 8, marginTop: 4,
                 }}>
                   {cat}
                 </div>

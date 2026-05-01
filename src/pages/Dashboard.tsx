@@ -1,7 +1,8 @@
 import { useContext, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext, DEFICIT_KCAL }  from '../App';
-import { T, BRAND, MacroCard, ProgressBar, ProgressRing, SectionTitle, Card, Btn, LiveBadge } from '../components/UI';
+import { T, BRAND, MACRO, ProgressBar, SectionTitle, Card, Btn, LiveBadge } from '../components/UI';
+import { SegRing, Bar, MacroLine, KV, LivePill, Elevation } from '../components/primitives';
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
 import { FOODS } from '../constants/foods';
 import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
@@ -997,110 +998,67 @@ export default function Dashboard() {
               <div>
                 <StretchingChecklist userId={userId} today={today} accent={accent} />
 
-                <div className="stagger-2" style={{
-                  background: 'linear-gradient(180deg, #0f0f0f, #080808)',
-                  border: '1px solid #181818',
-                  borderRadius: 26, padding: '30px 24px 24px',
-                  marginBottom: 16, textAlign: 'center',
-                  position: 'relative', overflow: 'hidden',
-                }}>
+                {/* ── Desktop: Energy balance + Macros row ── */}
+                <div className="stagger-2" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 20, marginBottom: 20 }}>
+                  {/* Energy balance */}
                   <div style={{
-                    position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%',
-                    background: 'radial-gradient(circle at center, rgba(255,214,0,0.04) 0%, transparent 40%)',
-                    pointerEvents: 'none',
-                  }} />
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(240px, 320px) minmax(0, 1fr)',
-                    gap: 24,
-                    alignItems: 'center',
+                    background: T.card, border: `1px solid ${T.border}`,
+                    borderRadius: 14, padding: 28, position: 'relative', overflow: 'hidden',
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                      <ProgressRing value={totals.kcal} max={goals.kcal} size={240}>
-                        <div style={{
-                          fontSize: 50, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1,
-                          background: 'linear-gradient(180deg, #fff 40%, #888)',
-                          WebkitBackgroundClip: 'text', backgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent', fontVariantNumeric: 'tabular-nums',
-                          textAlign: 'center',
-                        }}>
-                          {Math.round(totals.kcal)}
-                        </div>
-                        <div style={{
-                          fontSize: 10, color: T.muted, letterSpacing: '2px',
-                          textTransform: 'uppercase' as const, marginTop: 6, textAlign: 'center',
-                        }}>
-                          kcal příjem
-                        </div>
-                        <div style={{
-                          fontSize: 11, color: BRAND.gold, marginTop: 10, fontWeight: 600,
-                          display: 'inline-flex', alignItems: 'center', gap: 4,
-                          padding: '4px 10px', background: 'rgba(255,214,0,0.1)', borderRadius: 10,
-                        }}>
-                          {pctGoal}% cíle
-                        </div>
-                      </ProgressRing>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                      <span style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
+                        Energetická bilance
+                      </span>
+                      {pctGoal >= 80 ? (
+                        <span style={{ fontSize: 10, padding: '2px 6px', background: 'rgba(125,216,122,0.12)', color: BRAND.green, borderRadius: 3, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>NA CESTĚ</span>
+                      ) : (
+                        <span style={{ fontSize: 10, padding: '2px 6px', background: 'rgba(255,91,31,0.12)', color: BRAND.orange, borderRadius: 3, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>PLNÍ SE</span>
+                      )}
                     </div>
-
-                    <div>
-                      <div style={{ fontSize: 11, color: T.muted, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>
-                        Denní výkon
-                      </div>
-                      <div style={{ fontSize: 34, fontWeight: 800, color: T.text, letterSpacing: '-0.05em', marginBottom: 6 }}>
-                        {Math.max(0, Math.round(goals.kcal - totals.kcal))} kcal zbývá
-                      </div>
-                      <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.6, marginBottom: 18 }}>
-                        Desktop přehled teď zvýrazňuje energii, makra a historii jako pracovní cockpit pro rychlé rozhodování během dne.
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
-                        {[
-                          { label: 'Zbývá',   value: Math.max(0, Math.round(goals.kcal - totals.kcal)), unit: 'kcal' },
-                          { label: 'Cíl',     value: Math.round(goals.kcal), unit: 'kcal' },
-                          { label: 'Splněno', value: pctGoal, unit: '%' },
-                        ].map(s => (
-                          <div key={s.label} style={{
-                            background: T.bg, borderRadius: 12,
-                            padding: '10px 12px', textAlign: 'left',
-                            position: 'relative',
-                          }}>
-                            {s.label === 'Cíl' && goalOverride && (
-                              <button
-                                onClick={() => setGoalOverride(null)}
-                                title="Obnovit výchozí cíle"
-                                style={{
-                                  position: 'absolute', top: 6, right: 6,
-                                  background: 'none', border: 'none', cursor: 'pointer',
-                                  color: BRAND.gold, fontSize: 13, lineHeight: 1, padding: 0, opacity: 0.8,
-                                }}
-                              >
-                                ↺
-                              </button>
-                            )}
-                            <div style={{
-                              fontSize: 18, fontWeight: 700, color: BRAND.gold,
-                              fontVariantNumeric: 'tabular-nums', marginBottom: 4,
-                            }}>
-                              {s.value}
-                              <span style={{ fontSize: 10, color: T.muted, marginLeft: 4 }}>{s.unit}</span>
-                            </div>
-                            <div style={{
-                              fontSize: 10, color: T.muted,
-                              textTransform: 'uppercase' as const, letterSpacing: '0.08em',
-                            }}>
-                              {s.label}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 6 }}>
+                      <span style={{
+                        fontFamily: "'Space Grotesk', Inter, sans-serif",
+                        fontSize: 80, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 0.9,
+                        fontVariantNumeric: 'tabular-nums',
+                      }}>
+                        {Math.max(0, Math.round(goals.kcal - totals.kcal)).toLocaleString('cs')}
+                      </span>
+                      <span style={{ fontSize: 14, color: T.text2 }}>kcal do cíle dne</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 28, marginTop: 22, paddingTop: 18, borderTop: `1px solid ${T.border}` }}>
+                      <KV k="Přijato" v={Math.round(totals.kcal).toLocaleString('cs')} sub="kcal" vSize={24} mono={false} />
+                      <KV k="Cíl dne" v={Math.round(goals.kcal).toLocaleString('cs')} sub={`${pctGoal}% splněno`} vSize={24} mono={false} vColor={BRAND.orange} />
+                      {goalOverride && (
+                        <button onClick={() => setGoalOverride(null)} title="Obnovit výchozí cíle"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: BRAND.orange, fontSize: 13, marginLeft: 'auto', alignSelf: 'center' }}>↺ reset</button>
+                      )}
                     </div>
                   </div>
-                </div>
 
-                <SectionTitle accent={BRAND.gold}>Makroživiny</SectionTitle>
-                <div className="stagger-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
-                  <MacroCard label="Sach."  value={totals.carbs}   target={goals.carbs}   unit="g" color={BRAND.gold}   />
-                  <MacroCard label="Bílk."  value={totals.protein} target={goals.protein} unit="g" color={BRAND.green}  />
-                  <MacroCard label="Tuky"   value={totals.fat}     target={goals.fat}     unit="g" color={BRAND.orange} />
+                  {/* Macros SegRing */}
+                  <div style={{
+                    background: T.card, border: `1px solid ${T.border}`,
+                    borderRadius: 14, padding: 24,
+                    display: 'flex', alignItems: 'center', gap: 20,
+                  }}>
+                    <SegRing size={150} stroke={14}
+                      segments={[
+                        { value: totals.carbs,   color: MACRO.carb },
+                        { value: totals.fat,     color: MACRO.fat  },
+                        { value: totals.protein, color: MACRO.pro  },
+                      ]}
+                    >
+                      <span style={{ fontSize: 10, letterSpacing: '0.14em', color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>MAKRA</span>
+                      <span style={{ fontFamily: "'Space Grotesk', Inter, sans-serif", fontSize: 28, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                        {pctGoal}%
+                      </span>
+                    </SegRing>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      <MacroLine label="Sacharidy" value={totals.carbs}   total={goals.carbs}   color={MACRO.carb} />
+                      <MacroLine label="Tuky"      value={totals.fat}     total={goals.fat}     color={MACRO.fat}  />
+                      <MacroLine label="Bílkoviny" value={totals.protein} total={goals.protein} color={MACRO.pro}  />
+                    </div>
+                  </div>
                 </div>
 
                 {(() => {
@@ -1113,7 +1071,7 @@ export default function Dashboard() {
                       borderRadius: 12, padding: '10px 14px', marginBottom: 16,
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <span style={{ fontSize: 11, color: T.muted, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const }}>
+                        <span style={{ fontSize: 10, color: T.muted, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.12em', textTransform: 'uppercase' as const }}>
                           Vláknina
                         </span>
                         <span style={{ fontSize: 13, fontWeight: 700, color: done ? BRAND.green : T.text }}>
@@ -1185,137 +1143,153 @@ export default function Dashboard() {
             {liveModeSection}
             <StretchingChecklist userId={userId} today={today} accent={accent} />
 
+            {/* ── Energy Balance hero card ─────────────────── */}
             <div className="stagger-2" style={{
-              background: 'linear-gradient(180deg, #0f0f0f, #080808)',
-              border: '1px solid #181818',
-              borderRadius: 22, padding: '24px 20px 20px',
-              marginBottom: 16, textAlign: 'center',
-              position: 'relative', overflow: 'hidden',
-            }}>
-          <div style={{
-            position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%',
-            background: 'radial-gradient(circle at center, rgba(255,214,0,0.04) 0%, transparent 40%)',
-            pointerEvents: 'none',
-          }} />
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
-            <ProgressRing value={totals.kcal} max={goals.kcal} size={210}>
-              <div style={{
-                fontSize: 44, fontWeight: 800, letterSpacing: '-2px', lineHeight: 1,
-                background: 'linear-gradient(180deg, #fff 40%, #888)',
-                WebkitBackgroundClip: 'text', backgroundClip: 'text',
-                WebkitTextFillColor: 'transparent', fontVariantNumeric: 'tabular-nums',
-                textAlign: 'center',
-              }}>
-                {Math.round(totals.kcal)}
-              </div>
-              <div style={{
-                fontSize: 10, color: T.muted, letterSpacing: '2px',
-                textTransform: 'uppercase' as const, marginTop: 6, textAlign: 'center',
-              }}>
-                kcal příjem
-              </div>
-              <div style={{
-                fontSize: 11, color: BRAND.gold, marginTop: 10, fontWeight: 600,
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                padding: '4px 10px', background: 'rgba(255,214,0,0.1)', borderRadius: 10,
-              }}>
-                {pctGoal}% cíle
-              </div>
-            </ProgressRing>
-          </div>
-
-          {/* Live mode strip */}
-          {isLive && (
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              gap: 10, marginTop: 10, marginBottom: 2,
-            }}>
-              <LiveBadge />
-              <div style={{ display: 'flex', gap: 14, fontSize: 11 }}>
-                {liveKcalBurned > 0 && <span style={{ color: BRAND.orange }}>{liveKcalBurned} kcal výdej</span>}
-                {liveTSS > 0 && <span style={{ color: BRAND.purple }}>TSS {Math.round(liveTSS)}</span>}
-                {liveMinutes > 0 && <span style={{ color: T.muted }}>{liveMinutes} min</span>}
-              </div>
-            </div>
-          )}
-
-          {/* Stats below ring */}
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            {[
-              { label: 'Zbývá',   value: Math.max(0, Math.round(goals.kcal - totals.kcal)), unit: 'kcal' },
-              { label: 'Cíl',     value: Math.round(goals.kcal), unit: 'kcal' },
-              { label: 'Splněno', value: pctGoal, unit: '%' },
-            ].map(s => (
-              <div key={s.label} style={{
-                flex: 1, background: T.bg, borderRadius: 8,
-                padding: '6px 8px', textAlign: 'center',
-                position: 'relative',
-              }}>
-                {/* Reset button — visible only on 'Cíl' tile when override is active */}
-                {s.label === 'Cíl' && goalOverride && (
-                  <button
-                    onClick={() => setGoalOverride(null)}
-                    title="Obnovit výchozí cíle"
-                    style={{
-                      position: 'absolute', top: 4, right: 4,
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: BRAND.gold, fontSize: 13, lineHeight: 1, padding: 0,
-                      opacity: 0.8,
-                    }}
-                  >
-                    ↺
-                  </button>
-                )}
-                <div style={{
-                  fontSize: 13, fontWeight: 700, color: BRAND.gold,
-                  fontVariantNumeric: 'tabular-nums',
-                }}>
-                  {s.value}
-                  <span style={{ fontSize: 9, color: T.muted, marginLeft: 2 }}>{s.unit}</span>
-                </div>
-                <div style={{
-                  fontSize: 9, color: T.muted,
-                  textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginTop: 2,
-                }}>
-                  {s.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Macro rings row */}
-        <SectionTitle accent={BRAND.gold}>Makroživiny</SectionTitle>
-        <div className="stagger-3" style={{
-          background: T.card, border: `1px solid ${T.border}`,
-          borderRadius: 16, padding: '12px 8px', marginBottom: 12,
-        }}>
-          <MacroRingRow totals={totals} goals={goals} accent={accent} size={72} />
-        </div>
-
-        {/* Fiber bar */}
-        {(() => {
-          const fv   = Math.round(totals.fiber * 10) / 10;
-          const fg   = goals.fiber;
-          const done = fv >= fg;
-          return (
-            <div className="stagger-4" style={{
               background: T.card, border: `1px solid ${T.border}`,
-              borderRadius: 12, padding: '10px 14px', marginBottom: 16,
+              borderRadius: 16, padding: '20px 20px 18px',
+              marginBottom: 12,
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 11, color: T.muted, fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const }}>
-                  Vláknina
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <span style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
+                  Bilance dne
                 </span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: done ? BRAND.green : T.text }}>
-                  {fv} <span style={{ fontWeight: 400, color: T.muted, fontSize: 11 }}>/ {fg} g</span>
-                  {done && <span style={{ marginLeft: 6, fontSize: 11, color: BRAND.green }}>✓</span>}
+                {pctGoal >= 80 ? (
+                  <span style={{ fontSize: 10, padding: '2px 7px', background: 'rgba(125,216,122,0.12)', color: BRAND.green, borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.1em' }}>NA CESTĚ</span>
+                ) : (
+                  <span style={{ fontSize: 10, padding: '2px 7px', background: 'rgba(255,91,31,0.12)', color: BRAND.orange, borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.1em' }}>PLNÍ SE</span>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                <span style={{
+                  fontFamily: "'Space Grotesk', Inter, sans-serif",
+                  fontSize: 60, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 0.9,
+                  color: T.text, fontVariantNumeric: 'tabular-nums',
+                }}>
+                  {Math.max(0, Math.round(goals.kcal - totals.kcal)).toLocaleString('cs')}
                 </span>
               </div>
-              <ProgressBar value={fv} max={fg} color={BRAND.green} height={4} />
+              <div style={{ fontSize: 12, color: T.text2, marginBottom: 16 }}>
+                kcal do cíle · cíl {Math.round(goals.kcal).toLocaleString('cs')} kcal
+                {goalOverride && (
+                  <button onClick={() => setGoalOverride(null)} title="Obnovit výchozí cíle"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: BRAND.orange, fontSize: 13, marginLeft: 8, padding: 0 }}>↺</button>
+                )}
+              </div>
+              <div style={{ paddingTop: 14, borderTop: `1px solid ${T.border}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <KV k="Přijato" v={Math.round(totals.kcal).toLocaleString('cs')} sub="kcal" vSize={20} mono={false} />
+                <KV k="Cíl" v={Math.round(goals.kcal).toLocaleString('cs')} sub={`${pctGoal}% splněno`} vSize={20} mono={false} vColor={BRAND.orange} />
+              </div>
             </div>
-          );
-        })()}
+
+            {/* ── Macros SegRing card ──────────────────────── */}
+            <div className="stagger-3" style={{
+              background: T.card, border: `1px solid ${T.border}`,
+              borderRadius: 16, padding: '18px 18px 16px',
+              marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16,
+            }}>
+              <SegRing size={110} stroke={11}
+                segments={[
+                  { value: totals.carbs,   color: MACRO.carb },
+                  { value: totals.fat,     color: MACRO.fat  },
+                  { value: totals.protein, color: MACRO.pro  },
+                ]}
+              >
+                <span style={{ fontFamily: "'Space Grotesk', Inter, sans-serif", fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                  {Math.round(totals.carbs + totals.fat + totals.protein)}
+                </span>
+                <span style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>g</span>
+              </SegRing>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <MacroLine label="Sacharidy" value={totals.carbs}   total={goals.carbs}   color={MACRO.carb} />
+                <MacroLine label="Tuky"      value={totals.fat}     total={goals.fat}     color={MACRO.fat}  />
+                <MacroLine label="Bílkoviny" value={totals.protein} total={goals.protein} color={MACRO.pro}  />
+              </div>
+            </div>
+
+            {/* ── Fiber bar ────────────────────────────────── */}
+            {(() => {
+              const fv   = Math.round(totals.fiber * 10) / 10;
+              const fg   = goals.fiber;
+              const done = fv >= fg;
+              return (
+                <div style={{
+                  background: T.card, border: `1px solid ${T.border}`,
+                  borderRadius: 12, padding: '10px 14px', marginBottom: 12,
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontSize: 10, color: T.muted, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase' as const, letterSpacing: '0.12em' }}>
+                      Vláknina
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: done ? BRAND.green : T.text }}>
+                      {fv} <span style={{ fontWeight: 400, color: T.muted, fontSize: 11 }}>/ {fg} g</span>
+                      {done && <span style={{ marginLeft: 6, color: BRAND.green }}>✓</span>}
+                    </span>
+                  </div>
+                  <Bar value={fv} max={fg} color={BRAND.green} height={4} />
+                </div>
+              );
+            })()}
+
+            {/* ── Hydration quick-add card ─────────────────── */}
+            {(() => {
+              const glasses   = trainingDay?.water_glasses ?? 0;
+              const waterMl   = glasses * 250;
+              const goalMl    = goals.water * 1000;
+              return (
+                <div style={{
+                  background: T.card, border: `1px solid ${T.border}`,
+                  borderRadius: 16, padding: '16px 18px 14px',
+                  marginBottom: 12,
+                }}>
+                  <div style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 10 }}>
+                    Hydratace
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                      <span style={{ fontFamily: "'Space Grotesk', Inter, sans-serif", fontSize: 28, fontWeight: 700, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
+                        {(waterMl / 1000).toFixed(1)}
+                      </span>
+                      <span style={{ fontSize: 14, color: T.text2 }}>/ {goals.water.toFixed(1)} L</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {[250, 500, 750].map(ml => (
+                        <button key={ml} onClick={() => upsertTrainingDay({ water_glasses: glasses + ml / 250 })}
+                          style={{
+                            padding: '7px 10px', border: `1px solid ${T.border}`,
+                            background: 'transparent', color: T.text,
+                            borderRadius: 8, fontSize: 11, fontWeight: 600,
+                            fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer',
+                          }}>
+                          +{ml}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <Bar value={waterMl} max={goalMl} color={MACRO.hyd} height={5} />
+                </div>
+              );
+            })()}
+
+            {/* ── Ride card (training days) ────────────────── */}
+            {trainingDay && trainingDay.training_type !== 'rest' && (trainingDay.ride_hours ?? 0) > 0 && (
+              <div style={{
+                background: T.card, border: `1px solid ${BRAND.orange}`,
+                borderRadius: 16, padding: '0 18px 16px',
+                marginBottom: 12, position: 'relative', overflow: 'hidden',
+              }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: BRAND.orange }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 16, marginBottom: 6 }}>
+                  <LivePill color={BRAND.orange}>PLÁN</LivePill>
+                </div>
+                <div style={{ fontFamily: "'Space Grotesk', Inter, sans-serif", fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
+                  {training.label} · {trainingDay.ride_hours.toFixed(1)} h
+                </div>
+                <div style={{ fontSize: 11, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 14 }}>
+                  {Math.round(goals.kcal - 1800)} kJ · {Math.round(goals.carbs)} g sach. · {goals.water.toFixed(1)} L
+                </div>
+                <Elevation height={56} color={BRAND.orange} fill="rgba(255,91,31,0.18)" />
+              </div>
+            )}
 
         {performanceMetricsSection}
 

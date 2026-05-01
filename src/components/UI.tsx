@@ -1,36 +1,48 @@
 import React from 'react';
 
 // ──────────────────────────────────────────────────────────
-// Theme tokens — Hybrid Performance design
+// Theme tokens — Variant A "Power" design
 // ──────────────────────────────────────────────────────────
 export const T = {
-  bg:     '#050505',
-  card:   '#0d0d0d',
-  border: '#1a1a1a',
-  text:   '#ffffff',
-  muted:  '#666666',
-  radius: 12,
+  bg:      '#0b0b0c',
+  bg2:     '#131315',
+  card:    '#18181b',
+  card2:   '#1f1f23',
+  border:  '#26262b',
+  border2: '#34343a',
+  text:    '#f5f5f4',
+  text2:   '#a8a8a3',
+  muted:   '#6b6b67',
+  radius:  14,
 } as const;
 
-// Brand / macro palette
+// Brand / macro palette — Power orange
 export const BRAND = {
-  gold:    '#FFD600',
-  orange:  '#FF6B35',
-  green:   '#00E5B0',
-  blue:    '#4FC3F7',
+  gold:    '#ffb000',
+  orange:  '#ff5b1f',
+  green:   '#7dd87a',
+  blue:    '#4cc9ff',
   purple:  '#B388FF',
-  red:     '#FF5252',
-  gradient: 'linear-gradient(135deg, #FFD600, #FF6B35)',
+  red:     '#ff5566',
+  gradient: 'linear-gradient(135deg, #ffb000, #ff5b1f)',
 } as const;
 
-// Legacy Apple palette — kept for backward compat, mapped to new palette
+// Macro nutrient colors
+export const MACRO = {
+  carb: '#ffb000',
+  fat:  '#ff5b1f',
+  pro:  '#d6f25c',
+  hyd:  '#4cc9ff',
+} as const;
+
+// Legacy Apple palette — kept for backward compat
 export const APPLE = {
-  red:    '#FF5252',
-  green:  '#00E5B0',
-  blue:   '#4FC3F7',
-  orange: '#FF6B35',
-  cyan:   '#4FC3F7',
-  yellow: '#FFD600',
+  red:    '#ff5566',
+  green:  '#7dd87a',
+  blue:   '#4cc9ff',
+  orange: '#ff5b1f',
+  cyan:   '#4cc9ff',
+  yellow: '#ffb000',
 } as const;
 
 // ──────────────────────────────────────────────────────────
