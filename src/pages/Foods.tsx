@@ -9,7 +9,7 @@ import { useSavedMeals, type SavedMeal } from '../hooks/useSavedMeals';
 import { useUserSetting } from '../hooks/useUserSetting';
 import BarcodeScanner    from '../components/BarcodeScanner';
 import FoodScanner      from '../components/FoodScanner';
-import { MealBuilder, SegmentedTabs, type MealSuggestion } from '../components/performance-ui';
+import { MealBuilder, type MealSuggestion } from '../components/performance-ui';
 
 // ─── helpers ────────────────────────────────────────────────
 function scaleNutrient(val: number, grams: number) {
@@ -1002,8 +1002,8 @@ export default function Foods() {
   }, []);
 
   const [activeTab, setActiveTab] = useState<'denik' | 'meal_builder'>('denik');
+  const [innerTab, setInnerTab] = useState<'diary' | 'builder'>('diary');
   const [activePicker,  setActivePicker]  = useState<string | null>(null);
-  const [activeTab,     setActiveTab]     = useState('diary');
   const [confirmDel,    setConfirmDel]    = useState<string | null>(null);
   const [editingEntry,  setEditingEntry]  = useState<string | null>(null);
   const [editGrams,     setEditGrams]     = useState(100);
@@ -1244,11 +1244,11 @@ export default function Foods() {
           { id: 'diary', label: 'Deník' },
           { id: 'builder', label: 'Meal Builder' },
         ]}
-        active={activeTab}
-        onChange={setActiveTab}
+        active={innerTab}
+        onChange={(id) => setInnerTab(id as 'diary' | 'builder')}
       />
 
-      {activeTab === 'builder' ? (
+      {innerTab === 'builder' ? (
         <div style={{ maxWidth: isDesktop ? 760 : 'none', marginBottom: 16 }}>
           <MealBuilder remaining={remaining} suggestions={mealBuilderSuggestions} />
         </div>
@@ -1491,6 +1491,8 @@ export default function Foods() {
         </div>
       </Card>
 
+      </>
+      )}
       </> )} {/* end activeTab === 'denik' */}
 
       </div>

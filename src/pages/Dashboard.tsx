@@ -7,13 +7,14 @@ import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants
 import { FOODS } from '../constants/foods';
 import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
 import { useIntervalsData } from '../hooks/useIntervalsData';
-import { activityKcal } from '../services/intervalsService';
 import { IntervalsCard } from '../components/IntervalsCard';
 import { useTrainingPlan } from '../hooks/useTrainingPlan';
 import { WorkoutFuelPlannerCard } from '../components/WorkoutFuelPlannerCard';
 import { comparePlannedVsActual } from '../services/fuelingPlanner';
-import { WeekChart, TrainingBanner, MacroRingRow } from '../components/PerformanceCards';
+import { WeekChart, TrainingBanner } from '../components/PerformanceCards';
 import { PriorityCard } from '../components/performance-ui/PriorityCard';
+import { ScoreRing } from '../components/performance-ui/ScoreRing';
+import { RecoveryDebtCard } from '../components/performance-ui/RecoveryDebtCard';
 
 // ─── Weekly summary ───────────────────────────────────────────
 function WeeklySummaryCard({ historyData, accent }: { historyData: DayKcal[]; accent: string }) {
@@ -649,12 +650,6 @@ export default function Dashboard() {
     ? Math.max(1, Math.round((Date.now() - new Date(liveActivity.start_date_local).getTime()) / 60_000))
     : 0;
 
-  // Live Mode: today has recorded activities in Intervals.icu
-  const todayActivities = intervalsActivities.filter(a => a.start_date_local.startsWith(today));
-  const isLive = todayActivities.length > 0;
-  const liveKcalBurned = todayActivities.reduce((s, a) => s + activityKcal(a), 0);
-  const liveTSS = todayActivities.reduce((s, a) => s + (a.icu_training_load ?? 0), 0);
-  const liveMinutes = todayActivities.reduce((s, a) => s + Math.round(a.moving_time / 60), 0);
 
   const allHours = trainingDay ? (trainingDay.ride_hours ?? 0) : 0;
   const trainingBanner = training.id !== 'rest' ? (
@@ -732,7 +727,7 @@ export default function Dashboard() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <LiveBadge variant="live" />
+            <LiveBadge />
             <span style={{ fontSize: 11, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>During training</span>
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, color: T.text, marginBottom: 4 }}>{liveActivity.name}</div>

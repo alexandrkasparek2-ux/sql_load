@@ -15,7 +15,6 @@ import { sportIcon as tpSportIcon } from '../services/trainingPeaksService';
 import { CompactFuelingBadges } from '../components/WorkoutFuelPlannerCard';
 
 type FuelPhase = 'phase1' | 'phase2' | 'phase3';
-type PlanTab = 'activities' | 'planned' | 'fueling' | 'carbs';
 type DayTypeKey = 'rest' | 'easy_endurance' | 'quality' | 'double_load' | 'gym_support' | 'race_prep';
 type ExperimentFocus = 'carbs' | 'hydration' | 'caffeine' | 'pre_ride' | 'post_ride';
 
@@ -676,11 +675,6 @@ export default function Plan() {
     setSavingExperiment(false);
   };
 
-  const handleTabChange = (tab: string) => {
-    const next = tab as PlanTab;
-    setActiveTab(next);
-    if (next === 'carbs') setActivePhase('phase1');
-  };
 
   if (!isConnected) {
     return (
@@ -837,10 +831,8 @@ export default function Plan() {
             <StatRow label="Recovery debt" value={recoveryDebt.adjusted} unit="kcal" accent={recoveryDebt.level === 'Vysoký' ? BRAND.red : recoveryDebt.level === 'Střední' ? BRAND.orange : BRAND.green} />
           </Card>
         </div>
-        </>
-        )}
 
-        {(activePhase === 'phase1' || activeTab === 'carbs') && activeTab !== 'activities' && (
+        {activePhase === 'phase1' && (
           <>
             <SectionTitle accent={BRAND.gold}>Fáze 1 — největší praktický dopad</SectionTitle>
             <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3, minmax(0, 1fr))' : '1fr', gap: 14, marginBottom: 20 }}>
@@ -968,7 +960,7 @@ export default function Plan() {
           </>
         )}
 
-        {activePhase === 'phase2' && activeTab === 'fueling' && (
+        {activePhase === 'phase2' && activeTab === 'lab' && (
           <>
             <SectionTitle accent={BRAND.gold}>Fáze 2 — sportovní inteligence</SectionTitle>
             <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3, minmax(0, 1fr))' : '1fr', gap: 14, marginBottom: 20 }}>
@@ -1049,7 +1041,7 @@ export default function Plan() {
           </>
         )}
 
-        {activePhase === 'phase3' && activeTab === 'fueling' && (
+        {activePhase === 'phase3' && activeTab === 'lab' && (
           <>
             <SectionTitle accent={BRAND.gold}>Fáze 3 — Road Classics režim</SectionTitle>
             <div style={{ display: 'grid', gridTemplateColumns: isDesktop ? 'repeat(3, minmax(0, 1fr))' : '1fr', gap: 14, marginBottom: 20 }}>

@@ -81,7 +81,7 @@ function renderMarkdown(text: string | undefined, color: string) {
 
 export default function Chat() {
   const ctx = useContext(AppContext);
-  const { accent, addEntry, removeEntry, updateEntry, setGoalOverride, userId, today } = ctx;
+  const { accent, addEntry, removeEntry, updateEntry, setGoalOverride, userId, today, totals, goals, trainingDay } = ctx;
   const { todayWorkout, upcoming } = useTrainingPlan();
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split('T')[0];

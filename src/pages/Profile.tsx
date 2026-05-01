@@ -6,6 +6,7 @@ import { calcBMR, calcCalories, calcMacros, calcWater } from '../constants/train
 import { useUserSetting } from '../hooks/useUserSetting';
 import { getSetting } from '../hooks/useUserSettings';
 import { loadTPUrl, saveTPUrl, clearTPCache, fetchTPPlan } from '../services/trainingPeaksService';
+import { TopBar } from '../components/performance-ui/TopBar';
 
 function SliderField({
   label, value, min, max, step, unit, accent, onChange,
