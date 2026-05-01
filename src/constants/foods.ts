@@ -207,6 +207,13 @@ export const FOODS: Food[] = [
     micros: { na: 36, k: 141, mg: 11, ca: 111, fe: 0.1, vit_c: 0, vit_d: 0.1, b12: 0.75, omega3: 50, zn: 0.5 },
   },
   {
+    id: 'protein_yogurt',
+    cat: '🥛 Mléčné',
+    name: 'Proteinový jogurt',
+    kcal: 75, carbs: 6.5, protein: 9.5, fat: 0.9, per: 150,
+    micros: { na: 55, k: 200, mg: 14, ca: 160, fe: 0.1, vit_c: 0, vit_d: 0.1, b12: 0.9, omega3: 30, zn: 0.6 },
+  },
+  {
     id: 'cottage_cheese',
     cat: '🥛 Mléčné',
     name: 'Cottage cheese',
