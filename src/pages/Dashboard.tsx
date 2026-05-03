@@ -4,6 +4,7 @@ import { AppContext, DEFICIT_KCAL }  from '../App';
 import { T, BRAND, MACRO, ProgressBar, SectionTitle, Card, Btn, LiveBadge } from '../components/UI';
 import { SegRing, Bar, MacroLine, KV, LivePill, Elevation } from '../components/primitives';
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
+import { getDuringCarbRange, calcFuelingScore } from '../utils/fuelingScore';
 import { FOODS } from '../constants/foods';
 import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
 import { useIntervalsData } from '../hooks/useIntervalsData';
@@ -406,28 +407,6 @@ function CaffeineTracker({
   );
 }
 
-function clampScore(value: number) {
-  return Math.min(100, Math.max(0, value));
-}
-
-function calcDashboardFuelingScore({
-  totals,
-  goals,
-  waterGlasses,
-  postWorkoutProtein,
-}: {
-  totals: { carbs: number; protein: number };
-  goals: { carbs: number; protein: number; water: number };
-  waterGlasses: number;
-  postWorkoutProtein: number;
-}) {
-  const carbScore = clampScore((totals.carbs / Math.max(goals.carbs, 1)) * 32);
-  const proteinScore = clampScore((totals.protein / Math.max(goals.protein, 1)) * 32);
-  const waterGoalGlasses = Math.max(1, Math.round(goals.water * 4));
-  const hydrationScore = clampScore((waterGlasses / waterGoalGlasses) * 22);
-  const recoveryScore = clampScore((postWorkoutProtein / 25) * 14);
-  return Math.round(carbScore + proteinScore + hydrationScore + recoveryScore);
-}
 
 // ─── Training meal recommendation card ───────────────────────
 function MealRecCard({ trainingType, accent, onAddAll }: {
@@ -632,10 +611,18 @@ export default function Dashboard() {
   const postWorkoutProtein = entries
     .filter(entry => entry.meal_slot === 'po_tren')
     .reduce((sum, entry) => sum + entry.protein, 0);
-  const fuelingScore = calcDashboardFuelingScore({
+  const duringCarbs = entries
+    .filter(entry => entry.meal_slot === 'behem_tren')
+    .reduce((sum, entry) => sum + entry.carbs, 0);
+  const allHoursForScore = trainingDay ? (trainingDay.ride_hours ?? 0) : 0;
+  const carbRange = getDuringCarbRange(primary as Parameters<typeof getDuringCarbRange>[0], allHoursForScore);
+  const fuelingScore = calcFuelingScore({
     totals,
     goals,
-    waterGlasses: trainingDay?.water_glasses ?? 0,
+    waterGlasses:       trainingDay?.water_glasses ?? 0,
+    totalHours:         allHoursForScore,
+    duringCarbs,
+    carbRange,
     postWorkoutProtein,
   });
   const recentRecoveryDebt = Math.round(
@@ -652,7 +639,7 @@ export default function Dashboard() {
     : 0;
 
 
-  const allHours = trainingDay ? (trainingDay.ride_hours ?? 0) : 0;
+  const allHours = allHoursForScore;
   const trainingBanner = training.id !== 'rest' ? (
     <div className="stagger-1" onClick={() => navigate('/plan')} style={{ cursor: 'pointer', marginBottom: 16 }}>
       <TrainingBanner

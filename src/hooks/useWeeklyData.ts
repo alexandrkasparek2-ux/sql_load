@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { loadDailyGoals } from './useDailyGoals';
-import { calcBMR, calcCalories, type CalcProfile } from '../constants/training';
+import { calcCalories, type CalcProfile } from '../constants/training';
 import { loadBurnLog } from '../services/intervalsService';
 import { loadSnapshotBatch } from '../services/dailySnapshotService';
 
@@ -93,7 +93,7 @@ export function useWeeklyData(
       } else if (profile) {
         let rawKcal: number;
         if (typeof burnLog[date] === 'number') {
-          rawKcal = Math.round(calcBMR(profile) * 1.15 + burnLog[date]);
+          rawKcal = calcCalories(profile, 'rest', 0) + burnLog[date];
         } else if (trainRow) {
           rawKcal = Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0));
         } else {
@@ -113,7 +113,7 @@ export function useWeeklyData(
         burned = snap.goal_kcal + deficitKcal;
       } else if (profile) {
         if (typeof burnLog[date] === 'number') {
-          burned = Math.round(calcBMR(profile) * 1.15 + burnLog[date]);
+          burned = calcCalories(profile, 'rest', 0) + burnLog[date];
         } else {
           burned = trainRow
             ? Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0))

@@ -9,6 +9,7 @@ import { useWhoopData } from '../hooks/useWhoopData';
 import { IntervalsCard } from '../components/IntervalsCard';
 import { FOODS, type Food } from '../constants/foods';
 import { TRAINING_TYPES, primaryType, type TrainingType } from '../constants/training';
+import { getDuringCarbRange, calcFuelingScore } from '../utils/fuelingScore';
 import { activityKcal, formatDuration, sportIcon, type IntervalsActivity } from '../services/intervalsService';
 import { useTrainingPlan } from '../hooks/useTrainingPlan';
 import { sportIcon as tpSportIcon } from '../services/trainingPeaksService';
@@ -119,9 +120,6 @@ function roundToFive(value: number) {
   return Math.round(value / 5) * 5;
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
 
 function getAllTrainingTypes(trainingDay: { training_type: TrainingType; extra_types: TrainingType[] } | null): TrainingType[] {
   if (!trainingDay) return ['rest'];
@@ -152,27 +150,6 @@ function getDayType(types: TrainingType[], totalHours: number): DayTypeKey {
   return 'easy_endurance';
 }
 
-function getDuringCarbRange(primaryTraining: TrainingType, totalHours: number): { min: number; max: number } {
-  if (totalHours < 0.75) return { min: 0, max: 25 };
-  switch (primaryTraining) {
-    case 'race':
-      return { min: 85, max: 100 };
-    case 'hard':
-      return { min: 70, max: 90 };
-    case 'medium':
-    case 'cycling_indoor':
-      return { min: 50, max: 70 };
-    case 'running':
-      return { min: 40, max: 60 };
-    case 'light':
-    case 'hiking':
-      return { min: 30, max: 45 };
-    case 'strength':
-      return { min: 0, max: 20 };
-    default:
-      return { min: 25, max: 45 };
-  }
-}
 
 function pickBuilderFoods(remaining: { kcal: number; carbs: number; protein: number; fat: number }) {
   const totalGap = Math.max(remaining.carbs + remaining.protein + remaining.fat, 1);
@@ -221,27 +198,6 @@ function getBuilderStrategy(remaining: { carbs: number; protein: number; fat: nu
   return ordered.slice(0, 2).map(item => item.label).join(' + ');
 }
 
-function getFuelingScore(input: {
-  totals: { carbs: number; protein: number };
-  goals: { carbs: number; protein: number; water: number };
-  glasses: number;
-  totalHours: number;
-  duringCarbs: number;
-  carbRange: { min: number; max: number };
-  postWorkoutProtein: number;
-}) {
-  const proteinScore = clamp((input.totals.protein / Math.max(input.goals.protein, 1)) * 25, 0, 25);
-  const carbScore = clamp((input.totals.carbs / Math.max(input.goals.carbs, 1)) * 25, 0, 25);
-  const waterGoalGlasses = Math.max(1, Math.round(input.goals.water * 4));
-  const hydrationScore = clamp((input.glasses / waterGoalGlasses) * 20, 0, 20);
-  const duringScore = input.totalHours >= 1.2
-    ? clamp((input.duringCarbs / Math.max(input.carbRange.min * input.totalHours, 1)) * 20, 0, 20)
-    : 20;
-  const postScore = input.totalHours >= 1.2
-    ? clamp((input.postWorkoutProtein / 25) * 10, 0, 10)
-    : 10;
-  return Math.round(proteinScore + carbScore + hydrationScore + duringScore + postScore);
-}
 
 function getRecoveryDebt(history: Array<{ burned: number; kcal: number }>, whoopRecovery: number | null) {
   const recent = history.slice(-4, -1);
@@ -579,10 +535,10 @@ export default function Plan() {
   };
 
   const builderFoods = useMemo(() => pickBuilderFoods(remaining), [remaining]);
-  const fuelingScore = getFuelingScore({
+  const fuelingScore = calcFuelingScore({
     totals,
     goals,
-    glasses: trainingDay?.water_glasses ?? 0,
+    waterGlasses: trainingDay?.water_glasses ?? 0,
     totalHours,
     duringCarbs,
     carbRange,

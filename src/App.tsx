@@ -251,23 +251,30 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       trainingDay?.activity_intensity ?? {},
     );
 
-    // Apply weight-loss deficit
-    const targetW = targetWeightSetting > 0 ? targetWeightSetting : profile.weight;
-    const deficit = deficitLevel !== 'off' && targetW < profile.weight ? DEFICIT_KCAL[deficitLevel] : 0;
-    const kcalFinal = Math.max(1200, kcalGoal - deficit);
+    const kcalFinal = Math.max(1200, kcalGoal - deficitKcal);
+
+    // Scale macros proportionally to fit within kcalFinal
+    const rawMacroKcal = m.carbs * 4 + m.protein * 4 + m.fat * 9;
+    let { carbs, protein, fat } = m;
+    if (rawMacroKcal > kcalFinal && rawMacroKcal > 0) {
+      const scale = kcalFinal / rawMacroKcal;
+      carbs   = Math.round(m.carbs   * scale);
+      protein = Math.round(m.protein * scale);
+      fat     = Math.round(m.fat     * scale);
+    }
 
     // Vláknina: ~14 g / 1 000 kcal, min 25 g, max 45 g
     const fiberGoal = Math.min(45, Math.max(25, Math.round(kcalFinal * 0.014)));
     return {
       kcal:    kcalFinal,
-      carbs:   m.carbs,
-      protein: m.protein,
-      fat:     m.fat,
+      carbs,
+      protein,
+      fat,
       fiber:   fiberGoal,
       water:   calcWater(profile, rideHours),
       micros:  calcMicroGoals(training.microMul),
     };
-  }, [profile, trainingType, rideHours, training.microMul, trainingDay, deficitLevel, targetWeightSetting]);
+  }, [profile, trainingType, rideHours, training.microMul, trainingDay, deficitKcal]);
 
   // ── Intervals.icu: přepočet kalorií + maker podle skutečné aktivity ──
   const [intervalsData, setIntervalsData] = useState(
@@ -283,15 +290,24 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   const goalsWithIntervals = useMemo<Goals>(() => {
     if (!intervalsData.kcal || !profile) return goals;
     const { kcal: actKcal, type: actType, hours: actHours } = intervalsData;
-    // Total: BMR (rest) + actual activity kcal from Intervals
-    const baseBMR  = calcCalories(profile, 'rest', 0);
-    const kcalNew  = Math.round(baseBMR + actKcal);
-    const fiberNew = Math.min(45, Math.max(25, Math.round(kcalNew * 0.014)));
-    // Recalculate macros based on actual training type and duration from Intervals
-    const m        = calcMacros(profile, actType);
-    const waterNew = calcWater(profile, actHours);
-    return { ...goals, kcal: kcalNew, fiber: fiberNew, carbs: m.carbs, protein: m.protein, fat: m.fat, water: waterNew };
-  }, [goals, intervalsData, profile]);
+    // Total: BMR (rest) + actual activity kcal from Intervals, then apply deficit
+    const baseBMR    = calcCalories(profile, 'rest', 0);
+    const kcalRaw    = Math.round(baseBMR + actKcal);
+    const kcalNew    = Math.max(1200, kcalRaw - deficitKcal);
+    const fiberNew   = Math.min(45, Math.max(25, Math.round(kcalNew * 0.014)));
+    const m          = calcMacros(profile, actType);
+    const waterNew   = calcWater(profile, actHours);
+    // Scale macros to fit kcalNew
+    const rawMacroKcal = m.carbs * 4 + m.protein * 4 + m.fat * 9;
+    let { carbs, protein, fat } = m;
+    if (rawMacroKcal > kcalNew && rawMacroKcal > 0) {
+      const scale = kcalNew / rawMacroKcal;
+      carbs   = Math.round(m.carbs   * scale);
+      protein = Math.round(m.protein * scale);
+      fat     = Math.round(m.fat     * scale);
+    }
+    return { ...goals, kcal: kcalNew, fiber: fiberNew, carbs, protein, fat, water: waterNew };
+  }, [goals, intervalsData, profile, deficitKcal]);
 
   // Total energy expenditure (BMR + activity), before deficit reduction.
   // Used by UI to display true energy balance = burnedToday - consumed.
