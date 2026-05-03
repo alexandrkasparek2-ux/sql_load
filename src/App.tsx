@@ -86,6 +86,8 @@ export interface AppCtx {
   isHistoricalDay:   boolean;
   /** Clear snapshot for current date so it gets live-recalculated and re-saved. */
   recalculateDay:    () => Promise<void>;
+  /** Total energy expenditure for today (BMR + activity), before deficit reduction. */
+  burnedToday:       number;
 }
 
 const DEFAULT_GOALS: Goals = {
@@ -291,6 +293,23 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     return { ...goals, kcal: kcalNew, fiber: fiberNew, carbs: m.carbs, protein: m.protein, fat: m.fat, water: waterNew };
   }, [goals, intervalsData, profile]);
 
+  // Total energy expenditure (BMR + activity), before deficit reduction.
+  // Used by UI to display true energy balance = burnedToday - consumed.
+  const burnedToday = useMemo(() => {
+    if (!profile) return 0;
+    if (intervalsData.kcal > 0) {
+      return Math.round(calcCalories(profile, 'rest', 0) + intervalsData.kcal);
+    }
+    const types = (trainingDay?.extra_types ?? []).length > 0
+      ? (trainingDay!.extra_types as TrainingType[])
+      : [trainingType];
+    return Math.round(calcCaloriesMulti(
+      profile, types,
+      trainingDay?.activity_hours     ?? {},
+      trainingDay?.activity_intensity ?? {},
+    ));
+  }, [profile, intervalsData.kcal, trainingType, trainingDay]);
+
   // ── Daily nutrition snapshot ──────────────────────────────────────────────
   const realToday = useMemo(() => new Date().toISOString().split('T')[0], []);
   const isViewingToday = today === realToday;
@@ -406,6 +425,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     setDeficitLevel,
     isHistoricalDay:   isHistoricalSnapshot,
     recalculateDay,
+    burnedToday,
   };
 
   // Push notifications (runs checks every 5 min when permission granted)

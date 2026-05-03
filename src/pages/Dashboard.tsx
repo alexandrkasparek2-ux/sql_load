@@ -17,7 +17,7 @@ import { ScoreRing } from '../components/performance-ui/ScoreRing';
 import { RecoveryDebtCard } from '../components/performance-ui/RecoveryDebtCard';
 
 // ─── Weekly summary ───────────────────────────────────────────
-function WeeklySummaryCard({ historyData, accent }: { historyData: DayKcal[]; accent: string }) {
+function WeeklySummaryCard({ historyData, accent, deficitKcal }: { historyData: DayKcal[]; accent: string; deficitKcal: number }) {
   const last7 = historyData.slice(-7);
   const withData = last7.filter(d => d.kcal > 0);
   if (withData.length < 2) return null;
@@ -25,11 +25,12 @@ function WeeklySummaryCard({ historyData, accent }: { historyData: DayKcal[]; ac
   const avgKcal    = Math.round(withData.reduce((s, d) => s + d.kcal, 0) / withData.length);
   const onTarget   = withData.filter(d => d.goal > 0 && d.kcal >= d.goal * 0.88 && d.kcal <= d.goal * 1.12).length;
 
-  // Deficit = burn (or goal as fallback) minus intake, always averaged over 7 days
+  // Deficit = burned − consumed.
+  // Fallback when burned=0: goal already has deficitKcal subtracted, so add it back.
   const deficitSum = last7.reduce((s, d) => {
     if (!d.kcal) return s;
     if (d.burned > 0) return s + (d.burned - d.kcal);
-    if (d.goal > 0)   return s + (d.goal   - d.kcal);
+    if (d.goal > 0)   return s + (d.goal + deficitKcal - d.kcal);
     return s;
   }, 0);
   const avgDeficit = withData.length > 0 ? deficitSum / 7 : null;
@@ -570,7 +571,7 @@ export default function Dashboard() {
     accent, totals, goals, goalOverride, setGoalOverride,
     trainingDay, upsertTrainingDay,
     entries, userId, today, addEntry, profile,
-    deficitLevel, isHistoricalDay, recalculateDay,
+    deficitLevel, isHistoricalDay, recalculateDay, burnedToday,
   } = ctx;
 
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
@@ -1010,19 +1011,31 @@ export default function Dashboard() {
                         <span style={{ fontSize: 10, padding: '2px 6px', background: 'rgba(255,91,31,0.12)', color: BRAND.orange, borderRadius: 3, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>PLNÍ SE</span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 6 }}>
-                      <span style={{
-                        fontFamily: "'Space Grotesk', Inter, sans-serif",
-                        fontSize: 80, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 0.9,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}>
-                        {Math.max(0, Math.round(goals.kcal - totals.kcal)).toLocaleString('cs')}
-                      </span>
-                      <span style={{ fontSize: 14, color: T.text2 }}>kcal do cíle dne</span>
-                    </div>
+                    {(() => {
+                        const balance = burnedToday > 0 ? burnedToday - Math.round(totals.kcal) : Math.round(goals.kcal + deficitKcal - totals.kcal);
+                        const balanceColor = balance > 200 ? BRAND.green : balance < -200 ? BRAND.red : BRAND.orange;
+                        return (
+                          <>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 6 }}>
+                              <span style={{
+                                fontFamily: "'Space Grotesk', Inter, sans-serif",
+                                fontSize: 80, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 0.9,
+                                color: balanceColor, fontVariantNumeric: 'tabular-nums',
+                              }}>
+                                {balance > 0 ? '+' : ''}{balance.toLocaleString('cs')}
+                              </span>
+                              <span style={{ fontSize: 14, color: T.text2 }}>kcal bilance</span>
+                            </div>
+                            <div style={{ fontSize: 11, color: T.muted, marginBottom: 6 }}>
+                              zbývá do cíle: <span style={{ color: T.text, fontWeight: 600 }}>{Math.max(0, Math.round(goals.kcal - totals.kcal)).toLocaleString('cs')} kcal</span>
+                            </div>
+                          </>
+                        );
+                      })()}
                     <div style={{ display: 'flex', gap: 28, marginTop: 22, paddingTop: 18, borderTop: `1px solid ${T.border}` }}>
                       <KV k="Přijato" v={Math.round(totals.kcal).toLocaleString('cs')} sub="kcal" vSize={24} mono={false} />
-                      <KV k="Cíl dne" v={Math.round(goals.kcal).toLocaleString('cs')} sub={`${pctGoal}% splněno`} vSize={24} mono={false} vColor={BRAND.orange} />
+                      <KV k="Výdej" v={(burnedToday > 0 ? burnedToday : Math.round(goals.kcal + deficitKcal)).toLocaleString('cs')} sub="kcal" vSize={24} mono={false} vColor={BRAND.orange} />
+                      <KV k="Cíl příjmu" v={Math.round(goals.kcal).toLocaleString('cs')} sub={`${pctGoal}%`} vSize={24} mono={false} />
                       {goalOverride && (
                         <button onClick={() => setGoalOverride(null)} title="Obnovit výchozí cíle"
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: BRAND.orange, fontSize: 13, marginLeft: 'auto', alignSelf: 'center' }}>↺ reset</button>
@@ -1172,25 +1185,37 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-                <span style={{
-                  fontFamily: "'Space Grotesk', Inter, sans-serif",
-                  fontSize: 60, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 0.9,
-                  color: T.text, fontVariantNumeric: 'tabular-nums',
-                }}>
-                  {Math.max(0, Math.round(goals.kcal - totals.kcal)).toLocaleString('cs')}
-                </span>
-              </div>
-              <div style={{ fontSize: 12, color: T.text2, marginBottom: 16 }}>
-                kcal do cíle · cíl {Math.round(goals.kcal).toLocaleString('cs')} kcal
-                {goalOverride && (
-                  <button onClick={() => setGoalOverride(null)} title="Obnovit výchozí cíle"
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: BRAND.orange, fontSize: 13, marginLeft: 8, padding: 0 }}>↺</button>
-                )}
-              </div>
-              <div style={{ paddingTop: 14, borderTop: `1px solid ${T.border}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <KV k="Přijato" v={Math.round(totals.kcal).toLocaleString('cs')} sub="kcal" vSize={20} mono={false} />
-                <KV k="Cíl" v={Math.round(goals.kcal).toLocaleString('cs')} sub={`${pctGoal}% splněno`} vSize={20} mono={false} vColor={BRAND.orange} />
+              {(() => {
+                const balance = burnedToday > 0 ? burnedToday - Math.round(totals.kcal) : Math.round(goals.kcal + deficitKcal - totals.kcal);
+                const balanceColor = balance > 200 ? BRAND.green : balance < -200 ? BRAND.red : BRAND.orange;
+                return (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
+                      <span style={{
+                        fontFamily: "'Space Grotesk', Inter, sans-serif",
+                        fontSize: 60, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 0.9,
+                        color: balanceColor, fontVariantNumeric: 'tabular-nums',
+                      }}>
+                        {balance > 0 ? '+' : ''}{balance.toLocaleString('cs')}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: T.text2, marginBottom: 4 }}>
+                      kcal bilance
+                    </div>
+                    <div style={{ fontSize: 11, color: T.muted, marginBottom: 16 }}>
+                      zbývá do cíle: <span style={{ color: T.text, fontWeight: 600 }}>{Math.max(0, Math.round(goals.kcal - totals.kcal)).toLocaleString('cs')} kcal</span>
+                      {goalOverride && (
+                        <button onClick={() => setGoalOverride(null)} title="Obnovit výchozí cíle"
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: BRAND.orange, fontSize: 13, marginLeft: 8, padding: 0 }}>↺</button>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
+              <div style={{ paddingTop: 14, borderTop: `1px solid ${T.border}`, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                <KV k="Přijato" v={Math.round(totals.kcal).toLocaleString('cs')} sub="kcal" vSize={18} mono={false} />
+                <KV k="Výdej" v={(burnedToday > 0 ? burnedToday : Math.round(goals.kcal + deficitKcal)).toLocaleString('cs')} sub="kcal" vSize={18} mono={false} vColor={BRAND.orange} />
+                <KV k="Cíl příjmu" v={Math.round(goals.kcal).toLocaleString('cs')} sub={`${pctGoal}%`} vSize={18} mono={false} />
               </div>
             </div>
 
@@ -1361,7 +1386,7 @@ export default function Dashboard() {
         {/* Weekly summary */}
         <SectionTitle accent={BRAND.gold}>Týdenní přehled</SectionTitle>
         <div className="stagger-5">
-          <WeeklySummaryCard historyData={historyData} accent={accent} />
+          <WeeklySummaryCard historyData={historyData} accent={accent} deficitKcal={deficitKcal} />
         </div>
 
         {/* Micros preview */}
