@@ -570,7 +570,7 @@ export default function Dashboard() {
     accent, totals, goals, goalOverride, setGoalOverride,
     trainingDay, upsertTrainingDay,
     entries, userId, today, addEntry, profile,
-    deficitLevel,
+    deficitLevel, isHistoricalDay, recalculateDay,
   } = ctx;
 
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
@@ -1145,14 +1145,32 @@ export default function Dashboard() {
               marginBottom: 12,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
-                  Bilance dne
-                </span>
-                {pctGoal >= 80 ? (
-                  <span style={{ fontSize: 10, padding: '2px 7px', background: 'rgba(125,216,122,0.12)', color: BRAND.green, borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.1em' }}>NA CESTĚ</span>
-                ) : (
-                  <span style={{ fontSize: 10, padding: '2px 7px', background: 'rgba(255,91,31,0.12)', color: BRAND.orange, borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.1em' }}>PLNÍ SE</span>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
+                    Bilance dne
+                  </span>
+                  {isHistoricalDay && (
+                    <span style={{ fontSize: 9, padding: '2px 6px', background: 'rgba(76,201,255,0.10)', color: '#4cc9ff', borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.08em' }}>
+                      ULOŽENÝ DEN
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {isHistoricalDay && (
+                    <button
+                      onClick={() => { void recalculateDay(); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: T.muted, padding: '2px 4px', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.05em' }}
+                      title="Přepočítat den podle aktuálních dat"
+                    >
+                      ↻ přepočítat
+                    </button>
+                  )}
+                  {pctGoal >= 80 ? (
+                    <span style={{ fontSize: 10, padding: '2px 7px', background: 'rgba(125,216,122,0.12)', color: BRAND.green, borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.1em' }}>NA CESTĚ</span>
+                  ) : (
+                    <span style={{ fontSize: 10, padding: '2px 7px', background: 'rgba(255,91,31,0.12)', color: BRAND.orange, borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.1em' }}>PLNÍ SE</span>
+                  )}
+                </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
                 <span style={{

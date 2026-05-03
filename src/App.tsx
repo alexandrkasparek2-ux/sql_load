@@ -10,6 +10,7 @@ import { useProfile }     from './hooks/useProfile';
 import { useTrainingDay } from './hooks/useTrainingDay';
 import { useFoodEntries } from './hooks/useFoodEntries';
 import { useDailyGoals }  from './hooks/useDailyGoals';
+import { useDailyNutritionSnapshot } from './hooks/useDailyNutritionSnapshot';
 import { useNotifications } from './hooks/useNotifications';
 import { useUserSetting } from './hooks/useUserSetting';
 
@@ -80,6 +81,10 @@ export interface AppCtx {
   signOut:           () => Promise<void>;
   deficitLevel:      DeficitLevel;
   setDeficitLevel:   (v: DeficitLevel) => void;
+  /** Whether the currently viewed date has a frozen historical snapshot. */
+  isHistoricalDay:   boolean;
+  /** Clear snapshot for current date so it gets live-recalculated and re-saved. */
+  recalculateDay:    () => Promise<void>;
 }
 
 const DEFAULT_GOALS: Goals = {
@@ -279,11 +284,33 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     return { ...goals, kcal: kcalNew, fiber: fiberNew, carbs: m.carbs, protein: m.protein, fat: m.fat, water: waterNew };
   }, [goals, intervalsData, profile]);
 
-  // Uložit cíl kalorií pro aktuální den, aby ho historie zobrazila správně
-  const { saveGoalForDate } = useDailyGoals(userId);
-  useEffect(() => {
-    if (goalsWithIntervals.kcal > 0) saveGoalForDate(today, goalsWithIntervals.kcal);
-  }, [today, goalsWithIntervals.kcal, saveGoalForDate]);
+  // ── Daily nutrition snapshot ──────────────────────────────────────────────
+  const realToday = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const isViewingToday = today === realToday;
+
+  const {
+    snapshot,
+    isHistoricalSnapshot,
+    saveSnapshot,
+    clearSnapshot,
+  } = useDailyNutritionSnapshot(userId, today);
+
+  // For historical days that have a frozen snapshot, override computed goals
+  // so the UI shows the exact values from that day rather than a recalculation.
+  const goalsFromSnapshot = useMemo<Goals | null>(() => {
+    if (isViewingToday || !snapshot) return null;
+    return {
+      ...goalsWithIntervals, // keep micros, non-snapshotted fields
+      kcal:    snapshot.goal_kcal,
+      carbs:   snapshot.goal_carbs,
+      protein: snapshot.goal_protein,
+      fat:     snapshot.goal_fat,
+      water:   snapshot.goal_water,
+      fiber:   snapshot.goal_fiber,
+    };
+  }, [isViewingToday, snapshot, goalsWithIntervals]);
+
+  const baseGoals = goalsFromSnapshot ?? goalsWithIntervals;
 
   // ── Chat goal override (set by AI chat for current day) ──
   const overrideKey = `cyclofuel_goal_override_${userId}_${today}`;
@@ -304,8 +331,46 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   }, [overrideKey]);
 
   const effectiveGoals: Goals = goalOverride
-    ? { ...goalsWithIntervals, ...goalOverride }
-    : goalsWithIntervals;
+    ? { ...baseGoals, ...goalOverride }
+    : baseGoals;
+
+  // ── Auto-save snapshot for today on data changes (debounced 3 s) ──────────
+  const { saveGoalForDate } = useDailyGoals(userId);
+  useEffect(() => {
+    if (!isViewingToday || effectiveGoals.kcal === 0) return;
+    // Legacy kcal-only store (keeps useWeeklyData fallback working)
+    saveGoalForDate(today, effectiveGoals.kcal);
+  }, [isViewingToday, today, effectiveGoals.kcal, saveGoalForDate]);
+
+  useEffect(() => {
+    if (!isViewingToday || effectiveGoals.kcal === 0) return;
+    const timer = setTimeout(() => {
+      void saveSnapshot({
+        consumed_kcal:    totals.kcal,
+        consumed_carbs:   totals.carbs,
+        consumed_protein: totals.protein,
+        consumed_fat:     totals.fat,
+        consumed_fiber:   totals.fiber,
+        goal_kcal:        effectiveGoals.kcal,
+        goal_carbs:       effectiveGoals.carbs,
+        goal_protein:     effectiveGoals.protein,
+        goal_fat:         effectiveGoals.fat,
+        goal_water:       effectiveGoals.water,
+        goal_fiber:       effectiveGoals.fiber,
+        activity_kcal:    intervalsData.kcal,
+        activity_source:  intervalsData.kcal > 0 ? 'intervals' : 'none',
+        deficit_kcal:     Math.max(0, effectiveGoals.kcal - totals.kcal),
+      });
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [isViewingToday, effectiveGoals, totals, intervalsData.kcal, saveSnapshot]);
+
+  // ── Recalculate historical day ─────────────────────────────────────────────
+  const recalculateDay = useCallback(async () => {
+    await clearSnapshot();
+    // After clearing, goalsFromSnapshot becomes null → live calculation kicks in.
+    // Then the user can save manually or it saves on next today visit.
+  }, [clearSnapshot]);
 
   const ctx: AppCtx = {
     userId,
@@ -329,6 +394,8 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     signOut:           onSignOut,
     deficitLevel,
     setDeficitLevel,
+    isHistoricalDay:   isHistoricalSnapshot,
+    recalculateDay,
   };
 
   // Push notifications (runs checks every 5 min when permission granted)

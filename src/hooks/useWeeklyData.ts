@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { loadDailyGoals } from './useDailyGoals';
 import { calcBMR, calcCalories, type CalcProfile } from '../constants/training';
 import { loadBurnLog } from '../services/intervalsService';
+import { loadSnapshotBatch } from '../services/dailySnapshotService';
 
 export interface DayKcal {
   date:    string; // YYYY-MM-DD
@@ -51,8 +52,11 @@ export function useWeeklyData(
 
     const dates = getLastNDates(days);
 
-    // Fetch food entries and training days in parallel
-    const [{ data: rows }, { data: trainRows }] = await Promise.all([
+    // Fetch food entries, training days, and snapshots in parallel
+    const today = new Date().toISOString().split('T')[0];
+    const historicalDates = dates.filter(d => d < today);
+
+    const [{ data: rows }, { data: trainRows }, storedGoals, burnLog, snapshots] = await Promise.all([
       supabase
         .from('food_entries')
         .select('date, kcal, carbs, protein, fat')
@@ -63,24 +67,32 @@ export function useWeeklyData(
         .select('date, training_type, ride_hours')
         .eq('user_id', userId)
         .in('date', dates),
+      loadDailyGoals(userId),
+      Promise.resolve(loadBurnLog()),
+      historicalDates.length > 0
+        ? loadSnapshotBatch(userId, historicalDates)
+        : Promise.resolve({} as Record<string, import('../services/dailySnapshotService').DailySnapshot>),
     ]);
-
-    // synced goals as secondary fallback (for days without training_days row)
-    const storedGoals = await loadDailyGoals(userId);
-    const burnLog = loadBurnLog();
 
     const grouped: DayKcal[] = dates.map(date => {
       const dayRows  = (rows      ?? []).filter(r => r.date === date);
       const trainRow = (trainRows ?? []).find(r  => r.date === date);
+      const snap     = snapshots[date] ?? null;
 
-      // Goal = intake target = expenditure – deficit
-      // Priority: 1) Intervals burn log (most accurate), 2) DB training type,
-      //           3) rest-day baseline, 4) storedGoals, 5) fallback
+      // ── Goal ─────────────────────────────────────────────────────────────
+      // Priority:
+      //   1) Frozen snapshot (historical day) — most stable, prevents retroactive changes
+      //   2) Intervals burn log (accurate, for today or recent days)
+      //   3) DB training type
+      //   4) Rest-day baseline
+      //   5) storedGoals (legacy kcal-only store)
+      //   6) fallback
       let goal = fallbackGoal;
-      if (profile) {
+      if (snap?.goal_kcal) {
+        goal = snap.goal_kcal;
+      } else if (profile) {
         let rawKcal: number;
         if (typeof burnLog[date] === 'number') {
-          // Actual activity data from Intervals — most accurate
           rawKcal = Math.round(calcBMR(profile) * 1.15 + burnLog[date]);
         } else if (trainRow) {
           rawKcal = Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0));
@@ -92,15 +104,15 @@ export function useWeeklyData(
         goal = storedGoals[date];
       }
 
-      // Total expenditure = BMR + activity (same formula as goal calculation)
-      // Prefer persistent Intervals burn log for historical activity kcal so
-      // chart lines don't shift when short-lived activity cache rotates.
+      // ── Burned ────────────────────────────────────────────────────────────
+      // For historical days, prefer snapshot activity_kcal so the chart line
+      // doesn't shift when the Intervals.icu cache expires.
       let burned = 0;
-      if (profile) {
+      if (snap?.goal_kcal) {
+        // Reconstruct burned from snapshot: goal = burned − deficit, so burned ≈ goal + deficit
+        burned = snap.goal_kcal + deficitKcal;
+      } else if (profile) {
         if (typeof burnLog[date] === 'number') {
-          // BMR × 1.15 = non-exercise daily metabolism (NEAT); plus actual exercise kcal.
-          // Rest-day baseline uses ×1.2; we use ×1.15 here to avoid double-counting
-          // with logged activities that may include low-intensity movement.
           burned = Math.round(calcBMR(profile) * 1.15 + burnLog[date]);
         } else {
           burned = trainRow
