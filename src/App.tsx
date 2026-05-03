@@ -11,6 +11,7 @@ import { useTrainingDay } from './hooks/useTrainingDay';
 import { useFoodEntries } from './hooks/useFoodEntries';
 import { useDailyGoals }  from './hooks/useDailyGoals';
 import { useDailyNutritionSnapshot } from './hooks/useDailyNutritionSnapshot';
+import { useBackfillSnapshots } from './hooks/useBackfillSnapshots';
 import { useNotifications } from './hooks/useNotifications';
 import { useUserSetting } from './hooks/useUserSetting';
 
@@ -230,6 +231,12 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   const rideHours    = trainingDay?.ride_hours    ?? 0;
   const training     = TRAINING_TYPES.find(t => t.id === trainingType)!;
 
+  const deficitKcal = useMemo(() => {
+    if (!profile) return 0;
+    const targetW = targetWeightSetting > 0 ? targetWeightSetting : profile.weight;
+    return deficitLevel !== 'off' && targetW < profile.weight ? DEFICIT_KCAL[deficitLevel] : 0;
+  }, [profile, deficitLevel, targetWeightSetting]);;
+
   const goals = useMemo<Goals>(() => {
     if (!profile) return DEFAULT_GOALS;
     const m      = calcMacros(profile, trainingType);
@@ -294,6 +301,9 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     saveSnapshot,
     clearSnapshot,
   } = useDailyNutritionSnapshot(userId, today);
+
+  // Backfill snapshots for the last 7 days that don't have one yet
+  useBackfillSnapshots(userId, profile, deficitKcal);
 
   // For historical days that have a frozen snapshot, override computed goals
   // so the UI shows the exact values from that day rather than a recalculation.
