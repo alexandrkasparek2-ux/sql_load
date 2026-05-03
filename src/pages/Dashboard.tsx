@@ -608,6 +608,11 @@ export default function Dashboard() {
     : 0;
 
   const pctGoal = goals.kcal > 0 ? Math.round((totals.kcal / goals.kcal) * 100) : 0;
+
+  // Today's burned from historyData (BMR×1.15 + actual activity via Intervals)
+  const todayBurned = historyData.find(d => d.date === today)?.burned ?? Math.round(goals.kcal);
+  const todayBalance = Math.round(todayBurned - totals.kcal); // positive = deficit, negative = surplus
+  const pctOfBurned  = todayBurned > 0 ? Math.round((totals.kcal / todayBurned) * 100) : 0;
   const postWorkoutProtein = entries
     .filter(entry => entry.meal_slot === 'po_tren')
     .reduce((sum, entry) => sum + entry.protein, 0);
@@ -1144,6 +1149,7 @@ export default function Dashboard() {
               borderRadius: 16, padding: '20px 20px 18px',
               marginBottom: 12,
             }}>
+              {/* Header row */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
@@ -1172,9 +1178,10 @@ export default function Dashboard() {
                   )}
                 </div>
               </div>
+
               {(() => {
-                const balance = burnedToday > 0 ? burnedToday - Math.round(totals.kcal) : Math.round(goals.kcal + deficitKcal - totals.kcal);
-                const balanceColor = balance > 200 ? BRAND.green : balance < -200 ? BRAND.red : BRAND.orange;
+                const balance = Math.round(goals.kcal) - Math.round(totals.kcal);
+                const balanceColor = balance > 0 ? BRAND.green : balance < -200 ? BRAND.red : BRAND.orange;
                 return (
                   <>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
@@ -1187,15 +1194,13 @@ export default function Dashboard() {
                       </span>
                     </div>
                     <div style={{ fontSize: 12, color: T.text2, marginBottom: 4 }}>
-                      kcal bilance
+                      {balance >= 0 ? 'kcal zbývá do cíle' : 'kcal přes cíl'}
                     </div>
-                    <div style={{ fontSize: 11, color: T.muted, marginBottom: 16 }}>
-                      zbývá do cíle: <span style={{ color: T.text, fontWeight: 600 }}>{Math.max(0, Math.round(goals.kcal - totals.kcal)).toLocaleString('cs')} kcal</span>
-                      {goalOverride && (
-                        <button onClick={() => setGoalOverride(null)} title="Obnovit výchozí cíle"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: BRAND.orange, fontSize: 13, marginLeft: 8, padding: 0 }}>↺</button>
-                      )}
-                    </div>
+                    {goalOverride && (
+                      <button onClick={() => setGoalOverride(null)} title="Obnovit výchozí cíle"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: BRAND.orange, fontSize: 13, marginBottom: 16, padding: 0 }}>↺ reset cíle</button>
+                    )}
+                    {!goalOverride && <div style={{ marginBottom: 16 }} />}
                   </>
                 );
               })()}
