@@ -611,8 +611,6 @@ export default function Dashboard() {
 
   // Today's burned from historyData (BMR×1.15 + actual activity via Intervals)
   const todayBurned = historyData.find(d => d.date === today)?.burned ?? Math.round(goals.kcal);
-  const todayBalance = Math.round(todayBurned - totals.kcal); // positive = deficit, negative = surplus
-  const pctOfBurned  = todayBurned > 0 ? Math.round((totals.kcal / todayBurned) * 100) : 0;
   const postWorkoutProtein = entries
     .filter(entry => entry.meal_slot === 'po_tren')
     .reduce((sum, entry) => sum + entry.protein, 0);
