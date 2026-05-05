@@ -831,6 +831,13 @@ export const FOODS: Food[] = [
     kcal: 215, carbs: 0, protein: 18.6, fat: 15.5, per: 200,
     micros: { na: 82, k: 220, mg: 20, ca: 12, fe: 0.9, vit_c: 0, vit_d: 0.1, b12: 0.3, omega3: 130, zn: 1.5 },
   },
+  {
+    id: 'chicken_liver',
+    cat: '🥩 Bílkoviny',
+    name: 'Kuřecí játra',
+    kcal: 167, carbs: 0.9, protein: 24.5, fat: 6.5, fiber: 0, per: 150,
+    micros: { na: 71, k: 290, mg: 20, ca: 11, fe: 9.0, vit_c: 17, vit_d: 1.3, b12: 16.6, omega3: 220, zn: 2.7 },
+  },
   // ── Jehněčí & telecí ──
   {
     id: 'lamb_leg',
