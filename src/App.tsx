@@ -343,26 +343,29 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 
   // For historical days that have a frozen snapshot, override computed goals
   // so the UI shows the exact values from that day rather than a recalculation.
+  // Priority: burnLog (most accurate, same formula as effectiveBurnedToday) → snapshot → live
   const goalsFromSnapshot = useMemo<Goals | null>(() => {
-    if (isViewingToday || !snapshot) return null;
-    // If burnLog has activity for this date but snapshot was saved without it
-    // (activity_kcal === 0), the snapshot goal is stale. Recompute kcal from
-    // actual burned so CÍL PŘÍJMU stays consistent with VÝDEJ.
+    if (isViewingToday) return null;
     const burnLog = loadBurnLog();
-    const activityKcal = burnLog[today];
-    if (typeof activityKcal === 'number' && activityKcal > 0 && snapshot.activity_kcal === 0 && profile) {
-      const freshBurned = Math.round(calcCalories(profile, 'rest', 0) + activityKcal);
-      const freshGoalKcal = Math.max(1200, freshBurned - snapshot.deficit_kcal);
+    const actKcal = burnLog[today];
+    if (typeof actKcal === 'number' && profile) {
+      // Use the same BMR×1.2 + activity formula as effectiveBurnedToday so
+      // CÍL PŘÍJMU and VÝDEJ are always derived from the same number.
+      const freshBurned  = Math.round(calcCalories(profile, 'rest', 0) + actKcal);
+      const freshGoalKcal = Math.max(1200, freshBurned - deficitKcal);
       return {
         ...goalsWithIntervals,
         kcal:    freshGoalKcal,
-        carbs:   snapshot.goal_carbs,
-        protein: snapshot.goal_protein,
-        fat:     snapshot.goal_fat,
-        water:   snapshot.goal_water,
-        fiber:   snapshot.goal_fiber,
+        ...(snapshot ? {
+          carbs:   snapshot.goal_carbs,
+          protein: snapshot.goal_protein,
+          fat:     snapshot.goal_fat,
+          water:   snapshot.goal_water,
+          fiber:   snapshot.goal_fiber,
+        } : {}),
       };
     }
+    if (!snapshot) return null;
     return {
       ...goalsWithIntervals,
       kcal:    snapshot.goal_kcal,
@@ -372,7 +375,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       water:   snapshot.goal_water,
       fiber:   snapshot.goal_fiber,
     };
-  }, [isViewingToday, today, snapshot, goalsWithIntervals, profile]);
+  }, [isViewingToday, today, profile, deficitKcal, snapshot, goalsWithIntervals]);
 
   const baseGoals = goalsFromSnapshot ?? goalsWithIntervals;
 
