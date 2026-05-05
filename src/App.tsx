@@ -12,6 +12,7 @@ import { useFoodEntries } from './hooks/useFoodEntries';
 import { useDailyGoals }  from './hooks/useDailyGoals';
 import { useDailyNutritionSnapshot } from './hooks/useDailyNutritionSnapshot';
 import { useBackfillSnapshots } from './hooks/useBackfillSnapshots';
+import { loadBurnLog } from './services/intervalsService';
 import { useNotifications } from './hooks/useNotifications';
 import { useUserSetting } from './hooks/useUserSetting';
 
@@ -357,14 +358,20 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 
   const baseGoals = goalsFromSnapshot ?? goalsWithIntervals;
 
-  // For historical days, reconstruct burned from snapshot so VÝDEJ doesn't
-  // fall back to the rest-day BMR when Intervals cache has expired.
+  // For historical days, restore burned from Intervals burnLog or snapshot so
+  // VÝDEJ doesn't revert to the rest-day BMR when the live cache expires.
   const effectiveBurnedToday = useMemo(() => {
-    if (!isViewingToday && snapshot && snapshot.deficit_kcal >= 0) {
-      return snapshot.goal_kcal + snapshot.deficit_kcal;
+    if (!isViewingToday && profile) {
+      const burnLog = loadBurnLog();
+      if (typeof burnLog[today] === 'number') {
+        return Math.round(calcCalories(profile, 'rest', 0) + burnLog[today]);
+      }
+      if (snapshot && snapshot.deficit_kcal >= 0) {
+        return snapshot.goal_kcal + snapshot.deficit_kcal;
+      }
     }
     return burnedToday;
-  }, [isViewingToday, snapshot, burnedToday]);
+  }, [isViewingToday, today, profile, snapshot, burnedToday]);
 
   // ── Chat goal override (set by AI chat for current day) ──
   const overrideKey = `cyclofuel_goal_override_${userId}_${today}`;
