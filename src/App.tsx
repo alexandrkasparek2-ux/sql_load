@@ -345,8 +345,26 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   // so the UI shows the exact values from that day rather than a recalculation.
   const goalsFromSnapshot = useMemo<Goals | null>(() => {
     if (isViewingToday || !snapshot) return null;
+    // If burnLog has activity for this date but snapshot was saved without it
+    // (activity_kcal === 0), the snapshot goal is stale. Recompute kcal from
+    // actual burned so CÍL PŘÍJMU stays consistent with VÝDEJ.
+    const burnLog = loadBurnLog();
+    const activityKcal = burnLog[today];
+    if (typeof activityKcal === 'number' && activityKcal > 0 && snapshot.activity_kcal === 0 && profile) {
+      const freshBurned = Math.round(calcCalories(profile, 'rest', 0) + activityKcal);
+      const freshGoalKcal = Math.max(1200, freshBurned - snapshot.deficit_kcal);
+      return {
+        ...goalsWithIntervals,
+        kcal:    freshGoalKcal,
+        carbs:   snapshot.goal_carbs,
+        protein: snapshot.goal_protein,
+        fat:     snapshot.goal_fat,
+        water:   snapshot.goal_water,
+        fiber:   snapshot.goal_fiber,
+      };
+    }
     return {
-      ...goalsWithIntervals, // keep micros, non-snapshotted fields
+      ...goalsWithIntervals,
       kcal:    snapshot.goal_kcal,
       carbs:   snapshot.goal_carbs,
       protein: snapshot.goal_protein,
@@ -354,7 +372,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       water:   snapshot.goal_water,
       fiber:   snapshot.goal_fiber,
     };
-  }, [isViewingToday, snapshot, goalsWithIntervals]);
+  }, [isViewingToday, today, snapshot, goalsWithIntervals, profile]);
 
   const baseGoals = goalsFromSnapshot ?? goalsWithIntervals;
 
