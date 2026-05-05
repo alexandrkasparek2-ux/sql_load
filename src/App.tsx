@@ -357,6 +357,15 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 
   const baseGoals = goalsFromSnapshot ?? goalsWithIntervals;
 
+  // For historical days, reconstruct burned from snapshot so VÝDEJ doesn't
+  // fall back to the rest-day BMR when Intervals cache has expired.
+  const effectiveBurnedToday = useMemo(() => {
+    if (!isViewingToday && snapshot && snapshot.deficit_kcal >= 0) {
+      return snapshot.goal_kcal + snapshot.deficit_kcal;
+    }
+    return burnedToday;
+  }, [isViewingToday, snapshot, burnedToday]);
+
   // ── Chat goal override (set by AI chat for current day) ──
   const overrideKey = `cyclofuel_goal_override_${userId}_${today}`;
   const [goalOverride, setGoalOverrideState] = useState<Partial<Goals> | null>(() => {
@@ -441,7 +450,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     setDeficitLevel,
     isHistoricalDay:   isHistoricalSnapshot,
     recalculateDay,
-    burnedToday,
+    burnedToday:       effectiveBurnedToday,
   };
 
   // Push notifications (runs checks every 5 min when permission granted)
