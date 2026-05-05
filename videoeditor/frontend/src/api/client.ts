@@ -1,6 +1,9 @@
 import type { JobStatus, UploadResponse, Segment } from '../types/api'
 
-const BASE = '/api'
+// In production point to Railway backend via VITE_API_URL, locally use Vite proxy
+const BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}`
+  : '/api'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, init)
