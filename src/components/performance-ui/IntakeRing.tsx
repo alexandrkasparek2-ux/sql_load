@@ -26,7 +26,7 @@ export function IntakeRing({ value, max, label = 'KCAL PŘÍJEM', size = 240 }: 
           {Math.round(value)}
         </div>
         <div style={{ color: 'var(--text-muted)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase', marginTop: 6 }}>{label}</div>
-        <div style={{ marginTop: 10, padding: '4px 12px', background: 'rgba(255,214,0,0.1)', borderRadius: 10, color: 'var(--brand-primary)', fontSize: 11, fontWeight: 700 }}>
+        <div style={{ marginTop: 10, padding: '4px 12px', background: 'rgba(124,92,255,0.1)', borderRadius: 10, color: 'var(--brand-primary)', fontSize: 11, fontWeight: 700 }}>
           {pct}% cíle
         </div>
       </div>

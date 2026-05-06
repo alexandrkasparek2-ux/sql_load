@@ -4,6 +4,7 @@ import { loadDailyGoals } from './useDailyGoals';
 import { calcCalories, type CalcProfile } from '../constants/training';
 import { loadBurnLog } from '../services/intervalsService';
 import { loadSnapshotBatch } from '../services/dailySnapshotService';
+import { formatLocalISODate, todayLocalISO } from '../utils/date';
 
 export interface DayKcal {
   date:    string; // YYYY-MM-DD
@@ -23,7 +24,7 @@ function getLastNDates(n: number): string[] {
   return Array.from({ length: n }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (n - 1 - i));
-    return d.toISOString().split('T')[0];
+    return formatLocalISODate(d);
   });
 }
 
@@ -53,7 +54,7 @@ export function useWeeklyData(
     const dates = getLastNDates(days);
 
     // Fetch food entries, training days, and snapshots in parallel
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocalISO();
     const historicalDates = dates.filter(d => d < today);
 
     const [{ data: rows }, { data: trainRows }, storedGoals, burnLog, snapshots] = await Promise.all([
@@ -109,8 +110,12 @@ export function useWeeklyData(
       // doesn't shift when the Intervals.icu cache expires.
       let burned = 0;
       if (snap?.goal_kcal) {
-        // Reconstruct burned from snapshot: goal = burned − deficit, so burned ≈ goal + deficit
-        burned = snap.goal_kcal + deficitKcal;
+        // Reconstruct burned from snapshot: goal = burned - planned deficit.
+        // Older snapshots accidentally stored "remaining kcal" here, so only trust known planned deficits.
+        const plannedDeficit = [0, 250, 500, 750].includes(snap.deficit_kcal)
+          ? snap.deficit_kcal
+          : deficitKcal;
+        burned = snap.goal_kcal + plannedDeficit;
       } else if (profile) {
         if (typeof burnLog[date] === 'number') {
           burned = calcCalories(profile, 'rest', 0) + burnLog[date];

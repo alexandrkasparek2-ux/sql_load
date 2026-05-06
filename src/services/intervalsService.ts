@@ -1,5 +1,7 @@
 // ─── Intervals.icu API service ────────────────────────────────────────────────
 
+import { formatLocalISODate } from '../utils/date';
+
 const CREDS_KEY = 'cyclofuel_intervals_creds';
 
 export interface IntervalsCreds {
@@ -115,8 +117,8 @@ function dateRange(daysBack: number): { oldest: string; newest: string } {
   const oldest = new Date(now);
   oldest.setDate(now.getDate() - (daysBack - 1));
   return {
-    oldest: oldest.toISOString().split('T')[0],
-    newest: now.toISOString().split('T')[0],
+    oldest: formatLocalISODate(oldest),
+    newest: formatLocalISODate(now),
   };
 }
 

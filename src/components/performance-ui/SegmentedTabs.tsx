@@ -19,7 +19,7 @@ export function SegmentedTabs({ tabs, active, onChange }: Props) {
               padding: '10px 12px',
               border: 0,
               borderRadius: 8,
-              background: isActive ? 'linear-gradient(135deg, rgba(255,214,0,0.15), rgba(255,107,53,0.08))' : 'transparent',
+              background: isActive ? 'linear-gradient(135deg, rgba(124,92,255,0.15), rgba(79,227,255,0.08))' : 'transparent',
               color: isActive ? 'var(--brand-primary)' : 'var(--text-disabled)',
               fontSize: 11,
               fontWeight: 800,

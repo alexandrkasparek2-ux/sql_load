@@ -8,6 +8,7 @@ import { showToast } from '../components/Toast';
 import { FOODS, type Food } from '../constants/foods';
 import type { FoodEntry } from '../hooks/useFoodEntries';
 import { MetricBox } from '../components/performance-ui';
+import { formatLocalISODate } from '../utils/date';
 
 const SLOT_LABELS: Record<string, string> = {
   snidane: 'Snídaně', dop_svacina: 'Dop. svačina', obed: 'Oběd',
@@ -84,7 +85,7 @@ export default function Chat() {
   const { accent, addEntry, removeEntry, updateEntry, setGoalOverride, userId, today, totals, goals, trainingDay } = ctx;
   const { todayWorkout, upcoming } = useTrainingPlan();
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const tomorrowStr = formatLocalISODate(tomorrow);
   const tomorrowWorkout = upcoming.find(w => w.date === tomorrowStr) ?? null;
   const { messages, input, setInput, loading, error, send, clearHistory } = useChatSession(ctx, {
     today: todayWorkout,
@@ -238,11 +239,11 @@ export default function Chat() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
             width: 40, height: 40, borderRadius: 12,
-            background: `linear-gradient(135deg, ${BRAND.gold}, ${BRAND.orange})`,
+            background: BRAND.purple,
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
           }}>⚡</div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>AI Poradce</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: T.text }}>AI Coach</div>
             <div style={{ fontSize: 11, color: T.muted }}>Claude · vidí tvá dnešní data</div>
           </div>
         </div>
@@ -265,24 +266,54 @@ export default function Chat() {
 
         {isEmpty && !isDesktop && (
           <div>
-            <div style={{
-              background: 'linear-gradient(135deg, #0f0f0f, #080808)',
-              border: `1px solid ${BRAND.gold}22`,
-              borderRadius: 18, padding: '20px 18px', marginBottom: 20,
-            }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, marginBottom: 14 }}>
-                <MetricBox label="Cíl" value={Math.round(goals.kcal)} variant="warning" />
-                <MetricBox label="Jídlo" value={Math.round(totals.kcal)} variant="default" />
-                <MetricBox label="Typ" value={trainingDay?.training_type ?? 'rest'} variant="analytics" />
-              </div>
-              <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.7 }}>
-                Zeptej se na <span style={{ color: BRAND.gold, fontWeight: 600 }}>výživu</span>,{' '}
-                <span style={{ color: BRAND.orange, fontWeight: 600 }}>trénink</span> nebo{' '}
-                <span style={{ color: BRAND.green, fontWeight: 600 }}>regeneraci</span>.
-                Automaticky vidím tvá dnešní data a záznamy v deníku.
+            {/* Insight cards */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 10 }}>DNEŠNÍ INSIGHTS</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  {
+                    kind: totals.protein < goals.protein * 0.7 ? 'warn' : 'good',
+                    title: 'Bílkoviny',
+                    body: totals.protein < goals.protein * 0.7
+                      ? `Chybí ${Math.round(goals.protein - totals.protein)} g — doplň bílkoviny co nejdřív.`
+                      : `${Math.round(totals.protein)} / ${Math.round(goals.protein)} g — dobrý progres.`,
+                  },
+                  {
+                    kind: totals.kcal < goals.kcal * 0.5 ? 'warn' : totals.kcal >= goals.kcal * 0.85 ? 'good' : 'tip',
+                    title: 'Energie dne',
+                    body: totals.kcal < goals.kcal * 0.5
+                      ? `Snědeno jen ${Math.round(totals.kcal)} / ${Math.round(goals.kcal)} kcal — hrozí energetický dluh.`
+                      : `${Math.round(totals.kcal)} / ${Math.round(goals.kcal)} kcal (${Math.round((totals.kcal/goals.kcal)*100)} %).`,
+                  },
+                  {
+                    kind: 'tip' as const,
+                    title: 'AI Coach radí',
+                    body: 'Zeptej se na výživu, trénink nebo regeneraci. Vidím tvá dnešní data.',
+                  },
+                ].map((ins, i) => {
+                  const kindColor = ins.kind === 'warn' ? BRAND.red : ins.kind === 'good' ? BRAND.green : BRAND.purple;
+                  const kindLabel = ins.kind === 'warn' ? 'POZOR' : ins.kind === 'good' ? 'OK' : 'TIP';
+                  return (
+                    <div key={i} style={{
+                      background: T.card, border: `1px solid ${T.border}`,
+                      borderLeft: `3px solid ${kindColor}`,
+                      borderRadius: 14, padding: '10px 12px',
+                      display: 'flex', gap: 10,
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                          <span style={{ fontSize: 8, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: kindColor, fontFamily: 'JetBrains Mono, monospace' }}>{kindLabel}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{ins.title}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.45 }}>{ins.body}</div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
               {SUGGESTIONS.map(s => (
                 <button
                   key={s.text}
@@ -317,7 +348,7 @@ export default function Chat() {
             {m.role === 'model' && (
               <div style={{
                 width: 30, height: 30, borderRadius: 10, flexShrink: 0,
-                background: `linear-gradient(135deg, ${BRAND.gold}, ${BRAND.orange})`,
+                background: BRAND.purple,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 15, marginRight: 8, marginTop: 2,
               }}>⚡</div>
@@ -326,11 +357,9 @@ export default function Chat() {
               <div style={{
                 padding:      '11px 14px',
                 borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '4px 16px 16px 16px',
-                background:   m.role === 'user'
-                  ? `linear-gradient(135deg, ${BRAND.gold}, ${BRAND.orange})`
-                  : T.card,
+                background:   m.role === 'user' ? BRAND.purple : T.card,
                 border:       m.role === 'user' ? 'none' : `1px solid ${T.border}`,
-                color:        m.role === 'user' ? '#000' : T.text,
+                color:        m.role === 'user' ? '#fff' : T.text,
                 fontSize:     14, lineHeight: 1.65,
                 wordBreak:    'break-word',
               }}>

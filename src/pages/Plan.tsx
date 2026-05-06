@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppContext } from '../App';
+import { AppContext, DEFICIT_KCAL } from '../App';
 import { Btn, Card, ProgressBar, SegmentedTabs, SectionTitle, Spinner, StatRow, T, BRAND } from '../components/UI';
 import { useIntervalsData } from '../hooks/useIntervalsData';
 import { useUserSetting } from '../hooks/useUserSetting';
@@ -199,9 +199,9 @@ function getBuilderStrategy(remaining: { carbs: number; protein: number; fat: nu
 }
 
 
-function getRecoveryDebt(history: Array<{ burned: number; kcal: number }>, whoopRecovery: number | null) {
+function getRecoveryDebt(history: Array<{ goal: number; kcal: number }>, whoopRecovery: number | null) {
   const recent = history.slice(-4, -1);
-  const debt = recent.reduce((sum, day) => sum + Math.max(0, day.burned - day.kcal), 0);
+  const debt = recent.reduce((sum, day) => sum + Math.max(0, day.goal - day.kcal), 0);
   const adjusted = whoopRecovery != null && whoopRecovery < 40 ? debt + 250 : debt;
   const level = adjusted >= 1800 ? 'Vysoký' : adjusted >= 900 ? 'Střední' : 'Nízký';
   const message = adjusted >= 1800
@@ -245,7 +245,7 @@ function LibraryChip({
   return (
     <div style={{
       border: `1px solid ${active ? `${BRAND.gold}44` : T.border}`,
-      background: active ? 'rgba(255,214,0,0.08)' : T.card,
+      background: active ? 'rgba(124,92,255,0.08)' : T.card,
       borderRadius: 14,
       padding: '12px 12px 10px',
     }}>
@@ -264,7 +264,7 @@ function LibraryChip({
             height: 30,
             borderRadius: 10,
             border: `1px solid ${active ? `${BRAND.gold}44` : T.border}`,
-            background: active ? 'rgba(255,214,0,0.16)' : 'transparent',
+            background: active ? 'rgba(124,92,255,0.16)' : 'transparent',
             color: active ? BRAND.gold : T.muted,
             cursor: 'pointer',
             flexShrink: 0,
@@ -378,8 +378,10 @@ function ActivityCard({ act }: { act: IntervalsActivity }) {
 
 const CS_DAYS = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So'];
 function planDateLabel(iso: string): string {
-  const today = new Date().toISOString().split('T')[0];
-  const tom   = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
+  const today = formatLocalISO(new Date());
+  const tomDate = new Date();
+  tomDate.setDate(tomDate.getDate() + 1);
+  const tom = formatLocalISO(tomDate);
   if (iso === today) return 'Dnes';
   if (iso === tom)   return 'Zítra';
   const d = new Date(iso + 'T00:00:00');
@@ -400,6 +402,7 @@ export default function Plan() {
     entries,
     addEntry,
     setGoalOverride,
+    deficitLevel,
   } = ctx;
   const tp = useTrainingPlan();
 
@@ -415,7 +418,8 @@ export default function Plan() {
   const [savingExperiment, setSavingExperiment] = useState(false);
 
   const { activities, loading, error, stale, isConnected, cacheAge, sync } = useIntervalsData(3);
-  const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal);
+  const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
+  const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
   const { data: whoopData } = useWhoopData();
 
   const { value: productLibrary, setValue: setProductLibrary } = useUserSetting<string[]>(
@@ -728,7 +732,7 @@ export default function Plan() {
                       padding: '14px 14px 12px',
                       borderRadius: 16,
                       border: `1px solid ${active ? `${BRAND.gold}44` : T.border}`,
-                      background: active ? 'rgba(255,214,0,0.10)' : 'rgba(255,255,255,0.02)',
+                      background: active ? 'rgba(124,92,255,0.10)' : 'rgba(255,255,255,0.02)',
                       color: active ? T.text : T.muted,
                       cursor: 'pointer',
                     }}
@@ -1088,7 +1092,7 @@ export default function Plan() {
                         padding: '8px 10px',
                         borderRadius: 999,
                         border: `1px solid ${experimentFocus === focus ? `${BRAND.gold}44` : T.border}`,
-                        background: experimentFocus === focus ? 'rgba(255,214,0,0.10)' : T.bg,
+                        background: experimentFocus === focus ? 'rgba(124,92,255,0.10)' : T.bg,
                         color: experimentFocus === focus ? BRAND.gold : T.muted,
                         cursor: 'pointer',
                         fontSize: 12,
@@ -1146,7 +1150,7 @@ export default function Plan() {
         {activeTab === 'carbs' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'tabSlide 0.25s ease-out both' }}>
             <Card style={{
-              background: 'linear-gradient(180deg, rgba(255,214,0,0.07), rgba(13,13,13,0.95))',
+              background: 'linear-gradient(180deg, rgba(124,92,255,0.07), rgba(7,7,10,0.95))',
               borderColor: `${BRAND.gold}33`,
             }}>
               <div style={{ fontSize: 11, color: BRAND.gold, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>

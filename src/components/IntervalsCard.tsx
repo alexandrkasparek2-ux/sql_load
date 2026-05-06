@@ -3,11 +3,12 @@ import { AppContext } from '../App';
 import { T, Card, Spinner } from './UI';
 import { activityKcal, sportIcon, formatDuration } from '../services/intervalsService';
 import { useIntervalsData } from '../hooks/useIntervalsData';
+import { todayLocalISO } from '../utils/date';
 
 const ICU_COLOR = '#0088ff';
 
 function todayLocal(): string {
-  return new Date().toISOString().split('T')[0];
+  return todayLocalISO();
 }
 
 // ── Setup form ────────────────────────────────────────────────

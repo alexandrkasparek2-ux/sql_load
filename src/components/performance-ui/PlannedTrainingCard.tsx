@@ -28,7 +28,7 @@ export function PlannedTrainingCard({ icon, title, type, typeColor, carbsRange, 
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           <span style={{ color: typeColor, background: `${typeColor}14`, border: `1px solid ${typeColor}30`, borderRadius: 6, padding: '3px 8px', fontSize: 10, fontWeight: 800 }}>{type}</span>
-          <span style={{ color: 'var(--brand-primary)', background: 'rgba(255,214,0,0.08)', borderRadius: 6, padding: '3px 8px', fontSize: 10 }}>{carbsRange}</span>
+          <span style={{ color: 'var(--brand-primary)', background: 'rgba(124,92,255,0.08)', borderRadius: 6, padding: '3px 8px', fontSize: 10 }}>{carbsRange}</span>
           {carbsTotal && <span style={{ color: 'var(--text-tertiary)', background: 'var(--bg-elevated)', borderRadius: 6, padding: '3px 8px', fontSize: 10 }}>{carbsTotal}</span>}
           <span style={{ color: 'var(--hydration)', background: 'rgba(79,195,247,0.08)', borderRadius: 6, padding: '3px 8px', fontSize: 10 }}>{fluidRate}</span>
         </div>

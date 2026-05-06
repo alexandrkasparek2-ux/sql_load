@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#0b0b0c" />
+    <meta name="theme-color" content="#07070A" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -11,27 +11,67 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
     <title>CycloFuel – Nutriční tracker pro cyklisty</title>
     <style>
       :root {
-        --bg:        #0b0b0c;
-        --bg-2:      #131315;
-        --surface:   #18181b;
-        --surface-2: #1f1f23;
-        --line:      #26262b;
-        --line-2:    #34343a;
-        --text:      #f5f5f4;
-        --text-2:    #a8a8a3;
-        --text-3:    #6b6b67;
-        --accent:    #ff5b1f;
-        --accent-2:  #ffb000;
-        --good:      #7dd87a;
-        --bad:       #ff5566;
-        --carb:      #ffb000;
-        --fat:       #ff5b1f;
-        --pro:       #d6f25c;
-        --hyd:       #4cc9ff;
+        /* ── Backgrounds ─────────────────────────────────────── */
+        --bg:        #07070A;
+        --bg-elev:   #0E0E14;
+        --bg-card:   #11111A;
+        --bg-card-2: #161622;
+        /* legacy aliases */
+        --bg-2:      #0E0E14;
+        --surface:   #11111A;
+        --surface-2: #161622;
+
+        /* ── Lines / dividers ────────────────────────────────── */
+        --line:        rgba(180,200,255,0.08);
+        --line-strong: rgba(180,200,255,0.18);
+        /* legacy alias */
+        --line-2:    rgba(180,200,255,0.18);
+
+        /* ── Text ────────────────────────────────────────────── */
+        --text:   #EDEDF5;
+        --text-2: #9CA3B5;
+        --text-3: #5B6178;
+
+        /* ── Accent ──────────────────────────────────────────── */
+        --accent:     #7C5CFF;
+        --accent-ink: #FFFFFF;
+        /* legacy alias */
+        --accent-2:   #FFC56B;
+
+        /* ── Semantic colors ─────────────────────────────────── */
+        --hot:  #FF6B9C;
+        --cool: #4FE3FF;
+        --gold: #FFC56B;
+        --good: #6BFFB4;
+        --bad:  #FF6B9C;
+
+        /* ── Macro colors ────────────────────────────────────── */
+        --carb: #FFC56B;
+        --fat:  #FF6B9C;
+        --pro:  #6BFFB4;
+        --hyd:  #4FE3FF;
+
+        /* ── Legacy performance-ui CSS vars ──────────────────── */
+        --brand-primary:    #7C5CFF;
+        --brand-accent:     #4FE3FF;
+        --bg-card:          #11111A;
+        --bg-elevated:      #161622;
+        --border-subtle:    rgba(180,200,255,0.08);
+        --border-default:   rgba(180,200,255,0.08);
+        --border-accent:    rgba(124,92,255,0.3);
+        --border-analytics: rgba(79,227,255,0.3);
+        --border-success:   rgba(107,255,180,0.3);
+        --text-primary:     #EDEDF5;
+        --text-muted:       #9CA3B5;
+        --text-tertiary:    #5B6178;
+        --text-disabled:    #5B6178;
+        --status-success:   #6BFFB4;
+        --analytics-blue:   #4FE3FF;
+        --hydration:        #4FE3FF;
       }
 
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -39,7 +79,7 @@
       body {
         background: var(--bg);
         color: var(--text);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-family: 'Manrope', system-ui, sans-serif;
         min-height: 100%;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
@@ -51,7 +91,7 @@
         position: relative;
         background: var(--bg);
       }
-      .display      { font-family: 'Space Grotesk', 'Inter', sans-serif; }
+      .display      { font-family: 'Space Grotesk', 'Manrope', sans-serif; }
       .mono         { font-family: 'JetBrains Mono', 'SF Mono', monospace; }
       .num-tabular  { font-variant-numeric: tabular-nums; }
       .eyebrow      { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.16em; color: var(--text-3); }
@@ -74,18 +114,18 @@
         height: 22px;
         border-radius: 50%;
         cursor: pointer;
-        border: 2px solid #050505;
+        border: 2px solid #07070A;
       }
       input[type=range]::-moz-range-thumb {
         width: 22px;
         height: 22px;
         border-radius: 50%;
         cursor: pointer;
-        border: 2px solid #050505;
+        border: 2px solid #07070A;
       }
       ::-webkit-scrollbar { width: 3px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #252525; border-radius: 2px; }
+      ::-webkit-scrollbar-thumb { background: rgba(180,200,255,0.12); border-radius: 2px; }
       * { -webkit-tap-highlight-color: transparent; }
 
       /* ── Keyframe animations ─────────────────────────────── */
@@ -110,8 +150,8 @@
         100% { background-position:  200% 0; }
       }
       @keyframes pulse-glow {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(255, 91, 31, 0.4); }
-        50%       { box-shadow: 0 0 0 8px rgba(255, 91, 31, 0); }
+        0%, 100% { box-shadow: 0 0 0 0 rgba(124, 92, 255, 0.4); }
+        50%       { box-shadow: 0 0 0 8px rgba(124, 92, 255, 0); }
       }
       @keyframes slideUp {
         from { opacity: 0; transform: translateY(8px); }
@@ -126,8 +166,8 @@
         to   { opacity: 1; transform: translateY(0) scale(1); }
       }
       @keyframes liveBlip {
-        0%, 100% { box-shadow: 0 0 0 0 rgba(255,82,82,0.5); }
-        50%       { box-shadow: 0 0 0 6px rgba(255,82,82,0); }
+        0%, 100% { box-shadow: 0 0 0 0 rgba(124,92,255,0.5); }
+        50%       { box-shadow: 0 0 0 6px rgba(124,92,255,0); }
       }
       @keyframes tabSlide {
         from { opacity: 0; transform: translateX(8px); }

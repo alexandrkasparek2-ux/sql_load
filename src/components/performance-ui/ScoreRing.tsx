@@ -40,7 +40,7 @@ export function ScoreRing({ score, size = 80, label = 'FUELING SCORE' }: Props) 
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            style={{ filter: 'drop-shadow(0 0 6px rgba(255, 214, 0, 0.35))', transition: 'stroke-dashoffset 1.5s ease-out' }}
+            style={{ filter: 'drop-shadow(0 0 6px rgba(124, 92, 255, 0.35))', transition: 'stroke-dashoffset 1.5s ease-out' }}
           />
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>

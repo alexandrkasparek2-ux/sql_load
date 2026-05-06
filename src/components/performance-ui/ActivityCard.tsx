@@ -14,7 +14,7 @@ interface Props {
 const variantStyles = {
   planned: { border: 'var(--border-analytics)', bg: 'linear-gradient(135deg, rgba(79,195,247,0.06), var(--bg-card))' },
   completed: { border: 'var(--border-subtle)', bg: 'var(--bg-card)' },
-  live: { border: 'rgba(255,107,53,0.35)', bg: 'linear-gradient(135deg, rgba(255,107,53,0.08), var(--bg-card))' },
+  live: { border: 'rgba(124,92,255,0.35)', bg: 'linear-gradient(135deg, rgba(124,92,255,0.08), var(--bg-card))' },
 };
 
 export function ActivityCard({ icon, title, duration, distance, elevation, heartRate, power, tss, kcal, variant }: Props) {

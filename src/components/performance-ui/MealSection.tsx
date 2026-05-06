@@ -20,13 +20,13 @@ interface Props {
 }
 
 const variantBg: Record<Props['variant'], string> = {
-  breakfast: 'rgba(255, 214, 0, 0.12)',
-  snack: 'rgba(255, 107, 53, 0.12)',
-  lunch: 'rgba(0, 229, 176, 0.12)',
-  pre: 'rgba(255, 214, 0, 0.12)',
-  during: 'rgba(255, 107, 53, 0.12)',
-  post: 'rgba(0, 229, 176, 0.12)',
-  dinner: 'rgba(79, 195, 247, 0.12)',
+  breakfast: 'rgba(255, 197, 107, 0.12)',
+  snack: 'rgba(124, 92, 255, 0.12)',
+  lunch: 'rgba(107, 255, 180, 0.12)',
+  pre: 'rgba(255, 197, 107, 0.12)',
+  during: 'rgba(255, 107, 156, 0.12)',
+  post: 'rgba(107, 255, 180, 0.12)',
+  dinner: 'rgba(79, 227, 255, 0.12)',
 };
 
 export function MealSection({ title, icon, time, variant, items, totalKcal, onAdd, onEdit, onDelete }: Props) {
@@ -39,7 +39,7 @@ export function MealSection({ title, icon, time, variant, items, totalKcal, onAd
           <div style={{ color: 'var(--text-muted)', fontSize: 10, marginTop: 2 }}>{time} · {items.length} položek</div>
         </div>
         <div style={{ color: 'var(--brand-primary)', fontSize: 14, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{Math.round(totalKcal)} kcal</div>
-        <button type="button" onClick={onAdd} className="tap-scale" style={{ width: 30, height: 30, background: 'rgba(255,214,0,0.08)', border: '1px solid rgba(255,214,0,0.2)', borderRadius: 8, color: 'var(--brand-primary)', fontSize: 16, cursor: 'pointer' }}>+</button>
+        <button type="button" onClick={onAdd} className="tap-scale" style={{ width: 30, height: 30, background: 'rgba(124,92,255,0.08)', border: '1px solid rgba(124,92,255,0.2)', borderRadius: 8, color: 'var(--brand-primary)', fontSize: 16, cursor: 'pointer' }}>+</button>
       </div>
       {items.length > 0 && (
         <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '8px 16px 12px' }}>

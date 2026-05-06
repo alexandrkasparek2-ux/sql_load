@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react';
 import { AppContext } from '../App';
 import { T } from '../components/UI';
-import { Ring, Chip } from '../components/primitives';
+import { Ring } from '../components/primitives';
 import { showToast } from '../components/Toast';
 import { SUPPLEMENTS, SUPPLEMENT_CATEGORIES } from '../constants/supplements';
 import { useSupplements } from '../hooks/useSupplements';
@@ -24,7 +24,7 @@ function SupplementItem({
 
   return (
     <div style={{
-      background:   taken ? 'linear-gradient(135deg, rgba(0,229,176,0.04), #0d0d0d)' : T.card,
+      background:   taken ? 'linear-gradient(135deg, rgba(107,255,180,0.06), #0E0E14)' : T.card,
       border:       `1px solid ${taken ? 'rgba(0,229,176,0.2)' : T.border}`,
       borderRadius: 14,
       padding:      '12px 14px',
@@ -89,7 +89,7 @@ function SupplementItem({
         transition: 'all 0.2s',
       }}>
         {taken && (
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" strokeWidth="3.5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
         )}
@@ -128,7 +128,7 @@ export default function Supplements() {
       {/* Gradient overlay */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 300,
-        background: 'radial-gradient(ellipse at top, rgba(255,214,0,0.06), transparent 70%)',
+        background: 'radial-gradient(ellipse at top, rgba(124,92,255,0.06), transparent 70%)',
         pointerEvents: 'none', zIndex: 0,
       }} />
 
@@ -155,15 +155,21 @@ export default function Supplements() {
           </Ring>
         </div>
 
-        {/* Category filter chips */}
+        {/* Category segmented tabs */}
         <div className="stagger-2" style={{
-          display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 14,
-          paddingBottom: 4, scrollbarWidth: 'none' as const,
+          display: 'grid', gridTemplateColumns: `repeat(${categories.length}, 1fr)`, gap: 4,
+          background: T.card, border: `1px solid ${T.border}`,
+          borderRadius: 14, padding: 4, marginBottom: 14,
         }}>
           {categories.map(cat => (
-            <Chip key={cat} active={cat === activeCategory} onClick={() => setActiveCategory(cat)}>
-              {cat}
-            </Chip>
+            <button key={cat} onClick={() => setActiveCategory(cat)} style={{
+              border: 'none', borderRadius: 10, padding: '8px 6px', cursor: 'pointer',
+              background: cat === activeCategory ? 'var(--accent)' : 'transparent',
+              color: cat === activeCategory ? '#fff' : T.muted,
+              fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: 700,
+              textTransform: 'uppercase' as const, letterSpacing: '0.04em',
+              transition: 'all 0.15s',
+            }}>{cat}</button>
           ))}
         </div>
 
@@ -198,7 +204,7 @@ export default function Supplements() {
 
         {/* Tip card */}
         <div style={{
-          background: 'linear-gradient(135deg, #0f0f0f, #0a0a0a)',
+          background: 'linear-gradient(135deg, #11111A, #0E0E14)',
           border: `1px solid ${accent}33`,
           borderRadius: 16, padding: 16, marginBottom: 16, marginTop: 8,
           position: 'relative', overflow: 'hidden',

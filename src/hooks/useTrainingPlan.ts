@@ -4,6 +4,7 @@ import {
   TP_FORCE_SYNC_EVENT,
   type PlannedWorkout,
 } from '../services/trainingPeaksService';
+import { todayLocalISO } from '../utils/date';
 
 export type { PlannedWorkout };
 
@@ -25,7 +26,7 @@ export function useTrainingPlan() {
   const [error,    setError]        = useState<string | null>(null);
   const [syncedAt, setSyncedAt]     = useState<number | null>(null);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocalISO();
 
   const sync = useCallback(async (url?: string) => {
     const u = (url ?? icalUrl).trim();

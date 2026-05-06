@@ -1,6 +1,6 @@
 import { useState, useContext, useMemo, useEffect } from 'react';
 import { AppContext }    from '../App';
-import { T, BRAND, Card, SectionTitle, ProgressBar, Btn, SegmentedTabs, MetricBox } from '../components/UI';
+import { T, BRAND, MACRO, Card, SectionTitle, ProgressBar, Btn, SegmentedTabs, MetricBox } from '../components/UI';
 import { showToast }    from '../components/Toast';
 import { FOODS, FOOD_CATEGORIES, type Food } from '../constants/foods';
 import { MEAL_SLOTS }    from '../constants/training';
@@ -1129,7 +1129,7 @@ export default function Foods() {
       {/* Gradient overlay */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 300,
-        background: 'radial-gradient(ellipse at top, rgba(255,214,0,0.06), transparent 70%)',
+        background: 'radial-gradient(ellipse at top, rgba(124,92,255,0.06), transparent 70%)',
         pointerEvents: 'none', zIndex: 0,
       }} />
       <div style={{ position: 'relative', zIndex: 1 }}>
@@ -1221,22 +1221,58 @@ export default function Foods() {
           </Card>
         </div>
       ) : (
-        <>
-          <SectionTitle
-            accent={BRAND.gold}
-            right={
-              <div style={{ fontSize: 12, color: BRAND.gold, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                {Math.round(ctx.totals.kcal)} / {Math.round(goals.kcal)} kcal
+        <div style={{
+          background: T.card, border: `1px solid ${T.border}`,
+          borderRadius: 22, padding: 18, marginBottom: 16,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 5 }}>SPOTŘEBOVÁNO</div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 34, lineHeight: 1, fontVariantNumeric: 'tabular-nums', marginBottom: 2 }}>
+                {Math.round(ctx.totals.kcal)}
               </div>
-            }
-          >
-            Jídelní deník
-          </SectionTitle>
-
-          <div style={{ marginBottom: 16 }}>
-            <ProgressBar value={ctx.totals.kcal} max={goals.kcal} color={BRAND.gold} height={5} showLabel />
+              <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: T.muted }}>
+                / {Math.round(goals.kcal)} kcal
+              </div>
+            </div>
+            <div style={{ position: 'relative', width: 56, height: 56, flexShrink: 0 }}>
+              {(() => {
+                const pct = goals.kcal > 0 ? Math.min(1, ctx.totals.kcal / goals.kcal) : 0;
+                const r = 24, stroke = 6, c = 2 * Math.PI * r;
+                return (
+                  <svg width="56" height="56" style={{ transform: 'rotate(-90deg)' }}>
+                    <circle cx="28" cy="28" r={r} stroke={T.border} strokeWidth={stroke} fill="none" />
+                    <circle cx="28" cy="28" r={r} stroke={BRAND.purple} strokeWidth={stroke} fill="none"
+                      strokeDasharray={c} strokeDashoffset={c * (1 - pct)} strokeLinecap="round"
+                      style={{ transition: 'stroke-dashoffset 0.6s cubic-bezier(.2,.8,.2,1)' }} />
+                  </svg>
+                );
+              })()}
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                  {Math.round(goals.kcal > 0 ? (ctx.totals.kcal / goals.kcal) * 100 : 0)}%
+                </span>
+              </div>
+            </div>
           </div>
-        </>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
+            {[
+              { label: 'SACH',  val: ctx.totals.carbs,   goal: goals.carbs,   color: MACRO.carb },
+              { label: 'BÍLK',  val: ctx.totals.protein, goal: goals.protein, color: MACRO.pro  },
+              { label: 'TUKY',  val: ctx.totals.fat,     goal: goals.fat,     color: MACRO.fat  },
+            ].map(m => (
+              <div key={m.label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <span style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{m.label}</span>
+                  <span style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{Math.round(m.val)}/{Math.round(m.goal)}g</span>
+                </div>
+                <div style={{ height: 4, background: T.border, borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.min(100, m.goal > 0 ? (m.val / m.goal) * 100 : 0)}%`, background: m.color, borderRadius: 2, transition: 'width 0.5s ease' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <SegmentedTabs
@@ -1289,7 +1325,7 @@ export default function Foods() {
                     onClick={() => setActivePicker(slot.id)}
                     style={{
                       width: 28, height: 28, borderRadius: 8,
-                      background: 'rgba(255,214,0,0.08)', border: '1px solid rgba(255,214,0,0.2)',
+                      background: 'rgba(124,92,255,0.08)', border: '1px solid rgba(124,92,255,0.2)',
                       color: BRAND.gold, fontSize: 18, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       lineHeight: 1,

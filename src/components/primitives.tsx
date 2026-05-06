@@ -202,7 +202,7 @@ export function Chip({ children, active = false, color = 'var(--accent)', onClic
         padding: '6px 12px', borderRadius: 999, flexShrink: 0,
         border: `1px solid ${active ? color : 'var(--line)'}`,
         background: active ? color : 'transparent',
-        color: active ? '#0a0a0a' : T.text2,
+        color: active ? '#fff' : T.text2,
         fontSize: 12, fontWeight: 500, letterSpacing: '0.01em',
         cursor: 'pointer', whiteSpace: 'nowrap',
         transition: 'all 0.15s',
@@ -248,7 +248,7 @@ interface ElevationProps {
 
 export function Elevation({
   width = 320, height = 70,
-  color = 'var(--accent)', fill = 'rgba(255,91,31,0.18)',
+  color = 'var(--accent)', fill = 'rgba(124,92,255,0.18)',
 }: ElevationProps) {
   const pts = [10, 18, 22, 30, 28, 40, 55, 50, 62, 70, 58, 48, 60, 78, 65, 50, 42, 38, 30, 22, 18, 14];
   const max = Math.max(...pts);

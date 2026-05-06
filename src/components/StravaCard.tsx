@@ -3,12 +3,13 @@ import { T, Card, Spinner } from './UI';
 import { startStravaOAuth, activityKcal, sportIcon, formatDuration } from '../services/stravaService';
 import { useStravaData } from '../hooks/useStravaData';
 import { AppContext } from '../App';
+import { todayLocalISO as getTodayLocalISO } from '../utils/date';
 
 const STRAVA_ORANGE = '#fc4c02';
 
 // ── Today's activities filter ─────────────────────────────────
 function todayLocalISO(): string {
-  return new Date().toISOString().split('T')[0];
+  return getTodayLocalISO();
 }
 
 function activityDateLocal(a: { start_date_local: string }): string {

@@ -87,8 +87,8 @@ export default function Micros() {
 
         {/* Hero score card */}
         <div className="stagger-1" style={{
-          background: 'linear-gradient(180deg, #0f0f0f, #080808)',
-          border: '1px solid #181818',
+          background: 'linear-gradient(180deg, #11111A, #0E0E14)',
+          border: `1px solid rgba(180,200,255,0.08)`,
           borderRadius: 22, padding: '20px 20px 18px',
           marginBottom: 16, position: 'relative', overflow: 'hidden',
         }}>

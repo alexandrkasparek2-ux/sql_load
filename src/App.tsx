@@ -22,7 +22,7 @@ import type { FoodEntry, MacroTotals } from './hooks/useFoodEntries';
 
 import {
   TRAINING_TYPES,
-  calcCaloriesMulti, calcCalories, calcMacros, calcWater, calcMicroGoals,
+  calcCaloriesMulti, calcCalories, calcMacros, calcWater, calcMicroGoals, primaryType,
   type TrainingType,
 } from './constants/training';
 import { APP_NAV_ITEMS, getActiveNavItem } from './constants/navigation';
@@ -42,6 +42,7 @@ import { T, Spinner } from './components/UI';
 import { clearTPCache, TP_FORCE_SYNC_EVENT } from './services/trainingPeaksService';
 import { ToastHost }     from './components/Toast';
 import FloatingChat      from './components/FloatingChat';
+import { formatLocalISODate, todayLocalISO } from './utils/date';
 
 // ──────────────────────────────────────────────────────────
 // Context
@@ -103,12 +104,7 @@ export const useApp     = () => useContext(AppContext);
 // Today helper
 // ──────────────────────────────────────────────────────────
 function todayISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-function formatLocalISODate(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return todayLocalISO();
 }
 
 function kcalFromActivity(a: {
@@ -242,13 +238,19 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 
   const goals = useMemo<Goals>(() => {
     if (!profile) return DEFAULT_GOALS;
-    const m      = calcMacros(profile, trainingType);
-    const types  = (trainingDay?.extra_types ?? []).length > 0
-      ? (trainingDay!.extra_types as typeof trainingType[])
-      : [trainingType];
+    const types  = Array.from(new Set([
+      trainingType,
+      ...((trainingDay?.extra_types ?? []) as TrainingType[]),
+    ]));
+    const macroType = primaryType(types);
+    const m      = calcMacros(profile, macroType);
+    const hoursMap = { ...(trainingDay?.activity_hours ?? {}) };
+    if (trainingType !== 'rest' && (hoursMap[trainingType] ?? 0) === 0 && rideHours > 0) {
+      hoursMap[trainingType] = rideHours;
+    }
     const kcalGoal = calcCaloriesMulti(
       profile, types,
-      trainingDay?.activity_hours     ?? {},
+      hoursMap,
       trainingDay?.activity_intensity ?? {},
     );
 
@@ -312,23 +314,28 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 
   // Total energy expenditure (BMR + activity), before deficit reduction.
   // Used by UI to display true energy balance = burnedToday - consumed.
-  const burnedToday = useMemo(() => {
+  const liveBurnedToday = useMemo(() => {
     if (!profile) return 0;
     if (intervalsData.kcal > 0) {
       return Math.round(calcCalories(profile, 'rest', 0) + intervalsData.kcal);
     }
-    const types = (trainingDay?.extra_types ?? []).length > 0
-      ? (trainingDay!.extra_types as TrainingType[])
-      : [trainingType];
+    const types = Array.from(new Set([
+      trainingType,
+      ...((trainingDay?.extra_types ?? []) as TrainingType[]),
+    ]));
+    const hoursMap = { ...(trainingDay?.activity_hours ?? {}) };
+    if (trainingType !== 'rest' && (hoursMap[trainingType] ?? 0) === 0 && rideHours > 0) {
+      hoursMap[trainingType] = rideHours;
+    }
     return Math.round(calcCaloriesMulti(
       profile, types,
-      trainingDay?.activity_hours     ?? {},
+      hoursMap,
       trainingDay?.activity_intensity ?? {},
     ));
-  }, [profile, intervalsData.kcal, trainingType, trainingDay]);
+  }, [profile, intervalsData.kcal, trainingType, trainingDay, rideHours]);
 
   // ── Daily nutrition snapshot ──────────────────────────────────────────────
-  const realToday = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const realToday = useMemo(() => todayLocalISO(), []);
   const isViewingToday = today === realToday;
 
   const {
@@ -416,6 +423,16 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     ? { ...baseGoals, ...goalOverride }
     : baseGoals;
 
+  const effectiveBurnedToday = useMemo(() => {
+    if (!isViewingToday && snapshot?.goal_kcal) {
+      const plannedDeficit = [0, 250, 500, 750].includes(snapshot.deficit_kcal)
+        ? snapshot.deficit_kcal
+        : deficitKcal;
+      return Math.round(snapshot.goal_kcal + plannedDeficit);
+    }
+    return liveBurnedToday;
+  }, [isViewingToday, snapshot, deficitKcal, liveBurnedToday]);
+
   // ── Auto-save snapshot for today on data changes (debounced 3 s) ──────────
   const { saveGoalForDate } = useDailyGoals(userId);
   useEffect(() => {
@@ -440,12 +457,12 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
         goal_water:       effectiveGoals.water,
         goal_fiber:       effectiveGoals.fiber,
         activity_kcal:    intervalsData.kcal,
-        activity_source:  intervalsData.kcal > 0 ? 'intervals' : 'none',
-        deficit_kcal:     Math.max(0, effectiveGoals.kcal - totals.kcal),
+        activity_source:  intervalsData.kcal > 0 ? 'intervals' : trainingType !== 'rest' ? 'manual' : 'none',
+        deficit_kcal:     deficitKcal,
       });
     }, 3000);
     return () => clearTimeout(timer);
-  }, [isViewingToday, effectiveGoals, totals, intervalsData.kcal, saveSnapshot]);
+  }, [isViewingToday, effectiveGoals, totals, intervalsData.kcal, trainingType, deficitKcal, saveSnapshot]);
 
   // ── Recalculate historical day ─────────────────────────────────────────────
   const recalculateDay = useCallback(async () => {
@@ -639,12 +656,12 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
         height: '100dvh',
         overflow: 'hidden',
         background:
-          'radial-gradient(circle at top left, rgba(255,214,0,0.08), transparent 28%), radial-gradient(circle at top right, rgba(255,107,53,0.08), transparent 24%), #050505',
+          'radial-gradient(circle at top left, rgba(124,92,255,0.08), transparent 28%), radial-gradient(circle at top right, rgba(79,227,255,0.06), transparent 24%), #07070A',
       }}>
         <header style={{
           flexShrink: 0,
           borderBottom: `1px solid ${T.border}`,
-          background: 'rgba(5,5,5,0.78)',
+          background: 'rgba(7,7,10,0.85)',
           backdropFilter: 'blur(18px)',
         }}>
           <div style={{
@@ -663,11 +680,11 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                   width: 42,
                   height: 42,
                   borderRadius: 12,
-                  background: '#ff5b1f',
+                  background: '#7C5CFF',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#000',
+                  color: '#fff',
                   fontSize: 20,
                 }}>
                   🚴
@@ -801,11 +818,11 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                       gap: 8,
                       padding: '10px 14px',
                       borderRadius: 999,
-                      border: `1px solid ${isActive ? 'rgba(255,91,31,0.3)' : T.border}`,
+                      border: `1px solid ${isActive ? 'rgba(124,92,255,0.3)' : T.border}`,
                       background: isActive
-                        ? 'rgba(255,91,31,0.12)'
+                        ? 'rgba(124,92,255,0.12)'
                         : 'rgba(255,255,255,0.02)',
-                      color: isActive ? '#ff5b1f' : '#9a9a9a',
+                      color: isActive ? '#7C5CFF' : '#9CA3B5',
                       transition: 'all 0.2s ease',
                       whiteSpace: 'nowrap',
                     }}>
@@ -891,10 +908,10 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
             {/* Avatar */}
             <div style={{
               width: 38, height: 38,
-              background: '#ff5b1f',
+              background: '#7C5CFF',
               borderRadius: '50%',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, fontWeight: 800, color: '#000',
+              fontSize: 18, fontWeight: 800, color: '#fff',
               flexShrink: 0,
             }}>
               🚴
@@ -960,7 +977,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
       </div>
 
       {/* Page content */}
-      <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: 80 }}>
+      <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: 96 }}>
         {routes}
       </main>
 
@@ -970,31 +987,33 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
       {/* Floating AI chat bubble (hidden on /chat page) */}
       <FloatingChat />
 
-      {/* Fixed Bottom Nav */}
+      {/* Floating Pill Bottom Nav */}
       <nav style={{
         position:         'fixed',
-        bottom:           0,
+        bottom:           'calc(12px + env(safe-area-inset-bottom, 0px))',
         left:             '50%',
         transform:        'translateX(-50%)',
-        width:            '100%',
-        maxWidth:         500,
-        background:       'rgba(5, 5, 5, 0.95)',
-        backdropFilter:   'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderTop:        '1px solid #181818',
+        width:            'calc(100% - 32px)',
+        maxWidth:         460,
+        background:       'rgba(14, 14, 20, 0.88)',
+        backdropFilter:   'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        border:           `1px solid rgba(180,200,255,0.10)`,
+        borderRadius:     999,
         display:          'flex',
         justifyContent:   'space-around',
-        paddingBottom:    'env(safe-area-inset-bottom, 0px)',
         zIndex:           100,
-        height:           75,
+        height:           60,
         alignItems:       'center',
+        padding:          '0 8px',
+        boxShadow:        '0 8px 32px rgba(0,0,0,0.4)',
       }}>
-          {APP_NAV_ITEMS.map(item => (
+        {APP_NAV_ITEMS.map(item => (
           <NavLink
             key={item.to}
             to={item.to}
             end={item.to === '/'}
-            style={{ display: 'flex', flex: 1, textDecoration: 'none' }}
+            style={{ display: 'flex', flex: 1, textDecoration: 'none', justifyContent: 'center' }}
           >
             {({ isActive }) => (
               <div style={{
@@ -1002,32 +1021,20 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                 flexDirection:  'column',
                 alignItems:     'center',
                 justifyContent: 'center',
-                flex:           1,
-                gap:            4,
-                padding:        '8px 4px 0',
-                position:       'relative',
-                color:          isActive ? '#ff5b1f' : '#555555',
-                transition:     'color 0.2s',
+                padding:        '6px 10px',
+                borderRadius:   999,
+                gap:            3,
+                background:     isActive ? 'rgba(124,92,255,0.18)' : 'transparent',
+                color:          isActive ? '#7C5CFF' : '#5B6178',
+                transition:     'all 0.2s',
               }}>
-                {isActive && (
-                  <div style={{
-                    position:     'absolute',
-                    top:          0,
-                    left:         '50%',
-                    transform:    'translateX(-50%)',
-                    width:        24,
-                    height:       3,
-                    background:   '#ff5b1f',
-                    borderRadius: '0 0 3px 3px',
-                  }} />
-                )}
                 <span style={{ display: 'flex', color: 'inherit' }}>
                   {NavIcons[item.to]}
                 </span>
                 <span style={{
-                  fontSize:      9,
+                  fontSize:      8,
                   fontWeight:    isActive ? 700 : 600,
-                  letterSpacing: '1px',
+                  letterSpacing: '0.8px',
                   textTransform: 'uppercase' as const,
                   color:         'inherit',
                 }}>
@@ -1059,7 +1066,7 @@ function AppRoutes() {
         <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--accent)', letterSpacing: '-0.5px' }}>
           🚴 CycloFuel
         </span>
-        <Spinner color="#ff5b1f" size={32} />
+        <Spinner color="#7C5CFF" size={32} />
       </div>
     );
   }
@@ -1096,12 +1103,12 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, EBSta
         <div style={{
           height: '100dvh', display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center', gap: 16,
-          background: '#080c14', padding: 24, textAlign: 'center',
+          background: '#07070A', padding: 24, textAlign: 'center',
         }}>
-          <span style={{ fontSize: 24, fontWeight: 800, color: '#ff5b1f' }}>🚴 CycloFuel</span>
-          <div style={{ fontSize: 14, color: '#ef4444', fontWeight: 600 }}>Chyba aplikace</div>
+          <span style={{ fontSize: 24, fontWeight: 800, color: '#7C5CFF' }}>🚴 CycloFuel</span>
+          <div style={{ fontSize: 14, color: '#FF6B9C', fontWeight: 600 }}>Chyba aplikace</div>
           <div style={{
-            fontSize: 12, color: '#888', background: '#111', borderRadius: 10,
+            fontSize: 12, color: '#9CA3B5', background: '#11111A', borderRadius: 10,
             padding: '12px 16px', maxWidth: 340, wordBreak: 'break-word', textAlign: 'left',
           }}>
             {this.state.error.message}
@@ -1109,8 +1116,8 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, EBSta
           <button
             onClick={() => { localStorage.clear(); window.location.reload(); }}
             style={{
-              padding: '10px 20px', borderRadius: 10, background: '#ff5b1f',
-              color: '#000', fontWeight: 700, fontSize: 14, cursor: 'pointer', border: 'none',
+              padding: '10px 20px', borderRadius: 10, background: '#7C5CFF',
+              color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', border: 'none',
             }}
           >
             Vymazat cache a obnovit

@@ -1,3 +1,5 @@
+import { todayLocalISO } from '../../utils/date';
+
 interface Props {
   days: { date: string; intake: number; target: number }[];
   height?: number;
@@ -5,7 +7,7 @@ interface Props {
 
 export function WeekChart({ days, height = 120 }: Props) {
   const max = Math.max(...days.map(day => Math.max(day.intake, day.target)), 1);
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocalISO();
 
   return (
     <div style={{ display: 'flex', alignItems: 'end', gap: 8, height, paddingTop: 12 }}>

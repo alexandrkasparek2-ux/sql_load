@@ -4,7 +4,7 @@ interface Props {
 
 const variants = {
   sync: { label: 'Sync', color: 'var(--status-success)', bg: 'rgba(0,229,176,0.10)' },
-  live: { label: 'Live', color: 'var(--brand-accent)', bg: 'rgba(255,107,53,0.12)' },
+  live: { label: 'Live', color: 'var(--brand-accent)', bg: 'rgba(124,92,255,0.12)' },
   rest: { label: 'Rest', color: 'var(--analytics-blue)', bg: 'rgba(79,195,247,0.10)' },
 };
 

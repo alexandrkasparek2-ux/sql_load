@@ -5,6 +5,7 @@ import type { PlannedWorkout } from '../services/trainingPeaksService';
 import { activityKcal, sportIcon, formatDuration } from '../services/intervalsService';
 import { classifyWorkout, calculateFuelingTargets, FUEL_TYPE_META } from '../services/fuelingPlanner';
 import { CompactFuelingBadges } from './WorkoutFuelPlannerCard';
+import { formatLocalISODate, todayLocalISO } from '../utils/date';
 
 // ──────────────────────────────────────────────────────────
 // WeekChart — enhanced weekly kcal chart with gradient bars
@@ -17,7 +18,7 @@ interface WeekChartProps {
 }
 
 export function WeekChart({ data, accent, kcalGoal, showBurn = true }: WeekChartProps) {
-  const today  = new Date().toISOString().split('T')[0];
+  const today  = todayLocalISO();
   const last7  = data.slice(-7);
   const hasBurn = showBurn && last7.some(d => d.burned > 0);
   const maxVal = Math.max(...last7.map(d => Math.max(d.kcal, d.goal || kcalGoal, d.burned || 0)), kcalGoal, 1);
@@ -321,8 +322,10 @@ export function ActivityFeedCard({ activity: act, accent = BRAND.blue }: Activit
 // ──────────────────────────────────────────────────────────
 const CS_DAYS = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So'];
 function tpDateLabel(iso: string): string {
-  const today = new Date().toISOString().split('T')[0];
-  const tom   = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
+  const today = todayLocalISO();
+  const tomDate = new Date();
+  tomDate.setDate(tomDate.getDate() + 1);
+  const tom = formatLocalISODate(tomDate);
   if (iso === today) return 'Dnes';
   if (iso === tom)   return 'Zítra';
   const d = new Date(iso + 'T00:00:00');

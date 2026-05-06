@@ -2,7 +2,7 @@ import { useContext, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext, DEFICIT_KCAL }  from '../App';
 import { T, BRAND, MACRO, ProgressBar, SectionTitle, Card, Btn, LiveBadge } from '../components/UI';
-import { SegRing, Bar, MacroLine, KV, LivePill, Elevation } from '../components/primitives';
+import { Ring, SegRing, Bar, MacroLine, KV, LivePill, Elevation } from '../components/primitives';
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
 import { getDuringCarbRange, calcFuelingScore } from '../utils/fuelingScore';
 import { FOODS } from '../constants/foods';
@@ -16,6 +16,7 @@ import { WeekChart, TrainingBanner } from '../components/PerformanceCards';
 import { PriorityCard } from '../components/performance-ui/PriorityCard';
 import { ScoreRing } from '../components/performance-ui/ScoreRing';
 import { RecoveryDebtCard } from '../components/performance-ui/RecoveryDebtCard';
+import { todayLocalISO } from '../utils/date';
 
 // ─── Weekly summary ───────────────────────────────────────────
 function WeeklySummaryCard({ historyData, accent, deficitKcal }: { historyData: DayKcal[]; accent: string; deficitKcal: number }) {
@@ -113,7 +114,7 @@ function TrainingTimingCard({ activities, goals }: {
   goals: { protein: number; carbs: number };
 }) {
   const now     = Date.now();
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = todayLocalISO();
 
   const todayActs = activities.filter(a => a.start_date_local.startsWith(todayStr));
   if (todayActs.length === 0) return null;
@@ -628,7 +629,7 @@ export default function Dashboard() {
     postWorkoutProtein,
   });
   const recentRecoveryDebt = Math.round(
-    historyData.slice(-4, -1).reduce((sum, day) => sum + Math.max(0, day.burned - day.kcal), 0),
+    historyData.slice(-4, -1).reduce((sum, day) => sum + Math.max(0, day.goal - day.kcal), 0),
   );
   const liveActivity = intervalsActivities.find(activity => {
     const start = new Date(activity.start_date_local).getTime();
@@ -670,7 +671,7 @@ export default function Dashboard() {
           justifyContent: 'center',
           minHeight: 142,
           borderColor: BRAND.gold + '33',
-          background: 'linear-gradient(135deg, rgba(255,214,0,0.06), #0d0d0d)',
+          background: 'linear-gradient(135deg, rgba(124,92,255,0.06), #0E0E14)',
         }}>
           <ScoreRing score={fuelingScore} label="FUELING SCORE" />
         </Card>
@@ -711,8 +712,8 @@ export default function Dashboard() {
   const liveModeSection = liveActivity ? (
     <Card style={{
       marginBottom: 16,
-      borderColor: 'rgba(255,107,53,0.35)',
-      background: 'linear-gradient(135deg, rgba(255,107,53,0.10), rgba(13,13,13,0.98))',
+      borderColor: 'rgba(124,92,255,0.35)',
+      background: 'linear-gradient(135deg, rgba(124,92,255,0.10), rgba(7,7,10,0.98))',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
         <div>
@@ -749,7 +750,7 @@ export default function Dashboard() {
         style={{
           marginBottom: 16,
           borderColor: BRAND.blue + '33',
-          background: 'linear-gradient(135deg, rgba(79,195,247,0.10), rgba(255,214,0,0.05))',
+          background: 'linear-gradient(135deg, rgba(79,227,255,0.10), rgba(124,92,255,0.05))',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -908,14 +909,14 @@ export default function Dashboard() {
 
   const emptyStateSection = noEntries ? (
     <div style={{
-      background: 'linear-gradient(135deg, #0f0f0f, #0a0a0a)',
-      border: `1px solid rgba(255,214,0,0.15)`,
+      background: 'linear-gradient(135deg, #11111A, #0E0E14)',
+      border: `1px solid rgba(124,92,255,0.15)`,
       borderRadius: 18, padding: 24, marginBottom: 16, textAlign: 'center',
       position: 'relative', overflow: 'hidden',
     }}>
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'linear-gradient(135deg, rgba(255,214,0,0.04), transparent)',
+        background: 'linear-gradient(135deg, rgba(124,92,255,0.04), transparent)',
         pointerEvents: 'none',
       }} />
       <div style={{ fontSize: 36, marginBottom: 8 }}>🍽️</div>
@@ -928,8 +929,8 @@ export default function Dashboard() {
       <button
         onClick={() => navigate('/foods')}
         style={{
-          width: '100%', background: 'linear-gradient(135deg, #FFD600, #FFA800)',
-          color: '#000', border: 'none', padding: '13px', borderRadius: 12,
+          width: '100%', background: 'linear-gradient(135deg, #7C5CFF, #4FE3FF)',
+          color: '#fff', border: 'none', padding: '13px', borderRadius: 12,
           fontSize: 12, fontWeight: 800, letterSpacing: '1.5px',
           textTransform: 'uppercase' as const, cursor: 'pointer',
         }}
@@ -964,7 +965,7 @@ export default function Dashboard() {
       {/* Gradient overlay at top */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 300,
-        background: 'radial-gradient(ellipse at top, rgba(255,214,0,0.06), transparent 70%)',
+        background: 'radial-gradient(ellipse at top, rgba(124,92,255,0.06), transparent 70%)',
         pointerEvents: 'none', zIndex: 0,
       }} />
 
@@ -997,7 +998,7 @@ export default function Dashboard() {
                       {pctGoal >= 80 ? (
                         <span style={{ fontSize: 10, padding: '2px 6px', background: 'rgba(125,216,122,0.12)', color: BRAND.green, borderRadius: 3, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>NA CESTĚ</span>
                       ) : (
-                        <span style={{ fontSize: 10, padding: '2px 6px', background: 'rgba(255,91,31,0.12)', color: BRAND.orange, borderRadius: 3, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>PLNÍ SE</span>
+                        <span style={{ fontSize: 10, padding: '2px 6px', background: 'rgba(124,92,255,0.12)', color: BRAND.purple, borderRadius: 3, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>PLNÍ SE</span>
                       )}
                     </div>
                     {(() => {
@@ -1140,7 +1141,204 @@ export default function Dashboard() {
             {liveModeSection}
             <StretchingChecklist userId={userId} today={today} accent={accent} />
 
-            {/* ── Energy Balance hero card ─────────────────── */}
+            {/* ── HERO: Workout card ─────────────────────────── */}
+            <div style={{
+              background: `linear-gradient(135deg, #161622 0%, #11111A 100%)`,
+              border: '1px solid rgba(180,200,255,0.18)',
+              borderRadius: 24, padding: 18, position: 'relative', overflow: 'hidden',
+              marginBottom: 14,
+            }}>
+              {/* orbit decoration */}
+              <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.06, pointerEvents: 'none' }} viewBox="0 0 400 200">
+                <circle cx="360" cy="100" r="150" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+                <circle cx="360" cy="100" r="110" fill="none" stroke="currentColor" strokeWidth="0.5"/>
+                <circle cx="360" cy="100" r="70"  fill="none" stroke="currentColor" strokeWidth="0.5"/>
+              </svg>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, position: 'relative' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: BRAND.purple, marginBottom: 5, fontFamily: 'JetBrains Mono, monospace' }}>
+                    ● DNES · {training.label.toUpperCase()}
+                  </div>
+                  <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 20, fontWeight: 700, lineHeight: 1.15, marginBottom: training.id !== 'rest' ? 4 : 0 }}>
+                    {todayWorkout?.title ?? training.label}
+                  </div>
+                  {(trainingDay?.ride_hours ?? 0) > 0 && (
+                    <div style={{ fontSize: 11, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
+                      {(trainingDay!.ride_hours!).toFixed(1)} h · {Math.round(goals.carbs)} g sach.
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => navigate('/plan')}
+                  style={{
+                    border: 'none', borderRadius: 999, padding: '9px 14px',
+                    background: BRAND.purple, color: '#fff', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer',
+                    fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, fontSize: 10,
+                    textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginLeft: 12,
+                  }}
+                >
+                  ▶ PLÁN
+                </button>
+              </div>
+              {training.id !== 'rest' && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, paddingTop: 12, borderTop: '1px solid rgba(180,200,255,0.08)', position: 'relative' }}>
+                  {[
+                    { label: 'CÍL KCAL', val: Math.round(goals.kcal).toString() },
+                    { label: 'SACH',     val: `${Math.round(goals.carbs)}g` },
+                    { label: 'VODA',     val: `${goals.water.toFixed(1)}L` },
+                    { label: 'HODINY',   val: (trainingDay?.ride_hours ?? 0) > 0 ? `${(trainingDay!.ride_hours!).toFixed(1)}h` : '—' },
+                  ].map(s => (
+                    <div key={s.label}>
+                      <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 15, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{s.val}</div>
+                      <div style={{ fontSize: 8, color: T.muted, letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginTop: 2 }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── FUELING RINGS 3×2 ─────────────────────────── */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 10 }}>NUTRIČNÍ STAV</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                {[
+                  { label: 'KCAL', val: totals.kcal,   max: goals.kcal,   color: BRAND.purple, disp: `${Math.round(totals.kcal)}`, maxDisp: `${Math.round(goals.kcal)}` },
+                  { label: 'SACH', val: totals.carbs,  max: goals.carbs,  color: BRAND.blue,   disp: `${Math.round(totals.carbs)}`, maxDisp: `${Math.round(goals.carbs)}g` },
+                  { label: 'BÍLK', val: totals.protein,max: goals.protein,color: BRAND.green,  disp: `${Math.round(totals.protein)}`, maxDisp: `${Math.round(goals.protein)}g` },
+                  { label: 'TUKY', val: totals.fat,    max: goals.fat,    color: BRAND.gold,   disp: `${Math.round(totals.fat)}`, maxDisp: `${Math.round(goals.fat)}g` },
+                  { label: 'VODA', val: (trainingDay?.water_glasses ?? 0) * 0.25, max: goals.water, color: BRAND.blue, disp: `${((trainingDay?.water_glasses ?? 0) * 0.25).toFixed(1)}`, maxDisp: `${goals.water.toFixed(1)}L` },
+                  { label: 'VLÁK', val: totals.fiber,  max: goals.fiber,  color: BRAND.green,  disp: `${Math.round(totals.fiber)}`, maxDisp: `${goals.fiber}g` },
+                ].map(r => (
+                  <div key={r.label} style={{
+                    background: T.card, border: `1px solid ${T.border}`,
+                    borderRadius: 14, padding: '10px 10px 8px',
+                    display: 'flex', flexDirection: 'column' as const, gap: 5,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{r.label}</span>
+                      <Ring size={28} stroke={3} value={r.val} max={r.max} color={r.color} />
+                    </div>
+                    <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 16, fontWeight: 700, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+                      {r.disp}
+                      <span style={{ fontSize: 9, color: T.muted, marginLeft: 2 }}>/{r.maxDisp}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── AI NUDGE ──────────────────────────────────── */}
+            <div
+              onClick={() => navigate('/chat')}
+              style={{
+                background: T.card, border: `1px solid ${T.border}`,
+                borderRadius: 20, padding: 14, cursor: 'pointer',
+                display: 'flex', gap: 12, alignItems: 'flex-start',
+                marginBottom: 14,
+              }}
+            >
+              <div style={{
+                width: 36, height: 36, borderRadius: 11, flexShrink: 0,
+                background: BRAND.purple, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+              }}>⚡</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 3 }}>
+                  AI COACH · TIP
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 2, lineHeight: 1.35 }}>
+                  {pctGoal >= 85
+                    ? 'Výborný den! Splňuješ cíle výživy.'
+                    : totals.kcal < goals.kcal * 0.4
+                      ? 'Energetická rezerva stále otevřená — doplň ji.'
+                      : `Zbývá ${Math.max(0, Math.round(goals.kcal - totals.kcal))} kcal a ${Math.max(0, Math.round(goals.protein - totals.protein))} g proteinu.`
+                  }
+                </div>
+                <div style={{ fontSize: 11, color: T.muted }}>Tap pro personalizovaný plán →</div>
+              </div>
+              <span style={{ color: T.muted, fontSize: 18, flexShrink: 0, lineHeight: 1 }}>›</span>
+            </div>
+
+            {/* ── FUELING SCORE + BALANCE ────────────────────── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
+                <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>FUELING SCORE</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div>
+                    <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 34, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{fuelingScore}</div>
+                    <div style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>/100</div>
+                  </div>
+                  <Ring size={46} stroke={5} value={fuelingScore} max={100} color={fuelingScore >= 80 ? BRAND.green : fuelingScore >= 50 ? BRAND.gold : BRAND.red} />
+                </div>
+                <div style={{ color: fuelingScore >= 80 ? BRAND.green : fuelingScore >= 50 ? BRAND.gold : BRAND.red, fontSize: 10, fontWeight: 600 }}>
+                  {fuelingScore >= 80 ? 'Výborně!' : fuelingScore >= 50 ? 'Pokračuj' : 'Zlepši příjem'}
+                </div>
+              </div>
+              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
+                <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>BILANCE</div>
+                {(() => {
+                  const balance = burnedToday > 0 ? burnedToday - Math.round(totals.kcal) : Math.round(goals.kcal + deficitKcal - totals.kcal);
+                  const bc = balance > 200 ? BRAND.green : balance < -200 ? BRAND.red : BRAND.gold;
+                  return (
+                    <>
+                      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 34, lineHeight: 1, fontVariantNumeric: 'tabular-nums', color: bc, marginBottom: 4 }}>
+                        {balance > 0 ? '+' : ''}{Math.abs(balance) > 9999 ? `${Math.round(balance/1000)}k` : balance}
+                      </div>
+                      <div style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 6 }}>kcal bilance</div>
+                      <div style={{ color: bc, fontSize: 10, fontWeight: 600 }}>
+                        {balance > 200 ? 'Deficit dosažen' : balance < -200 ? 'Přebytek energie' : 'V rovnováze'}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* ── MEAL TIMELINE ─────────────────────────────── */}
+            {entries.length > 0 ? (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                  <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>DNEŠNÍ JÍDLA</div>
+                  <button onClick={() => navigate('/foods')} style={{ background: 'transparent', border: 'none', color: BRAND.purple, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>VŠE →</button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+                  {(() => {
+                    const SLOT_ORDER = ['snidane','svacina_1','obed','pred_tren','behem_tren','po_tren','vecere'];
+                    const SLOT_LABELS: Record<string, string> = {
+                      snidane:'Snídaně', svacina_1:'Svačina', obed:'Oběd',
+                      pred_tren:'Před tréninkem', behem_tren:'Během tréninku',
+                      po_tren:'Po tréninku', vecere:'Večeře',
+                    };
+                    const grouped = entries.reduce((acc, e) => {
+                      if (!acc[e.meal_slot]) acc[e.meal_slot] = 0;
+                      acc[e.meal_slot] += e.kcal;
+                      return acc;
+                    }, {} as Record<string, number>);
+                    return SLOT_ORDER
+                      .filter(s => grouped[s] != null)
+                      .map(slot => (
+                        <div key={slot} onClick={() => navigate('/foods')} style={{
+                          display: 'flex', gap: 12, alignItems: 'center',
+                          padding: '10px 14px', cursor: 'pointer',
+                          background: 'transparent', border: `1px solid ${T.border}`,
+                          borderRadius: 12,
+                        }}>
+                          <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{SLOT_LABELS[slot] ?? slot}</span>
+                          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: T.muted, fontVariantNumeric: 'tabular-nums' }}>{Math.round(grouped[slot])} kcal</span>
+                        </div>
+                      ));
+                  })()}
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginBottom: 14 }}>
+                {emptyStateSection}
+              </div>
+            )}
+
+            {/* ── BELOW FOLD: detailed cards ─────────────────── */}
+            {/* ── Energy Balance hero card (below fold) ─── */}
             <div className="stagger-2" style={{
               background: T.card, border: `1px solid ${T.border}`,
               borderRadius: 16, padding: '20px 20px 18px',
@@ -1171,7 +1369,7 @@ export default function Dashboard() {
                   {pctGoal >= 80 ? (
                     <span style={{ fontSize: 10, padding: '2px 7px', background: 'rgba(125,216,122,0.12)', color: BRAND.green, borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.1em' }}>NA CESTĚ</span>
                   ) : (
-                    <span style={{ fontSize: 10, padding: '2px 7px', background: 'rgba(255,91,31,0.12)', color: BRAND.orange, borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.1em' }}>PLNÍ SE</span>
+                    <span style={{ fontSize: 10, padding: '2px 7px', background: 'rgba(124,92,255,0.12)', color: BRAND.purple, borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.1em' }}>PLNÍ SE</span>
                   )}
                 </div>
               </div>
@@ -1314,7 +1512,7 @@ export default function Dashboard() {
                 <div style={{ fontSize: 11, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 14 }}>
                   {Math.round(goals.kcal - 1800)} kJ · {Math.round(goals.carbs)} g sach. · {goals.water.toFixed(1)} L
                 </div>
-                <Elevation height={56} color={BRAND.orange} fill="rgba(255,91,31,0.18)" />
+                <Elevation height={56} color={BRAND.purple} fill="rgba(124,92,255,0.18)" />
               </div>
             )}
 

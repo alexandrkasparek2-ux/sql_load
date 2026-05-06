@@ -1,18 +1,19 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import {
-  calcBMR, calcCalories, calcMacros, calcWater,
+  calcCalories, calcMacros, calcWater,
   type CalcProfile, type TrainingType,
 } from '../constants/training';
 import { loadBurnLog } from '../services/intervalsService';
 import { saveSnapshot, loadSnapshotBatch } from '../services/dailySnapshotService';
+import { formatLocalISODate, todayLocalISO } from '../utils/date';
 
 function getHistoricalDates(n: number): string[] {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayLocalISO();
   return Array.from({ length: n }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (n - i));
-    return d.toISOString().split('T')[0];
+    return formatLocalISODate(d);
   }).filter(d => d < today);
 }
 
@@ -70,7 +71,7 @@ export function useBackfillSnapshots(
         // ── goal_kcal ──────────────────────────────────────────────────────
         let rawKcal: number;
         if (actKcal > 0) {
-          rawKcal = Math.round(calcBMR(profile) * 1.15 + actKcal);
+          rawKcal = Math.round(calcCalories(profile, 'rest', 0) + actKcal);
         } else if (trainRow) {
           rawKcal = Math.round(
             calcCalories(profile, trainRow.training_type as TrainingType, trainRow.ride_hours ?? 0),

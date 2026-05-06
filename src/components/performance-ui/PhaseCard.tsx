@@ -17,8 +17,8 @@ export function PhaseCard({ phase, title, subtitle, active, locked, onClick }: P
       style={{
         width: '100%',
         textAlign: 'left',
-        background: active ? 'linear-gradient(135deg, rgba(255,214,0,0.08), rgba(255,168,0,0.02))' : 'var(--bg-card)',
-        border: `1px solid ${active ? 'rgba(255,214,0,0.4)' : 'var(--border-subtle)'}`,
+        background: active ? 'linear-gradient(135deg, rgba(124,92,255,0.08), rgba(79,227,255,0.02))' : 'var(--bg-card)',
+        border: `1px solid ${active ? 'rgba(124,92,255,0.4)' : 'var(--border-subtle)'}`,
         borderRadius: 14,
         padding: '14px 16px',
         cursor: locked ? 'not-allowed' : 'pointer',

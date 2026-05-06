@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { todayLocalISO } from '../utils/date';
 
 interface NotifContext {
   totals:      { kcal: number; protein: number };
@@ -28,7 +29,7 @@ function notify(title: string, body: string) {
 
 function runChecks(ctx: NotifContext) {
   const now   = new Date();
-  const today = now.toISOString().split('T')[0];
+  const today = todayLocalISO();
   const hour  = now.getHours();
   const min   = now.getMinutes();
   const sent  = getSent(today);

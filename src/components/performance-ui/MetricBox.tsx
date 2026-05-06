@@ -14,7 +14,7 @@ const variantStyles = {
   default: { color: 'var(--text-primary)', border: 'var(--border-default)', bg: 'var(--bg-card)' },
   analytics: { color: 'var(--analytics-blue)', border: 'var(--border-analytics)', bg: 'linear-gradient(135deg, rgba(79,195,247,0.06), var(--bg-card))' },
   success: { color: 'var(--status-success)', border: 'var(--border-success)', bg: 'linear-gradient(135deg, rgba(0,229,176,0.06), var(--bg-card))' },
-  warning: { color: 'var(--brand-primary)', border: 'var(--border-accent)', bg: 'linear-gradient(135deg, rgba(255,214,0,0.07), var(--bg-card))' },
+  warning: { color: 'var(--brand-primary)', border: 'var(--border-accent)', bg: 'linear-gradient(135deg, rgba(124,92,255,0.07), var(--bg-card))' },
 };
 
 export function MetricBox({ label, value, unit, variant, icon, trend, trendValue }: Props) {

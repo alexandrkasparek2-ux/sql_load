@@ -5,6 +5,7 @@ import {
   loadSnapshot,
   deleteSnapshot,
 } from '../services/dailySnapshotService';
+import { todayLocalISO } from '../utils/date';
 
 export type { DailySnapshot };
 
@@ -34,7 +35,7 @@ export function useDailyNutritionSnapshot(
   const [snapshot, setSnapshot] = useState<DailySnapshot | null>(null);
   const [loading,  setLoading]  = useState(false);
 
-  const realToday = useRef(new Date().toISOString().split('T')[0]).current;
+  const realToday = useRef(todayLocalISO()).current;
   const isHistoricalSnapshot = date < realToday && snapshot !== null;
 
   // ── Load on mount and when date/userId change ──────────────────────────────

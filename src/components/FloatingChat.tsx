@@ -7,6 +7,7 @@ import { useTrainingPlan } from '../hooks/useTrainingPlan';
 import { showToast } from './Toast';
 import { FOODS, type Food } from '../constants/foods';
 import type { FoodEntry } from '../hooks/useFoodEntries';
+import { formatLocalISODate } from '../utils/date';
 
 const SUGGESTIONS = [
   'Co mám dát k večeři?',
@@ -77,7 +78,7 @@ export default function FloatingChat() {
   const { accent, addEntry, removeEntry, updateEntry, setGoalOverride, userId, today } = ctx;
   const { todayWorkout, upcoming } = useTrainingPlan();
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const tomorrowStr = formatLocalISODate(tomorrow);
   const tomorrowWorkout = upcoming.find(w => w.date === tomorrowStr) ?? null;
   const { messages, input, setInput, loading, error, send, clearHistory } = useChatSession(ctx, {
     today: todayWorkout,

@@ -7,6 +7,7 @@ import { useUserSetting } from '../hooks/useUserSetting';
 import { getSetting } from '../hooks/useUserSettings';
 import { loadTPUrl, saveTPUrl, clearTPCache, fetchTPPlan } from '../services/trainingPeaksService';
 import { TopBar } from '../components/performance-ui/TopBar';
+import { todayLocalISO } from '../utils/date';
 
 function SliderField({
   label, value, min, max, step, unit, accent, onChange,
@@ -190,7 +191,7 @@ function WeightGoalCard({ userId, currentWeight, accent }: { userId: string; cur
 
 // ─── Weight log button (inline in profile card) ───────────────
 function WeightLogBtn({ userId, currentWeight, accent, onLogged }: { userId: string; currentWeight: number; accent: string; onLogged: () => void }) {
-  const today  = new Date().toISOString().split('T')[0];
+  const today  = todayLocalISO();
   const [logged, setLogged] = useState(false);
   const { value: entries, setValue: setEntries } = useUserSetting<{ date: string; weight: number }[]>(
     userId,
@@ -248,7 +249,7 @@ function WeightTracker({ userId, currentWeight, accent }: { userId: string; curr
     { legacyKey: `cyclofuel_target_weight_${userId}` },
   );
 
-  const today        = new Date().toISOString().split('T')[0];
+  const today        = todayLocalISO();
   const targetWeight = syncedTargetWeight > 0 ? syncedTargetWeight : null;
 
   // Chart
@@ -642,7 +643,7 @@ export default function Profile() {
       {/* Gradient overlay */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 300,
-        background: 'radial-gradient(ellipse at top, rgba(255,214,0,0.06), transparent 70%)',
+        background: 'radial-gradient(ellipse at top, rgba(124,92,255,0.06), transparent 70%)',
         pointerEvents: 'none', zIndex: 0,
       }} />
       <div style={{ position: 'relative', zIndex: 1 }}>

@@ -1,48 +1,48 @@
 import React from 'react';
 
 // ──────────────────────────────────────────────────────────
-// Theme tokens — Variant A "Power" design
+// Theme tokens — "Lab" design variant
 // ──────────────────────────────────────────────────────────
 export const T = {
-  bg:      '#0b0b0c',
-  bg2:     '#131315',
-  card:    '#18181b',
-  card2:   '#1f1f23',
-  border:  '#26262b',
-  border2: '#34343a',
-  text:    '#f5f5f4',
-  text2:   '#a8a8a3',
-  muted:   '#6b6b67',
+  bg:      '#07070A',
+  bg2:     '#0E0E14',
+  card:    '#11111A',
+  card2:   '#161622',
+  border:  'rgba(180,200,255,0.08)',
+  border2: 'rgba(180,200,255,0.18)',
+  text:    '#EDEDF5',
+  text2:   '#9CA3B5',
+  muted:   '#5B6178',
   radius:  14,
 } as const;
 
-// Brand / macro palette — Power orange
+// Brand / macro palette — Lab violet
 export const BRAND = {
-  gold:    '#ffb000',
-  orange:  '#ff5b1f',
-  green:   '#7dd87a',
-  blue:    '#4cc9ff',
-  purple:  '#B388FF',
-  red:     '#ff5566',
-  gradient: 'linear-gradient(135deg, #ffb000, #ff5b1f)',
+  gold:    '#FFC56B',
+  orange:  '#FF6B9C',
+  green:   '#6BFFB4',
+  blue:    '#4FE3FF',
+  purple:  '#7C5CFF',
+  red:     '#FF6B9C',
+  gradient: 'linear-gradient(135deg, #7C5CFF, #4FE3FF)',
 } as const;
 
 // Macro nutrient colors
 export const MACRO = {
-  carb: '#ffb000',
-  fat:  '#ff5b1f',
-  pro:  '#d6f25c',
-  hyd:  '#4cc9ff',
+  carb: '#FFC56B',
+  fat:  '#FF6B9C',
+  pro:  '#6BFFB4',
+  hyd:  '#4FE3FF',
 } as const;
 
 // Legacy Apple palette — kept for backward compat
 export const APPLE = {
-  red:    '#ff5566',
-  green:  '#7dd87a',
-  blue:   '#4cc9ff',
-  orange: '#ff5b1f',
-  cyan:   '#4cc9ff',
-  yellow: '#ffb000',
+  red:    '#FF6B9C',
+  green:  '#6BFFB4',
+  blue:   '#4FE3FF',
+  orange: '#FF6B9C',
+  cyan:   '#4FE3FF',
+  yellow: '#FFC56B',
 } as const;
 
 // ──────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ export function ProgressRing({
   value, max,
   size        = 210,
   strokeWidth = 10,
-  gradient    = ['#FFD600', '#FF6B35'],
+  gradient    = ['#7C5CFF', '#4FE3FF'],
   children,
 }: ProgressRingProps) {
   const r     = (size - strokeWidth * 2) / 2;
@@ -588,7 +588,7 @@ export function SegmentedTabs({ tabs, active, onChange, accent = BRAND.gold }: S
     <div style={{
       display:        'flex',
       gap:            2,
-      background:     '#0a0a0a',
+      background:     '#0E0E14',
       border:         `1px solid ${T.border}`,
       borderRadius:   12,
       padding:        3,
