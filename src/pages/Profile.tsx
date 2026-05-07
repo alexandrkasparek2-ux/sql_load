@@ -7,6 +7,7 @@ import { useUserSetting } from '../hooks/useUserSetting';
 import { getSetting } from '../hooks/useUserSettings';
 import { loadTPUrl, saveTPUrl, clearTPCache, fetchTPPlan } from '../services/trainingPeaksService';
 import { TopBar } from '../components/performance-ui/TopBar';
+import { WhoopCard } from '../components/WhoopCard';
 import { todayLocalISO } from '../utils/date';
 
 function SliderField({
@@ -714,6 +715,9 @@ export default function Profile() {
 
               <SectionTitle accent={accent}>Dnešní cíle</SectionTitle>
               {dailyGoalsSummary}
+
+              <SectionTitle accent={BRAND.green}>Integrace</SectionTitle>
+              <WhoopCard />
             </div>
           </div>
 
@@ -763,6 +767,9 @@ export default function Profile() {
 
           <SectionTitle accent={BRAND.blue}>Tréninkový plán</SectionTitle>
           {trainingPlanSection}
+
+          <SectionTitle accent={BRAND.green}>Integrace</SectionTitle>
+          <WhoopCard />
 
           {aboutSection}
         </>
