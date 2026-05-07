@@ -636,6 +636,157 @@ export default function Plan() {
   };
 
 
+  // ── Mobile LAB view ─────────────────────────────────────────
+  const weekStart = (() => {
+    const d = new Date(today + 'T00:00:00');
+    const dow = d.getDay();
+    d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
+    return d;
+  })();
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return formatLocalISO(d);
+  });
+  const weekNum = (() => {
+    const d = new Date(today + 'T00:00:00');
+    const jan1 = new Date(d.getFullYear(), 0, 1);
+    return Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7);
+  })();
+  const weekWorkouts = tp.workouts.filter(w => weekDays.includes(w.date));
+  const weekTSS = Math.round(weekWorkouts.reduce((s, w) => s + (w.tss ?? 0), 0));
+  const weekHours = parseFloat((weekWorkouts.reduce((s, w) => s + (w.durationMin ?? 0), 0) / 60).toFixed(1));
+  const lastWeekStart = new Date(weekStart);
+  lastWeekStart.setDate(weekStart.getDate() - 7);
+  const lastWeekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(lastWeekStart);
+    d.setDate(lastWeekStart.getDate() + i);
+    return formatLocalISO(d);
+  });
+  const lastWeekTSS = tp.workouts.filter(w => lastWeekDays.includes(w.date)).reduce((s, w) => s + (w.tss ?? 0), 0);
+  const ramp = lastWeekTSS > 0 ? Math.round((weekTSS - lastWeekTSS) / lastWeekTSS * 100) : null;
+  const maxDayTSS = Math.max(1, ...weekDays.map(d => tp.workouts.filter(w => w.date === d).reduce((s, w) => s + (w.tss ?? 0), 0)));
+  const planSportColor = (type: string) => {
+    if (!type || type === 'rest') return T.border;
+    if (type === 'hard' || type === 'race') return BRAND.orange;
+    if (type === 'medium') return BRAND.gold;
+    if (type === 'strength') return BRAND.purple;
+    return BRAND.green;
+  };
+
+  if (!isDesktop) {
+    return (
+      <div style={{ padding: '16px 16px 24px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 18 }}>
+          <div>
+            <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 3 }}>
+              TÝDEN {weekNum}
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: '-0.02em' }}>
+              Plán
+            </div>
+          </div>
+          <button onClick={() => navigate('/profile')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.muted, fontSize: 22, padding: 4 }}>
+            ⚙️
+          </button>
+        </div>
+
+        {/* Stats + bar chart card */}
+        <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 20, padding: '16px 18px', marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, marginBottom: 22 }}>
+            <div>
+              <div style={{ fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 4 }}>TSS TÝDEN</div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{weekTSS || '—'}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 4 }}>HODINY</div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 30, fontWeight: 800, lineHeight: 1 }}>{weekHours || '—'}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 4 }}>RAMP</div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 30, fontWeight: 800, lineHeight: 1, color: ramp !== null && ramp > 0 ? BRAND.green : ramp !== null && ramp < 0 ? BRAND.orange : T.text }}>
+                {ramp !== null ? `${ramp > 0 ? '+' : ''}${ramp}%` : '—'}
+              </div>
+            </div>
+          </div>
+          {/* Bar chart */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, height: 84, alignItems: 'flex-end' }}>
+            {weekDays.map(date => {
+              const dayTSS = tp.workouts.filter(w => w.date === date).reduce((s, w) => s + (w.tss ?? 0), 0);
+              const primary = tp.workouts.find(w => w.date === date);
+              const color = primary ? planSportColor(primary.sportType) : T.border;
+              const isToday = date === today;
+              const isFuture = date > today;
+              const barH = dayTSS > 0 ? Math.max(8, Math.round((dayTSS / maxDayTSS) * 64)) : 4;
+              const dow = new Date(date + 'T00:00:00').getDay();
+              return (
+                <div key={date} style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', justifyContent: 'flex-end', height: '100%', gap: 5 }}>
+                  <div style={{ width: '100%', height: barH, background: isToday ? BRAND.purple : color, borderRadius: '3px 3px 0 0', opacity: isFuture && !isToday ? 0.45 : 1, transition: 'height 0.5s ease' }} />
+                  <div style={{ fontSize: 9, color: isToday ? BRAND.purple : T.muted, fontFamily: 'JetBrains Mono, monospace', fontWeight: isToday ? 700 : 400 }}>
+                    {CS_DAYS[dow]}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Workout list */}
+        {!tp.isConnected ? (
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: '20px 18px', textAlign: 'center' as const }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: T.text, marginBottom: 6 }}>Připoj TrainingPeaks</div>
+            <div style={{ fontSize: 12, color: T.muted, marginBottom: 16, lineHeight: 1.5 }}>Pro zobrazení týdenního plánu tréninků</div>
+            <button onClick={() => navigate('/profile')} style={{ padding: '8px 20px', background: BRAND.purple, border: 'none', borderRadius: 20, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              Připojit v nastavení
+            </button>
+          </div>
+        ) : tp.loading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 20 }}><Spinner /></div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+            {weekDays.map(date => {
+              const SPORT_ORDER: Record<string, number> = { hard: 0, race: 1, medium: 2, light: 3, cycling_indoor: 4, running: 5, swimming: 6, strength: 7 };
+              const dayWorkouts = tp.workouts
+                .filter(w => w.date === date)
+                .sort((a, b) => (SPORT_ORDER[a.sportType] ?? 99) - (SPORT_ORDER[b.sportType] ?? 99));
+              const primary = dayWorkouts[0];
+              const isToday = date === today;
+              const d = new Date(date + 'T00:00:00');
+              const abr = CS_DAYS[d.getDay()].toUpperCase();
+              const dateNum = d.getDate();
+              const color = primary ? planSportColor(primary.sportType) : T.border;
+              const isRest = !primary;
+              const hrs = primary ? primary.durationMin / 60 : 0;
+              const hrsStr = hrs === 0 ? null : Number.isInteger(hrs * 4) ? `${Math.round(hrs * 4) / 4}h` : `${hrs.toFixed(1)}h`;
+
+              return (
+                <div key={date} style={{ background: T.card, border: `1px solid ${isToday ? BRAND.purple : T.border}`, borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 38, flexShrink: 0, textAlign: 'center' as const }}>
+                    <div style={{ fontSize: 9, letterSpacing: '0.1em', color: T.muted, fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.3 }}>{abr}</div>
+                    <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1.1, color: T.text }}>{dateNum}</div>
+                  </div>
+                  <div style={{ width: 3, height: 36, borderRadius: 2, background: color, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: isRest ? T.muted : T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                      {primary?.title ?? 'Rest'}
+                    </div>
+                    <div style={{ fontSize: 11, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginTop: 1 }}>
+                      {isRest ? 'Volný den' : [hrsStr, primary!.tss > 0 ? `${Math.round(primary!.tss)} TSS` : null].filter(Boolean).join(' · ')}
+                    </div>
+                  </div>
+                  {isToday && (
+                    <div style={{ fontSize: 10, fontWeight: 700, color: BRAND.purple, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em', flexShrink: 0 }}>DNES</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (!isConnected) {
     return (
       <div style={{ padding: '16px 16px 0', position: 'relative' }}>
