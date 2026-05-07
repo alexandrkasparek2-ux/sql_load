@@ -713,10 +713,7 @@ export default function Plan() {
 
         {/* Stats + bar chart card */}
         <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 20, padding: '16px 18px', marginBottom: 16 }}>
-          {/* DEBUG — smaž po zjištění */ }
-          <div style={{ fontSize: 9, color: BRAND.orange, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8, wordBreak: 'break-all' as const }}>
-            acts:{activities.length} | tss:{weekTSS} | h:{weekHours} | days:{weekDays[0]}…{weekDays[6]} | keys:{Object.keys(groupedActivities).filter(k => weekDays.includes(k)).join(',')}
-          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, marginBottom: 22 }}>
             <div>
               <div style={{ fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 4 }}>TSS TÝDEN</div>
