@@ -986,7 +986,25 @@ function MacroLine({ label, value, color, unit }: { label: string; value: number
 // ─── Main Foods page ─────────────────────────────────────────
 export default function Foods() {
   const ctx = useContext(AppContext);
-  const { accent, entries, addEntry, removeEntry, updateEntry, updateEntryMacros, userId, today, goals } = ctx;
+  const { accent, entries, addEntry, removeEntry, updateEntry, updateEntryMacros, userId, today, goals, setToday } = ctx;
+
+  const realToday = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+  const isViewingToday = today === realToday;
+
+  const shiftDay = (delta: number) => {
+    const d = new Date(today + 'T00:00:00');
+    d.setDate(d.getDate() + delta);
+    const next = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (next <= realToday) setToday(next);
+  };
+
+  const CS_DAYS  = ['Ne','Po','Út','St','Čt','Pá','So'];
+  const CS_MONTHS = ['led','úno','bře','dub','kvě','čvn','čvc','srp','zář','říj','lis','pro'];
+  const viewedDate = new Date(today + 'T00:00:00');
+  const dayLabel = `${CS_DAYS[viewedDate.getDay()]} ${viewedDate.getDate()}. ${CS_MONTHS[viewedDate.getMonth()]}.`;
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === 'undefined') return false;
     return window.innerWidth >= 1280;
@@ -1230,21 +1248,45 @@ export default function Foods() {
       ) : (
         <>
           {/* LAB Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 18 }}>
-            <div>
-              <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 3 }}>
-                DENNÍ NUTRIČNÍ PLÁN
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 3 }}>
+                  DENNÍ NUTRIČNÍ PLÁN
+                </div>
+                <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: '-0.02em' }}>
+                  Jídla
+                </div>
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: '-0.02em' }}>
-                Jídla
-              </div>
+              <button
+                onClick={() => setShowSlotPicker(true)}
+                style={{ padding: '8px 16px', background: BRAND.purple, border: 'none', borderRadius: 20, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              >
+                + PŘIDAT
+              </button>
             </div>
-            <button
-              onClick={() => setShowSlotPicker(true)}
-              style={{ padding: '8px 16px', background: BRAND.purple, border: 'none', borderRadius: 20, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-            >
-              + PŘIDAT
-            </button>
+            {/* Date navigation */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: '6px 8px' }}>
+              <button
+                onClick={() => shiftDay(-1)}
+                style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none', color: T.muted, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >‹</button>
+              <div style={{ flex: 1, textAlign: 'center' }}>
+                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, fontWeight: 600, color: T.text }}>
+                  {dayLabel}
+                </span>
+                {isViewingToday && (
+                  <span style={{ marginLeft: 8, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', background: BRAND.purple + '22', color: BRAND.purple, padding: '2px 6px', borderRadius: 10, fontWeight: 700, letterSpacing: '0.08em' }}>
+                    DNES
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => shiftDay(1)}
+                disabled={isViewingToday}
+                style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none', color: isViewingToday ? T.border : T.muted, fontSize: 18, cursor: isViewingToday ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >›</button>
+            </div>
           </div>
 
           {/* Calorie summary card */}
