@@ -653,11 +653,6 @@ export default function Plan() {
     const jan1 = new Date(weekStart.getFullYear(), 0, 1);
     return Math.ceil(((weekStart.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7);
   })();
-  const lastWeekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() - 7 + i);
-    return formatLocalISO(d);
-  });
 
   // For each day: prefer actual Intervals.icu data, fall back to TP plan
   const dayTSSMerged = (days: string[]) => days.reduce((total, d) => {
@@ -673,8 +668,48 @@ export default function Plan() {
 
   const weekTSS   = Math.round(dayTSSMerged(weekDays));
   const weekHours = parseFloat(dayHoursMerged(weekDays).toFixed(1));
-  const lastWeekTSS = dayTSSMerged(lastWeekDays);
-  const ramp = lastWeekTSS > 0 ? Math.round((weekTSS - lastWeekTSS) / lastWeekTSS * 100) : null;
+
+  // ── CTL-based Ramp Rate ────────────────────────────────────
+  // CTL (Chronic Training Load) = EMA of daily TSS with 42-day time constant
+  // Ramp = CTL at end of selected week − CTL at start of selected week
+  // Safe range: +3 to +8 CTL pts/week. >+10 = overreach risk.
+  const allDailyTSS: Record<string, number> = {};
+  // 1. Actual activities (priority)
+  for (const [date, acts] of Object.entries(groupedActivities)) {
+    const tss = acts.reduce((s, a) => s + (a.icu_training_load ?? 0), 0);
+    if (tss > 0) allDailyTSS[date] = tss;
+  }
+  // 2. TP plan for days without actual data (fills future / missing days)
+  for (const w of tp.workouts) {
+    if (!allDailyTSS[w.date] && (w.tss ?? 0) > 0) {
+      allDailyTSS[w.date] = w.tss;
+    }
+  }
+
+  const computeCTL = (upToDate: string): number => {
+    const allDates = Object.keys(allDailyTSS).sort();
+    if (allDates.length === 0) return 0;
+    let current = new Date(allDates[0] + 'T00:00:00');
+    const end    = new Date(upToDate   + 'T00:00:00');
+    let ctl = 0;
+    while (current <= end) {
+      const d = formatLocalISO(current);
+      ctl = ctl + ((allDailyTSS[d] ?? 0) - ctl) / 42;
+      current.setDate(current.getDate() + 1);
+    }
+    return ctl;
+  };
+
+  const prevSunday = (() => {
+    const d = new Date(weekDays[0] + 'T00:00:00');
+    d.setDate(d.getDate() - 1);
+    return formatLocalISO(d);
+  })();
+  const ctlEnd   = computeCTL(weekDays[6]);
+  const ctlStart = computeCTL(prevSunday);
+  const ramp     = Object.keys(allDailyTSS).length > 0
+    ? Math.round((ctlEnd - ctlStart) * 10) / 10
+    : null;
   const maxDayTSS = Math.max(1, ...weekDays.map(d => {
     const actTSS = (groupedActivities[d] ?? []).reduce((s, a) => s + (a.icu_training_load ?? 0), 0);
     const planTSS = tp.workouts.filter(w => w.date === d).reduce((s, w) => s + (w.tss ?? 0), 0);
@@ -725,8 +760,13 @@ export default function Plan() {
             </div>
             <div>
               <div style={{ fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 4 }}>RAMP</div>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 30, fontWeight: 800, lineHeight: 1, color: ramp !== null && ramp > 0 ? BRAND.green : ramp !== null && ramp < 0 ? BRAND.orange : T.text }}>
-                {ramp !== null ? `${ramp > 0 ? '+' : ''}${ramp}%` : '—'}
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 30, fontWeight: 800, lineHeight: 1,
+                color: ramp === null ? T.text
+                  : ramp > 10 ? BRAND.orange
+                  : ramp >= 3 ? BRAND.green
+                  : ramp < 0  ? BRAND.blue ?? '#4FE3FF'
+                  : T.muted }}>
+                {ramp !== null ? `${ramp > 0 ? '+' : ''}${ramp}` : '—'}
               </div>
             </div>
           </div>
