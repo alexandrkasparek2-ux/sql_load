@@ -418,7 +418,7 @@ export default function Plan() {
   const [savingExperiment, setSavingExperiment] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
 
-  const { activities, loading, error, stale, isConnected, cacheAge, sync } = useIntervalsData(3);
+  const { activities, loading, error, stale, isConnected, cacheAge, sync } = useIntervalsData(90);
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
   const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
   const { data: whoopData } = useWhoopData();
@@ -663,7 +663,11 @@ export default function Plan() {
   });
   const lastWeekTSS = tp.workouts.filter(w => lastWeekDays.includes(w.date)).reduce((s, w) => s + (w.tss ?? 0), 0);
   const ramp = lastWeekTSS > 0 ? Math.round((weekTSS - lastWeekTSS) / lastWeekTSS * 100) : null;
-  const maxDayTSS = Math.max(1, ...weekDays.map(d => tp.workouts.filter(w => w.date === d).reduce((s, w) => s + (w.tss ?? 0), 0)));
+  const maxDayTSS = Math.max(1, ...weekDays.map(d => {
+    const actTSS = (groupedActivities[d] ?? []).reduce((s, a) => s + (a.icu_training_load ?? 0), 0);
+    const planTSS = tp.workouts.filter(w => w.date === d).reduce((s, w) => s + (w.tss ?? 0), 0);
+    return actTSS > 0 ? actTSS : planTSS;
+  }));
   const planSportColor = (type: string) => {
     if (!type || type === 'rest') return T.border;
     if (type === 'hard' || type === 'race') return BRAND.orange;
@@ -716,9 +720,15 @@ export default function Plan() {
           {/* Bar chart */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, height: 84, alignItems: 'flex-end' }}>
             {weekDays.map(date => {
-              const dayTSS = tp.workouts.filter(w => w.date === date).reduce((s, w) => s + (w.tss ?? 0), 0);
+              const dayActs = groupedActivities[date] ?? [];
+              const actTSS  = dayActs.reduce((s, a) => s + (a.icu_training_load ?? 0), 0);
+              const planTSS = tp.workouts.filter(w => w.date === date).reduce((s, w) => s + (w.tss ?? 0), 0);
+              const hasActual = actTSS > 0;
+              const dayTSS = hasActual ? actTSS : planTSS;
               const primary = tp.workouts.find(w => w.date === date);
-              const color = primary ? planSportColor(primary.sportType) : T.border;
+              const color = hasActual
+                ? (dayActs[0]?.type ? planSportColor(dayActs[0].type) : BRAND.green)
+                : (primary ? planSportColor(primary.sportType) : T.border);
               const isToday = date === today;
               const isFuture = date > today;
               const barH = dayTSS > 0 ? Math.max(8, Math.round((dayTSS / maxDayTSS) * 64)) : 4;
@@ -750,18 +760,40 @@ export default function Plan() {
           <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
             {weekDays.map(date => {
               const SPORT_ORDER: Record<string, number> = { hard: 0, race: 1, medium: 2, light: 3, cycling_indoor: 4, running: 5, swimming: 6, strength: 7 };
-              const dayWorkouts = tp.workouts
+              const dayActs = groupedActivities[date] ?? [];
+              const hasActual = dayActs.length > 0;
+              const bestAct = [...dayActs].sort((a, b) => (b.icu_training_load ?? 0) - (a.icu_training_load ?? 0))[0];
+              const dayPlan = tp.workouts
                 .filter(w => w.date === date)
-                .sort((a, b) => (SPORT_ORDER[a.sportType] ?? 99) - (SPORT_ORDER[b.sportType] ?? 99));
-              const primary = dayWorkouts[0];
+                .sort((a, b) => (SPORT_ORDER[a.sportType] ?? 99) - (SPORT_ORDER[b.sportType] ?? 99))[0];
+
               const isToday = date === today;
               const d = new Date(date + 'T00:00:00');
               const abr = CS_DAYS[d.getDay()].toUpperCase();
               const dateNum = d.getDate();
-              const color = primary ? planSportColor(primary.sportType) : T.border;
-              const isRest = !primary;
-              const hrs = primary ? primary.durationMin / 60 : 0;
-              const hrsStr = hrs === 0 ? null : Number.isInteger(hrs * 4) ? `${Math.round(hrs * 4) / 4}h` : `${hrs.toFixed(1)}h`;
+
+              // Color: actual activity takes priority, then plan, then rest
+              const borderColor = hasActual
+                ? planSportColor(bestAct.type ?? 'light')
+                : dayPlan ? planSportColor(dayPlan.sportType) : T.border;
+
+              // Title + subtitle from actual if done, otherwise from plan
+              const title = hasActual ? bestAct.name : (dayPlan?.title ?? 'Rest');
+              const isRest = !hasActual && !dayPlan;
+              const subtitle = (() => {
+                if (hasActual) {
+                  const actHrs = formatDuration(bestAct.moving_time);
+                  const tss = bestAct.icu_training_load;
+                  const parts = [actHrs, tss && tss > 0 ? `${Math.round(tss)} TSS` : null].filter(Boolean);
+                  // If there were multiple activities, add count
+                  if (dayActs.length > 1) parts.push(`+${dayActs.length - 1}`);
+                  return parts.join(' · ');
+                }
+                if (isRest) return 'Volný den';
+                const hrs = dayPlan!.durationMin / 60;
+                const hrsStr = Number.isInteger(hrs * 4) ? `${Math.round(hrs * 4) / 4}h` : `${hrs.toFixed(1)}h`;
+                return [hrsStr, dayPlan!.tss > 0 ? `${Math.round(dayPlan!.tss)} TSS` : null].filter(Boolean).join(' · ');
+              })();
 
               return (
                 <div key={date} style={{ background: T.card, border: `1px solid ${isToday ? BRAND.purple : T.border}`, borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -769,18 +801,23 @@ export default function Plan() {
                     <div style={{ fontSize: 9, letterSpacing: '0.1em', color: T.muted, fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.3 }}>{abr}</div>
                     <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1.1, color: T.text }}>{dateNum}</div>
                   </div>
-                  <div style={{ width: 3, height: 36, borderRadius: 2, background: color, flexShrink: 0 }} />
+                  <div style={{ width: 3, height: 36, borderRadius: 2, background: borderColor, flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: isRest ? T.muted : T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
-                      {primary?.title ?? 'Rest'}
+                      {title}
                     </div>
                     <div style={{ fontSize: 11, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginTop: 1 }}>
-                      {isRest ? 'Volný den' : [hrsStr, primary!.tss > 0 ? `${Math.round(primary!.tss)} TSS` : null].filter(Boolean).join(' · ')}
+                      {subtitle}
                     </div>
                   </div>
-                  {isToday && (
-                    <div style={{ fontSize: 10, fontWeight: 700, color: BRAND.purple, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em', flexShrink: 0 }}>DNES</div>
-                  )}
+                  <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {hasActual && (
+                      <div style={{ fontSize: 12, color: BRAND.green, fontWeight: 700 }}>✓</div>
+                    )}
+                    {isToday && (
+                      <div style={{ fontSize: 10, fontWeight: 700, color: BRAND.purple, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>DNES</div>
+                    )}
+                  </div>
                 </div>
               );
             })}
