@@ -366,10 +366,7 @@ export default function Dashboard() {
   const { todayWorkout } = useTrainingPlan();
   const { takenCount: suppTaken } = useSupplements(userId, today);
   const totalSupplements = SUPPLEMENTS.length;
-  const { data: whoopData, isConnected: whoopConnected, error: whoopError, loading: whoopLoading, sync: whoopSync } = useWhoopData();
-  const whoopRecovery  = whoopData?.recovery?.score?.recovery_score ?? null;
-  const whoopHR        = whoopData?.recovery?.score?.resting_heart_rate ?? null;
-  const whoopHRV       = whoopData?.recovery?.score?.hrv_rmssd_milli ?? null;
+  useWhoopData();
 
   // Czech greeting date
   const DAYS_CZ = ['Neděle', 'Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota'];
@@ -1113,90 +1110,6 @@ export default function Dashboard() {
               <span style={{ color: T.muted, fontSize: 18, flexShrink: 0, lineHeight: 1 }}>›</span>
             </div>
 
-            {/* ── RECOVERY + HRV (Whoop) ────────────────────── */}
-            {(() => {
-              const recovScore = whoopRecovery;
-              const recovColor = recovScore === null ? T.muted
-                : recovScore >= 67 ? BRAND.green
-                : recovScore >= 34 ? BRAND.gold
-                : BRAND.orange;
-              const recovLabel = !whoopConnected
-                ? 'Připoj Whoop v nastavení'
-                : whoopLoading
-                  ? 'Načítám…'
-                  : whoopError
-                    ? 'Chyba syncu'
-                    : recovScore === null
-                      ? 'Whoop nemá dnešní data'
-                      : recovScore >= 67
-                        ? 'Můžeš jet plnou intenzitu'
-                        : recovScore >= 34
-                          ? 'Lehčí trénink, více proteinu'
-                          : 'Nízká regenerace — odpočívej';
-              return (
-                <>
-                  {/* Error / debug strip */}
-                  {whoopConnected && whoopError && (
-                    <div style={{ background: BRAND.orange + '18', border: `1px solid ${BRAND.orange}44`, borderRadius: 10, padding: '8px 12px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, color: BRAND.orange }}>Whoop sync selhal — zkus znovu</span>
-                      <button onClick={() => void whoopSync()} style={{ background: 'none', border: 'none', color: BRAND.orange, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'JetBrains Mono, monospace' }}>↻ SYNC</button>
-                    </div>
-                  )}
-                  {whoopConnected && !whoopError && recovScore === null && !whoopLoading && (
-                    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: '8px 12px', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, color: T.muted }}>Whoop ještě nezpracoval dnešní data</span>
-                      <button onClick={() => void whoopSync()} style={{ background: 'none', border: 'none', color: BRAND.purple, fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'JetBrains Mono, monospace' }}>↻ SYNC</button>
-                    </div>
-                  )}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                    {/* Recovery card */}
-                    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
-                      <div style={{ fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>
-                        Recovery
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <div>
-                          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                            {whoopLoading ? '…' : recovScore !== null ? Math.round(recovScore) : '—'}
-                          </span>
-                          {recovScore !== null && <span style={{ fontSize: 12, color: T.muted, marginLeft: 2 }}>/100</span>}
-                        </div>
-                        <Ring size={44} stroke={4} value={recovScore ?? 0} max={100} color={recovColor} track={T.border} />
-                      </div>
-                      <div style={{ fontSize: 11, color: recovColor, fontWeight: 600, lineHeight: 1.35 }}>
-                        {recovLabel}
-                      </div>
-                    </div>
-
-                    {/* Klidový tep card */}
-                    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
-                      <div style={{ fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>
-                        Klidový tep
-                      </div>
-                      <div style={{ marginBottom: 6 }}>
-                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                          {whoopLoading ? '…' : whoopHR !== null ? Math.round(whoopHR) : '—'}
-                        </span>
-                        {whoopHR !== null && <span style={{ fontSize: 12, color: T.muted, marginLeft: 4 }}>bpm</span>}
-                      </div>
-                      <svg width="100%" height="28" viewBox="0 0 100 28" preserveAspectRatio="none" style={{ display: 'block', marginBottom: 4 }}>
-                        <defs>
-                          <linearGradient id="hrGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={BRAND.orange} stopOpacity="0.25"/>
-                            <stop offset="100%" stopColor={BRAND.orange} stopOpacity="0"/>
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,20 C10,22 20,18 30,16 C40,14 50,19 60,17 C70,15 80,12 90,10 L100,8" fill="none" stroke={BRAND.orange} strokeWidth="1.5"/>
-                        <path d="M0,20 C10,22 20,18 30,16 C40,14 50,19 60,17 C70,15 80,12 90,10 L100,8 L100,28 L0,28 Z" fill="url(#hrGrad)"/>
-                      </svg>
-                      <div style={{ fontSize: 11, color: T.muted }}>
-                        {whoopHRV !== null ? `HRV ${Math.round(whoopHRV)} ms` : !whoopConnected ? 'Whoop není připojen' : '—'}
-                      </div>
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
 
 
             {/* ── MEAL TIMELINE ─────────────────────────────── */}

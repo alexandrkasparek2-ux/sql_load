@@ -39,7 +39,6 @@ import WhoopCallback   from './pages/WhoopCallback';
 import StravaCallback  from './pages/StravaCallback';
 
 import { T, Spinner } from './components/UI';
-import { clearTPCache, TP_FORCE_SYNC_EVENT } from './services/trainingPeaksService';
 import { ToastHost }     from './components/Toast';
 import FloatingChat      from './components/FloatingChat';
 import { formatLocalISODate, todayLocalISO } from './utils/date';
@@ -514,24 +513,26 @@ const NavIcons: Record<string, React.ReactNode> = {
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
     </svg>
   ),
-  '/foods': (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
-    </svg>
-  ),
-  '/chat': (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-    </svg>
-  ),
   '/plan': (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
     </svg>
   ),
+  '/foods': (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="8" y2="21"/><line x1="19" y1="6" x2="19" y2="21"/>
+      <path d="M5 6a3 3 0 0 1 6 0v3H5V6z"/><path d="M16 6a3 3 0 0 1 6 0v7h-6V6z"/>
+    </svg>
+  ),
   '/supplements': (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M10.5 20H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v3"/><circle cx="18" cy="18" r="3"/><path d="m22 22-1.5-1.5"/>
+    </svg>
+  ),
+  '/chat': (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2C6.48 2 2 6.04 2 11c0 2.52 1.09 4.79 2.85 6.41L4 22l4.71-1.57C9.73 20.8 10.83 21 12 21c5.52 0 10-4.04 10-9s-4.48-9-10-9z"/>
+      <path d="M8.5 9.5h.01M12 9.5h.01M15.5 9.5h.01" strokeWidth="2.5" strokeLinecap="round"/>
     </svg>
   ),
   '/profile': (
@@ -596,15 +597,6 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
 
   const isToday = today === realToday;
 
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  const handleSync = useCallback(() => {
-    if (isSyncing) return;
-    clearTPCache();
-    window.dispatchEvent(new CustomEvent(TP_FORCE_SYNC_EVENT));
-    setIsSyncing(true);
-    setTimeout(() => setIsSyncing(false), 2000);
-  }, [isSyncing]);
 
   // Topbar date string: "Neděle · 19. 4."
   const topbarDate = (() => {
@@ -843,126 +835,8 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: T.bg }}>
 
-      {/* Header */}
-      <div style={{ flexShrink: 0, background: T.bg, zIndex: 50 }}>
-
-        {/* Řádek 1: Topbar */}
-        <div style={{
-          padding:        '12px 16px',
-          display:        'flex',
-          alignItems:     'center',
-          justifyContent: 'space-between',
-          borderBottom:   `1px solid ${T.border}`,
-        }}>
-          <div>
-            <div style={{
-              fontSize: 11, color: T.muted, letterSpacing: '1px',
-              textTransform: 'uppercase' as const, marginBottom: 2,
-            }}>
-              {topbarDate}
-            </div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: T.text, letterSpacing: '-0.3px' }}>
-              CycloFuel
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* SYNC button — clears TP cache and forces re-fetch */}
-            <button
-              type="button"
-              onClick={handleSync}
-              disabled={isSyncing}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '5px 10px',
-                background: isSyncing ? 'rgba(0, 229, 176, 0.18)' : 'rgba(0, 229, 176, 0.1)',
-                border: '1px solid rgba(0, 229, 176, 0.3)',
-                borderRadius: 6,
-                fontSize: 9, fontWeight: 700, color: '#00E5B0',
-                letterSpacing: '1px', textTransform: 'uppercase' as const,
-                cursor: isSyncing ? 'default' : 'pointer',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-              aria-label="Synchronizovat TrainingPeaks"
-            >
-              {isSyncing
-                ? <Spinner color="#00E5B0" size={8} />
-                : <div style={{ width: 6, height: 6, background: '#00E5B0', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
-              }
-              Sync
-            </button>
-            {/* Avatar */}
-            <div style={{
-              width: 38, height: 38,
-              background: '#7C5CFF',
-              borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, fontWeight: 800, color: '#fff',
-              flexShrink: 0,
-            }}>
-              🚴
-            </div>
-          </div>
-        </div>
-
-        {/* Řádek 2: Datum navigace */}
-        <div style={{
-          display: 'flex', alignItems: 'stretch',
-          borderBottom: `1px solid ${T.border}`, height: 44,
-        }}>
-          <button
-            type="button" onClick={prevDay}
-            style={{
-              flex: '0 0 56px', background: 'none', border: 'none',
-              borderRight: `1px solid ${T.border}`, color: T.muted,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', userSelect: 'none',
-            }}
-            aria-label="Předchozí den"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-
-          <div style={{
-            flex: 1, position: 'relative',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <span style={{
-              fontSize: 14, fontWeight: isToday ? 700 : 400,
-              color: isToday ? 'var(--accent-2)' : T.muted, transition: 'color 0.2s',
-              pointerEvents: 'none',
-            }}>
-              {dateLabel}
-            </span>
-            <input
-              type="date" value={today}
-              onChange={e => e.target.value && setToday(e.target.value)}
-              style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
-            />
-          </div>
-
-          <button
-            type="button" onClick={nextDay}
-            style={{
-              flex: '0 0 56px', background: 'none', border: 'none',
-              borderLeft: `1px solid ${T.border}`, color: T.muted,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', userSelect: 'none',
-            }}
-            aria-label="Následující den"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Page content */}
-      <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: 96 }}>
+      {/* Page content — no global header on mobile */}
+      <main style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingBottom: 68 }}>
         {routes}
       </main>
 
@@ -972,26 +846,22 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
       {/* Floating AI chat bubble (hidden on /chat page) */}
       <FloatingChat />
 
-      {/* Floating Pill Bottom Nav */}
+      {/* Flat Bottom Nav */}
       <nav style={{
-        position:         'fixed',
-        bottom:           'calc(12px + env(safe-area-inset-bottom, 0px))',
-        left:             '50%',
-        transform:        'translateX(-50%)',
-        width:            'calc(100% - 32px)',
-        maxWidth:         460,
-        background:       'rgba(14, 14, 20, 0.88)',
-        backdropFilter:   'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
-        border:           `1px solid rgba(180,200,255,0.10)`,
-        borderRadius:     999,
-        display:          'flex',
-        justifyContent:   'space-around',
-        zIndex:           100,
-        height:           60,
-        alignItems:       'center',
-        padding:          '0 8px',
-        boxShadow:        '0 8px 32px rgba(0,0,0,0.4)',
+        position:    'fixed',
+        bottom:      0,
+        left:        0,
+        right:       0,
+        background:  'rgba(11, 11, 17, 0.97)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop:   `1px solid ${T.border}`,
+        display:     'flex',
+        justifyContent: 'space-around',
+        zIndex:      100,
+        height:      `calc(56px + env(safe-area-inset-bottom, 0px))`,
+        alignItems:  'flex-start',
+        paddingTop:  4,
       }}>
         {APP_NAV_ITEMS.map(item => (
           <NavLink
@@ -1006,20 +876,17 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
                 flexDirection:  'column',
                 alignItems:     'center',
                 justifyContent: 'center',
-                padding:        '6px 10px',
-                borderRadius:   999,
-                gap:            3,
-                background:     isActive ? 'rgba(124,92,255,0.18)' : 'transparent',
+                padding:        '4px 6px',
+                gap:            2,
                 color:          isActive ? '#7C5CFF' : '#5B6178',
-                transition:     'all 0.2s',
               }}>
                 <span style={{ display: 'flex', color: 'inherit' }}>
                   {NavIcons[item.to]}
                 </span>
                 <span style={{
-                  fontSize:      8,
-                  fontWeight:    isActive ? 700 : 600,
-                  letterSpacing: '0.8px',
+                  fontSize:      9,
+                  fontWeight:    isActive ? 700 : 500,
+                  letterSpacing: '0.06em',
                   textTransform: 'uppercase' as const,
                   color:         'inherit',
                 }}>

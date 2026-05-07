@@ -1011,6 +1011,13 @@ export default function Foods() {
   const [savingEdit,    setSavingEdit]    = useState(false);
   const [editIngredients, setEditIngredients] = useState<{name:string;grams:number;kcalPer100g:number}[]>([]);
   const [ingMode,         setIngMode]         = useState(false);
+  const [showSlotPicker,  setShowSlotPicker]  = useState(false);
+
+  const SLOT_TIMES: Record<string, string> = {
+    snidane: '07:30', dop_svacina: '10:00', obed: '12:30',
+    odp_svacina: '15:00', pred_tren: '16:30', behem_tren: '17:00',
+    po_tren: '19:00', vecere: '20:30',
+  };
   const [ingAddName,      setIngAddName]      = useState('');
   const [ingAddGrams,     setIngAddGrams]     = useState('');
   const [ingAddKcal,      setIngAddKcal]      = useState('');
@@ -1221,60 +1228,219 @@ export default function Foods() {
           </Card>
         </div>
       ) : (
-        <div style={{
-          background: T.card, border: `1px solid ${T.border}`,
-          borderRadius: 22, padding: 18, marginBottom: 16,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+        <>
+          {/* LAB Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 18 }}>
             <div>
-              <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 5 }}>SPOTŘEBOVÁNO</div>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 34, lineHeight: 1, fontVariantNumeric: 'tabular-nums', marginBottom: 2 }}>
-                {Math.round(ctx.totals.kcal)}
+              <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 3 }}>
+                DENNÍ NUTRIČNÍ PLÁN
               </div>
-              <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: T.muted }}>
-                / {Math.round(goals.kcal)} kcal
-              </div>
-            </div>
-            <div style={{ position: 'relative', width: 56, height: 56, flexShrink: 0 }}>
-              {(() => {
-                const pct = goals.kcal > 0 ? Math.min(1, ctx.totals.kcal / goals.kcal) : 0;
-                const r = 24, stroke = 6, c = 2 * Math.PI * r;
-                return (
-                  <svg width="56" height="56" style={{ transform: 'rotate(-90deg)' }}>
-                    <circle cx="28" cy="28" r={r} stroke={T.border} strokeWidth={stroke} fill="none" />
-                    <circle cx="28" cy="28" r={r} stroke={BRAND.purple} strokeWidth={stroke} fill="none"
-                      strokeDasharray={c} strokeDashoffset={c * (1 - pct)} strokeLinecap="round"
-                      style={{ transition: 'stroke-dashoffset 0.6s cubic-bezier(.2,.8,.2,1)' }} />
-                  </svg>
-                );
-              })()}
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                  {Math.round(goals.kcal > 0 ? (ctx.totals.kcal / goals.kcal) * 100 : 0)}%
-                </span>
+              <div style={{ fontSize: 26, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: '-0.02em' }}>
+                Jídla
               </div>
             </div>
+            <button
+              onClick={() => setShowSlotPicker(true)}
+              style={{ padding: '8px 16px', background: BRAND.purple, border: 'none', borderRadius: 20, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              + PŘIDAT
+            </button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
-            {[
-              { label: 'SACH',  val: ctx.totals.carbs,   goal: goals.carbs,   color: MACRO.carb },
-              { label: 'BÍLK',  val: ctx.totals.protein, goal: goals.protein, color: MACRO.pro  },
-              { label: 'TUKY',  val: ctx.totals.fat,     goal: goals.fat,     color: MACRO.fat  },
-            ].map(m => (
-              <div key={m.label}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                  <span style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{m.label}</span>
-                  <span style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{Math.round(m.val)}/{Math.round(m.goal)}g</span>
+
+          {/* Calorie summary card */}
+          <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 20, padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+              <div>
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 42, lineHeight: 1, fontVariantNumeric: 'tabular-nums', fontWeight: 800, color: T.text }}>
+                  {Math.round(ctx.totals.kcal)}
                 </div>
-                <div style={{ height: 4, background: T.border, borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${Math.min(100, m.goal > 0 ? (m.val / m.goal) * 100 : 0)}%`, background: m.color, borderRadius: 2, transition: 'width 0.5s ease' }} />
+                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: T.muted, marginTop: 3 }}>
+                  / {Math.round(goals.kcal)} kcal
                 </div>
               </div>
-            ))}
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 10, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 2 }}>ZBÝVÁ</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: BRAND.purple, fontFamily: "'Space Grotesk', sans-serif", fontVariantNumeric: 'tabular-nums' }}>
+                  {Math.max(0, Math.round(goals.kcal - ctx.totals.kcal))}
+                </div>
+              </div>
+            </div>
+            <div style={{ height: 3, background: T.border, borderRadius: 2, marginBottom: 14, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${Math.min(100, goals.kcal > 0 ? (ctx.totals.kcal / goals.kcal) * 100 : 0)}%`, background: BRAND.purple, borderRadius: 2, transition: 'width 0.5s ease' }} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {[
+                { label: 'SACH', val: ctx.totals.carbs,   goal: goals.carbs,   color: MACRO.carb },
+                { label: 'BÍLK', val: ctx.totals.protein, goal: goals.protein, color: MACRO.pro  },
+                { label: 'TUKY', val: ctx.totals.fat,     goal: goals.fat,     color: MACRO.fat  },
+              ].map(m => (
+                <div key={m.label}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>{m.label}</span>
+                    <span style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace', fontVariantNumeric: 'tabular-nums' }}>{Math.round(m.val)}g</span>
+                  </div>
+                  <div style={{ height: 3, background: T.border, borderRadius: 2, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${Math.min(100, m.goal > 0 ? (m.val / m.goal) * 100 : 0)}%`, background: m.color, borderRadius: 2 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+
+          {/* Timeline header */}
+          <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 14 }}>
+            DNEŠNÍ ROZPIS · {entries.length} {entries.length === 1 ? 'JÍDLO' : 'JÍDEL'}
+          </div>
+
+          {/* Vertical timeline */}
+          <div style={{ marginBottom: 24 }}>
+            {MEAL_SLOTS.map((slot, idx) => {
+              const slotEntries = entriesForSlot(slot.id);
+              const kcal = slotKcal(slot.id);
+              const slotTime = SLOT_TIMES[slot.id] ?? '';
+              const isLast = idx === MEAL_SLOTS.length - 1;
+              const hasEditing = slotEntries.some(e => editingEntry === e.id);
+
+              return (
+                <div key={slot.id} style={{ display: 'flex', gap: 10, paddingBottom: isLast ? 0 : 4 }}>
+                  {/* Time column */}
+                  <div style={{ width: 36, flexShrink: 0, textAlign: 'right' as const, paddingTop: 2 }}>
+                    <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: T.muted, lineHeight: '16px' }}>
+                      {slotTime}
+                    </span>
+                  </div>
+                  {/* Dot + line */}
+                  <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', width: 14, flexShrink: 0 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: slotEntries.length > 0 ? BRAND.purple : T.border, flexShrink: 0, marginTop: 4 }} />
+                    {!isLast && <div style={{ width: 1, flex: 1, minHeight: 24, background: T.border, marginTop: 3 }} />}
+                  </div>
+                  {/* Slot content */}
+                  <div style={{ flex: 1, paddingBottom: isLast ? 0 : 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: slotEntries.length > 0 ? 7 : 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: slotEntries.length > 0 ? T.text : T.muted, lineHeight: '16px' }}>
+                        {slot.label}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {kcal > 0 && (
+                          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: BRAND.gold, fontWeight: 700 }}>
+                            {Math.round(kcal)} kcal
+                          </span>
+                        )}
+                        <button
+                          onClick={() => setActivePicker(slot.id)}
+                          style={{ width: 22, height: 22, borderRadius: 5, background: 'rgba(124,92,255,0.1)', border: '1px solid rgba(124,92,255,0.2)', color: BRAND.purple, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}
+                        >+</button>
+                      </div>
+                    </div>
+
+                    {/* Food chips */}
+                    {slotEntries.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 5, marginBottom: hasEditing ? 10 : 0 }}>
+                        {slotEntries.map(entry => {
+                          const isEditing = editingEntry === entry.id;
+                          return (
+                            <div
+                              key={entry.id}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: isEditing ? `${BRAND.purple}22` : T.border, border: `1px solid ${isEditing ? BRAND.purple : 'transparent'}`, borderRadius: 20, padding: '3px 8px 3px 10px', cursor: 'pointer' }}
+                              onClick={() => isEditing ? cancelEdit() : startEdit(entry.id!, entry.grams, entry.meal_slot, entry)}
+                            >
+                              <span style={{ fontSize: 11, color: T.text, fontWeight: 500, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                                {entry.food_name}
+                              </span>
+                              <span style={{ fontSize: 10, color: T.muted }}>{Math.round(entry.kcal)}k</span>
+                              {confirmDel === entry.id ? (
+                                <div style={{ display: 'flex', gap: 2 }} onClick={e => e.stopPropagation()}>
+                                  <button onClick={() => { removeEntry(entry.id!); setConfirmDel(null); }}
+                                    style={{ background: '#ef444422', border: 'none', borderRadius: 4, color: '#ef4444', fontSize: 9, padding: '1px 5px', cursor: 'pointer' }}>✕</button>
+                                  <button onClick={() => setConfirmDel(null)}
+                                    style={{ background: T.border, border: 'none', borderRadius: 4, color: T.muted, fontSize: 9, padding: '1px 5px', cursor: 'pointer' }}>—</button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={e => { e.stopPropagation(); setConfirmDel(entry.id!); }}
+                                  style={{ background: 'none', border: 'none', color: T.muted, fontSize: 12, cursor: 'pointer', padding: '0 1px', lineHeight: 1, flexShrink: 0 }}
+                                >×</button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Inline gram editor (mobile) */}
+                    {hasEditing && (() => {
+                      const entry = slotEntries.find(e => editingEntry === e.id)!;
+                      const previewKcal = entry.grams > 0 ? Math.round(entry.kcal / entry.grams * editGrams) : 0;
+                      return (
+                        <div style={{ background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, padding: '10px 12px' }}>
+                          <div style={{ fontSize: 11, color: T.muted, marginBottom: 8, fontWeight: 600 }}>{entry.food_name}</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                            <button onClick={() => setEditGrams(g => Math.max(5, g - 5))}
+                              style={{ width: 28, height: 28, borderRadius: 6, background: T.border, border: 'none', color: T.text, cursor: 'pointer', fontSize: 16 }}>−</button>
+                            <span style={{ fontSize: 16, fontWeight: 700, color: T.text, minWidth: 54, textAlign: 'center' as const, fontVariantNumeric: 'tabular-nums' }}>{editGrams} g</span>
+                            <button onClick={() => setEditGrams(g => Math.min(600, g + 5))}
+                              style={{ width: 28, height: 28, borderRadius: 6, background: `${BRAND.purple}22`, border: `1px solid ${BRAND.purple}44`, color: BRAND.purple, cursor: 'pointer', fontSize: 16 }}>+</button>
+                            <span style={{ flex: 1, textAlign: 'right' as const, fontSize: 13, fontWeight: 600, color: BRAND.purple, fontVariantNumeric: 'tabular-nums' }}>→ {previewKcal} kcal</span>
+                          </div>
+                          <input type="range" min={5} max={600} step={5} value={editGrams}
+                            onChange={e => setEditGrams(Number(e.target.value))}
+                            style={{ width: '100%', marginBottom: 10 }} />
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={() => saveEdit(entry.id!)} disabled={savingEdit}
+                              style={{ flex: 1, padding: '7px 0', borderRadius: 8, background: BRAND.purple, border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: savingEdit ? 0.6 : 1 }}>
+                              {savingEdit ? 'Ukládám…' : 'Uložit'}
+                            </button>
+                            <button onClick={cancelEdit}
+                              style={{ flex: 1, padding: '7px 0', borderRadius: 8, background: T.border, border: 'none', color: T.muted, fontSize: 13, cursor: 'pointer' }}>
+                              Zrušit
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Slot picker bottom sheet */}
+          {showSlotPicker && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}
+              onClick={() => setShowSlotPicker(false)}>
+              <div style={{ width: '100%', background: T.card, borderRadius: '20px 20px 0 0', padding: '20px 20px 32px' }}
+                onClick={e => e.stopPropagation()}>
+                <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 14 }}>
+                  PŘIDAT DO JÍDLA
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+                  {MEAL_SLOTS.map(s => {
+                    const sKcal = slotKcal(s.id);
+                    return (
+                      <button key={s.id}
+                        onClick={() => { setActivePicker(s.id); setShowSlotPicker(false); }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 12, cursor: 'pointer', textAlign: 'left' as const }}>
+                        <span style={{ fontSize: 18 }}>{s.icon}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{s.label}</div>
+                          <div style={{ fontSize: 10, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>{SLOT_TIMES[s.id] ?? ''}</div>
+                        </div>
+                        {sKcal > 0 && (
+                          <div style={{ fontSize: 11, color: BRAND.gold, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
+                            {Math.round(sKcal)} kcal
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
+      {isDesktop && (
       <SegmentedTabs
         tabs={[
           { id: 'diary', label: 'Deník' },
@@ -1283,8 +1449,9 @@ export default function Foods() {
         active={innerTab}
         onChange={(id) => setInnerTab(id as 'diary' | 'builder')}
       />
+      )}
 
-      {innerTab === 'builder' ? (
+      {isDesktop && (innerTab === 'builder' ? (
         <div style={{ maxWidth: isDesktop ? 760 : 'none', marginBottom: 16 }}>
           <MealBuilder remaining={remaining} suggestions={mealBuilderSuggestions} />
         </div>
@@ -1528,7 +1695,7 @@ export default function Foods() {
       </Card>
 
       </>
-      )}
+      ))}
       </> )} {/* end activeTab === 'denik' */}
 
       </div>
