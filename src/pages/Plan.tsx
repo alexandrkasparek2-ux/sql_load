@@ -653,15 +653,27 @@ export default function Plan() {
     const jan1 = new Date(weekStart.getFullYear(), 0, 1);
     return Math.ceil(((weekStart.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7);
   })();
-  const weekWorkouts = tp.workouts.filter(w => weekDays.includes(w.date));
-  const weekTSS = Math.round(weekWorkouts.reduce((s, w) => s + (w.tss ?? 0), 0));
-  const weekHours = parseFloat((weekWorkouts.reduce((s, w) => s + (w.durationMin ?? 0), 0) / 60).toFixed(1));
   const lastWeekDays = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
     d.setDate(weekStart.getDate() - 7 + i);
     return formatLocalISO(d);
   });
-  const lastWeekTSS = tp.workouts.filter(w => lastWeekDays.includes(w.date)).reduce((s, w) => s + (w.tss ?? 0), 0);
+
+  // For each day: prefer actual Intervals.icu data, fall back to TP plan
+  const dayTSSMerged = (days: string[]) => days.reduce((total, d) => {
+    const actTSS  = (groupedActivities[d] ?? []).reduce((s, a) => s + (a.icu_training_load ?? 0), 0);
+    const planTSS = tp.workouts.filter(w => w.date === d).reduce((s, w) => s + (w.tss ?? 0), 0);
+    return total + (actTSS > 0 ? actTSS : planTSS);
+  }, 0);
+  const dayHoursMerged = (days: string[]) => days.reduce((total, d) => {
+    const actSecs  = (groupedActivities[d] ?? []).reduce((s, a) => s + (a.moving_time ?? 0), 0);
+    const planMins = tp.workouts.filter(w => w.date === d).reduce((s, w) => s + (w.durationMin ?? 0), 0);
+    return total + (actSecs > 0 ? actSecs / 3600 : planMins / 60);
+  }, 0);
+
+  const weekTSS   = Math.round(dayTSSMerged(weekDays));
+  const weekHours = parseFloat(dayHoursMerged(weekDays).toFixed(1));
+  const lastWeekTSS = dayTSSMerged(lastWeekDays);
   const ramp = lastWeekTSS > 0 ? Math.round((weekTSS - lastWeekTSS) / lastWeekTSS * 100) : null;
   const maxDayTSS = Math.max(1, ...weekDays.map(d => {
     const actTSS = (groupedActivities[d] ?? []).reduce((s, a) => s + (a.icu_training_load ?? 0), 0);
