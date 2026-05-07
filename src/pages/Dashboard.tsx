@@ -9,6 +9,7 @@ import { FOODS } from '../constants/foods';
 import { useWeeklyData } from '../hooks/useWeeklyData';
 import { useSupplements } from '../hooks/useSupplements';
 import { SUPPLEMENTS } from '../constants/supplements';
+import { useWhoopData } from '../hooks/useWhoopData';
 import { useIntervalsData } from '../hooks/useIntervalsData';
 import { IntervalsCard } from '../components/IntervalsCard';
 import { useTrainingPlan } from '../hooks/useTrainingPlan';
@@ -365,6 +366,10 @@ export default function Dashboard() {
   const { todayWorkout } = useTrainingPlan();
   const { takenCount: suppTaken } = useSupplements(userId, today);
   const totalSupplements = SUPPLEMENTS.length;
+  const { data: whoopData, isConnected: whoopConnected } = useWhoopData();
+  const whoopRecovery  = whoopData?.recovery?.score.recovery_score ?? null;
+  const whoopHR        = whoopData?.recovery?.score.resting_heart_rate ?? null;
+  const whoopHRV       = whoopData?.recovery?.score.hrv_rmssd_milli ?? null;
 
   // Czech greeting date
   const DAYS_CZ = ['Neděle', 'Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota'];
@@ -1108,48 +1113,67 @@ export default function Dashboard() {
               <span style={{ color: T.muted, fontSize: 18, flexShrink: 0, lineHeight: 1 }}>›</span>
             </div>
 
-            {/* ── RECOVERY + HRV ────────────────────────────── */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-              {/* Recovery card */}
-              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
-                <div style={{ fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>
-                  Recovery
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <div>
-                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>84</span>
-                    <span style={{ fontSize: 12, color: T.muted, marginLeft: 2 }}>/100</span>
+            {/* ── RECOVERY + HRV (Whoop) ────────────────────── */}
+            {whoopConnected && (whoopRecovery !== null || whoopHR !== null) && (() => {
+              const recovScore = whoopRecovery ?? 0;
+              const recovColor = recovScore >= 67 ? BRAND.green : recovScore >= 34 ? BRAND.gold : BRAND.orange;
+              const recovLabel = recovScore >= 67
+                ? 'Můžeš jet plnou intenzitu'
+                : recovScore >= 34
+                  ? 'Lehčí trénink, více proteinu'
+                  : 'Nízká regenerace — odpočívej';
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+                  {/* Recovery card */}
+                  <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
+                    <div style={{ fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>
+                      Recovery
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <div>
+                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                          {whoopRecovery !== null ? Math.round(whoopRecovery) : '—'}
+                        </span>
+                        {whoopRecovery !== null && <span style={{ fontSize: 12, color: T.muted, marginLeft: 2 }}>/100</span>}
+                      </div>
+                      {whoopRecovery !== null && (
+                        <Ring size={44} stroke={4} value={whoopRecovery} max={100} color={recovColor} track={T.border} />
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, color: recovColor, fontWeight: 600, lineHeight: 1.35 }}>
+                      {recovLabel}
+                    </div>
                   </div>
-                  <Ring size={44} stroke={4} value={84} max={100} color={BRAND.green} track={T.border} />
-                </div>
-                <div style={{ fontSize: 12, color: BRAND.green, fontWeight: 600, lineHeight: 1.35 }}>
-                  Můžeš jet plnou intenzitu
-                </div>
-              </div>
 
-              {/* HRV / Klidový tep card */}
-              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
-                <div style={{ fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>
-                  Klidový tep
+                  {/* Klidový tep card */}
+                  <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
+                    <div style={{ fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>
+                      Klidový tep
+                    </div>
+                    <div style={{ marginBottom: 6 }}>
+                      <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                        {whoopHR !== null ? Math.round(whoopHR) : '—'}
+                      </span>
+                      {whoopHR !== null && <span style={{ fontSize: 12, color: T.muted, marginLeft: 4 }}>bpm</span>}
+                    </div>
+                    {/* Mini sparkline (dekorativní) */}
+                    <svg width="100%" height="28" viewBox="0 0 100 28" preserveAspectRatio="none" style={{ display: 'block', marginBottom: 4 }}>
+                      <defs>
+                        <linearGradient id="hrGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={BRAND.orange} stopOpacity="0.25"/>
+                          <stop offset="100%" stopColor={BRAND.orange} stopOpacity="0"/>
+                        </linearGradient>
+                      </defs>
+                      <path d="M0,20 C10,22 20,18 30,16 C40,14 50,19 60,17 C70,15 80,12 90,10 L100,8" fill="none" stroke={BRAND.orange} strokeWidth="1.5"/>
+                      <path d="M0,20 C10,22 20,18 30,16 C40,14 50,19 60,17 C70,15 80,12 90,10 L100,8 L100,28 L0,28 Z" fill="url(#hrGrad)"/>
+                    </svg>
+                    {whoopHRV !== null && (
+                      <div style={{ fontSize: 11, color: T.muted }}>HRV {Math.round(whoopHRV)} ms</div>
+                    )}
+                  </div>
                 </div>
-                <div style={{ marginBottom: 6 }}>
-                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>48</span>
-                  <span style={{ fontSize: 12, color: T.muted, marginLeft: 4 }}>bpm</span>
-                </div>
-                {/* Mini sparkline */}
-                <svg width="100%" height="32" viewBox="0 0 100 32" preserveAspectRatio="none" style={{ display: 'block', marginBottom: 4 }}>
-                  <defs>
-                    <linearGradient id="hrvGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={BRAND.orange} stopOpacity="0.25"/>
-                      <stop offset="100%" stopColor={BRAND.orange} stopOpacity="0"/>
-                    </linearGradient>
-                  </defs>
-                  <path d="M0,20 C10,22 20,18 30,16 C40,14 50,19 60,17 C70,15 80,12 90,10 L100,8" fill="none" stroke={BRAND.orange} strokeWidth="1.5"/>
-                  <path d="M0,20 C10,22 20,18 30,16 C40,14 50,19 60,17 C70,15 80,12 90,10 L100,8 L100,32 L0,32 Z" fill="url(#hrvGrad)"/>
-                </svg>
-                <div style={{ fontSize: 11, color: T.muted }}>-3 vs týdenní průměr</div>
-              </div>
-            </div>
+              );
+            })()}
 
 
             {/* ── MEAL TIMELINE ─────────────────────────────── */}
