@@ -367,9 +367,9 @@ export default function Dashboard() {
   const { takenCount: suppTaken } = useSupplements(userId, today);
   const totalSupplements = SUPPLEMENTS.length;
   const { data: whoopData, isConnected: whoopConnected } = useWhoopData();
-  const whoopRecovery  = whoopData?.recovery?.score.recovery_score ?? null;
-  const whoopHR        = whoopData?.recovery?.score.resting_heart_rate ?? null;
-  const whoopHRV       = whoopData?.recovery?.score.hrv_rmssd_milli ?? null;
+  const whoopRecovery  = whoopData?.recovery?.score?.recovery_score ?? null;
+  const whoopHR        = whoopData?.recovery?.score?.resting_heart_rate ?? null;
+  const whoopHRV       = whoopData?.recovery?.score?.hrv_rmssd_milli ?? null;
 
   // Czech greeting date
   const DAYS_CZ = ['Neděle', 'Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota'];
