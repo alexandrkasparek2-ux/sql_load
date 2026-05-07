@@ -1114,14 +1114,21 @@ export default function Dashboard() {
             </div>
 
             {/* ── RECOVERY + HRV (Whoop) ────────────────────── */}
-            {whoopConnected && (whoopRecovery !== null || whoopHR !== null) && (() => {
-              const recovScore = whoopRecovery ?? 0;
-              const recovColor = recovScore >= 67 ? BRAND.green : recovScore >= 34 ? BRAND.gold : BRAND.orange;
-              const recovLabel = recovScore >= 67
-                ? 'Můžeš jet plnou intenzitu'
-                : recovScore >= 34
-                  ? 'Lehčí trénink, více proteinu'
-                  : 'Nízká regenerace — odpočívej';
+            {(() => {
+              const recovScore = whoopRecovery;
+              const recovColor = recovScore === null ? T.muted
+                : recovScore >= 67 ? BRAND.green
+                : recovScore >= 34 ? BRAND.gold
+                : BRAND.orange;
+              const recovLabel = !whoopConnected
+                ? 'Připoj Whoop v nastavení'
+                : recovScore === null
+                  ? 'Čekám na dnešní data…'
+                  : recovScore >= 67
+                    ? 'Můžeš jet plnou intenzitu'
+                    : recovScore >= 34
+                      ? 'Lehčí trénink, více proteinu'
+                      : 'Nízká regenerace — odpočívej';
               return (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
                   {/* Recovery card */}
@@ -1132,13 +1139,11 @@ export default function Dashboard() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                       <div>
                         <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                          {whoopRecovery !== null ? Math.round(whoopRecovery) : '—'}
+                          {recovScore !== null ? Math.round(recovScore) : '—'}
                         </span>
-                        {whoopRecovery !== null && <span style={{ fontSize: 12, color: T.muted, marginLeft: 2 }}>/100</span>}
+                        {recovScore !== null && <span style={{ fontSize: 12, color: T.muted, marginLeft: 2 }}>/100</span>}
                       </div>
-                      {whoopRecovery !== null && (
-                        <Ring size={44} stroke={4} value={whoopRecovery} max={100} color={recovColor} track={T.border} />
-                      )}
+                      <Ring size={44} stroke={4} value={recovScore ?? 0} max={100} color={recovColor} track={T.border} />
                     </div>
                     <div style={{ fontSize: 12, color: recovColor, fontWeight: 600, lineHeight: 1.35 }}>
                       {recovLabel}
@@ -1156,7 +1161,6 @@ export default function Dashboard() {
                       </span>
                       {whoopHR !== null && <span style={{ fontSize: 12, color: T.muted, marginLeft: 4 }}>bpm</span>}
                     </div>
-                    {/* Mini sparkline (dekorativní) */}
                     <svg width="100%" height="28" viewBox="0 0 100 28" preserveAspectRatio="none" style={{ display: 'block', marginBottom: 4 }}>
                       <defs>
                         <linearGradient id="hrGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1167,9 +1171,9 @@ export default function Dashboard() {
                       <path d="M0,20 C10,22 20,18 30,16 C40,14 50,19 60,17 C70,15 80,12 90,10 L100,8" fill="none" stroke={BRAND.orange} strokeWidth="1.5"/>
                       <path d="M0,20 C10,22 20,18 30,16 C40,14 50,19 60,17 C70,15 80,12 90,10 L100,8 L100,28 L0,28 Z" fill="url(#hrGrad)"/>
                     </svg>
-                    {whoopHRV !== null && (
-                      <div style={{ fontSize: 11, color: T.muted }}>HRV {Math.round(whoopHRV)} ms</div>
-                    )}
+                    <div style={{ fontSize: 11, color: T.muted }}>
+                      {whoopHRV !== null ? `HRV ${Math.round(whoopHRV)} ms` : !whoopConnected ? 'Whoop není připojen' : 'Čekám na data…'}
+                    </div>
                   </div>
                 </div>
               );
