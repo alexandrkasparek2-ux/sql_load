@@ -4,20 +4,31 @@ import {
   type WhoopData,
 } from '../services/whoopService';
 
-const CACHE_KEY    = 'cyclofuel_whoop_cache';
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
+const CACHE_KEY = 'cyclofuel_whoop_cache';
+
+function localDateStr(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
 
 function loadCache(): (WhoopData & { cachedAt: number }) | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed;
+    return JSON.parse(raw);
   } catch { return null; }
 }
 
 function saveCache(data: WhoopData) {
   localStorage.setItem(CACHE_KEY, JSON.stringify({ ...data, cachedAt: Date.now() }));
+}
+
+function isCacheStale(cache: { cachedAt: number } | null): boolean {
+  if (!cache) return true;
+  // Stale if from a different calendar day
+  if (localDateStr(cache.cachedAt) !== localDateStr(Date.now())) return true;
+  // Also stale if older than 4 hours within the same day
+  return Date.now() - cache.cachedAt > 4 * 60 * 60 * 1000;
 }
 
 export function useWhoopData() {
@@ -43,11 +54,11 @@ export function useWhoopData() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setError(msg);
-      // If auth error, mark as stale
-      if (msg.includes('re-authenticate') || msg.includes('Not connected')) {
+      // Only clear tokens on explicit re-auth errors — never on network/server errors
+      if (msg.includes('re-authenticate')) {
         clearTokens();
       }
-      // Use cache as fallback
+      // Always fall back to cache
       const cached = loadCache();
       if (cached) {
         setData(cached);
@@ -65,12 +76,10 @@ export function useWhoopData() {
     setError(null);
   }, []);
 
-  // Auto-sync on mount and when cache is stale (> 30 min)
+  // Auto-sync on mount if cache is stale (different day or > 4 h)
   useEffect(() => {
     if (!loadTokens()) return;
-    const cached = loadCache();
-    const age    = cached ? Date.now() - cached.cachedAt : Infinity;
-    if (age > CACHE_TTL_MS) {
+    if (isCacheStale(loadCache())) {
       sync();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

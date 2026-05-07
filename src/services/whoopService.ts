@@ -120,8 +120,17 @@ async function refreshTokens(tokens: WhoopTokens): Promise<WhoopTokens> {
   });
 
   if (!res.ok) {
-    clearTokens();
-    throw new Error('Token refresh failed — re-authenticate');
+    // Only clear tokens on definitive auth errors (invalid/expired refresh token)
+    // NOT on network errors or 5xx — user should stay logged in
+    if (res.status === 400 || res.status === 401) {
+      const err = await res.json().catch(() => ({}));
+      const errStr = JSON.stringify(err).toLowerCase();
+      if (errStr.includes('invalid_grant') || errStr.includes('invalid_token') || errStr.includes('expired')) {
+        clearTokens();
+        throw new Error('Token refresh failed — re-authenticate');
+      }
+    }
+    throw new Error(`Token refresh failed (${res.status}) — will retry later`);
   }
 
   const data = await res.json();
