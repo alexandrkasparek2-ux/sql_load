@@ -416,6 +416,7 @@ export default function Plan() {
   const [experimentFocus, setExperimentFocus] = useState<ExperimentFocus>('carbs');
   const [experimentNote, setExperimentNote] = useState('');
   const [savingExperiment, setSavingExperiment] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
 
   const { activities, loading, error, stale, isConnected, cacheAge, sync } = useIntervalsData(3);
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
@@ -640,7 +641,7 @@ export default function Plan() {
   const weekStart = (() => {
     const d = new Date(today + 'T00:00:00');
     const dow = d.getDay();
-    d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
+    d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow) + weekOffset * 7);
     return d;
   })();
   const weekDays = Array.from({ length: 7 }, (_, i) => {
@@ -649,18 +650,15 @@ export default function Plan() {
     return formatLocalISO(d);
   });
   const weekNum = (() => {
-    const d = new Date(today + 'T00:00:00');
-    const jan1 = new Date(d.getFullYear(), 0, 1);
-    return Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7);
+    const jan1 = new Date(weekStart.getFullYear(), 0, 1);
+    return Math.ceil(((weekStart.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7);
   })();
   const weekWorkouts = tp.workouts.filter(w => weekDays.includes(w.date));
   const weekTSS = Math.round(weekWorkouts.reduce((s, w) => s + (w.tss ?? 0), 0));
   const weekHours = parseFloat((weekWorkouts.reduce((s, w) => s + (w.durationMin ?? 0), 0) / 60).toFixed(1));
-  const lastWeekStart = new Date(weekStart);
-  lastWeekStart.setDate(weekStart.getDate() - 7);
   const lastWeekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(lastWeekStart);
-    d.setDate(lastWeekStart.getDate() + i);
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() - 7 + i);
     return formatLocalISO(d);
   });
   const lastWeekTSS = tp.workouts.filter(w => lastWeekDays.includes(w.date)).reduce((s, w) => s + (w.tss ?? 0), 0);
@@ -687,9 +685,14 @@ export default function Plan() {
               Plán
             </div>
           </div>
-          <button onClick={() => navigate('/profile')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.muted, fontSize: 22, padding: 4 }}>
-            ⚙️
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button onClick={() => setWeekOffset(o => o - 1)} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, color: T.muted, fontSize: 16, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+            {weekOffset !== 0 && (
+              <button onClick={() => setWeekOffset(0)} style={{ background: 'none', border: 'none', color: BRAND.purple, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer', padding: '0 4px' }}>DNES</button>
+            )}
+            <button onClick={() => setWeekOffset(o => o + 1)} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, color: T.muted, fontSize: 16, width: 32, height: 32, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
+            <button onClick={() => navigate('/profile')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: T.muted, fontSize: 20, padding: '0 0 0 6px' }}>⚙️</button>
+          </div>
         </div>
 
         {/* Stats + bar chart card */}
