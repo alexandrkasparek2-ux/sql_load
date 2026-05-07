@@ -1101,11 +1101,15 @@ export default function Dashboard() {
 
             {/* ── WEEKLY ENERGY OVERVIEW ───────────────────── */}
             {historyData.length > 0 && (() => {
-              const last7       = historyData.slice(-7);
-              const hasBurn     = last7.some(d => d.burned > 0);
-              const weekIn      = last7.reduce((s, d) => s + d.kcal,   0);
-              const weekOut     = hasBurn ? last7.reduce((s, d) => s + d.burned, 0) : 0;
-              const weekBalance = weekOut > 0 ? weekIn - weekOut : null;
+              const last7        = historyData.slice(-7);
+              // Only days where we have burn data — prevents false surplus from unmatched days
+              const daysWithBurn = last7.filter(d => d.burned > 0);
+              const hasBurn      = daysWithBurn.length > 0;
+              const weekIn       = last7.reduce((s, d) => s + d.kcal, 0);
+              const weekOut      = daysWithBurn.reduce((s, d) => s + d.burned, 0);
+              // Balance only over matched days (both kcal + burn known)
+              const weekBalIn    = daysWithBurn.reduce((s, d) => s + d.kcal, 0);
+              const weekBalance  = hasBurn ? weekBalIn - weekOut : null;
 
               return (
                 <div style={{ marginBottom: 14 }}>
