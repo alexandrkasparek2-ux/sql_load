@@ -111,53 +111,66 @@ function StretchingChecklist({ userId, today, accent }: { userId: string; today:
 
 // ─── Water tracker ───────────────────────────────────────────
 function WaterTracker({
-  glasses, goalLitres, accent, onAdd, onRemove,
+  glasses, goalLitres, accent, onAddMl, onRemove,
 }: {
   glasses:    number;
   goalLitres: number;
   accent:     string;
-  onAdd:      () => void;
+  onAddMl:    (ml: number) => void;
   onRemove:   () => void;
 }) {
-  const goalGlasses = Math.round(goalLitres * 4);
-  const consumed    = (glasses * 0.25).toFixed(1);
-  const pct         = goalGlasses > 0 ? Math.min(100, (glasses / goalGlasses) * 100) : 0;
+  const totalMl = glasses * 250;
+  const goalMl  = Math.round(goalLitres * 1000);
+  const done    = totalMl >= goalMl;
+  const dispVal = totalMl >= 1000 ? (totalMl / 1000).toFixed(1) : String(totalMl);
+  const dispUnit = totalMl >= 1000 ? 'L' : 'ml';
 
   return (
-    <Card style={{ padding: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 20 }}>💧</span>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Hydratace</div>
-            <div style={{ fontSize: 12, color: T.muted }}>{consumed} / {goalLitres} L</div>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: '14px 14px 12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+        <div>
+          <div style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, marginBottom: 4 }}>
+            HYDRATACE
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 700, fontVariantNumeric: 'tabular-nums' as const, color: done ? BRAND.green : T.text, lineHeight: 1 }}>
+              {dispVal}
+            </span>
+            <span style={{ fontSize: 11, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
+              {dispUnit} / {goalLitres} L
+            </span>
+            {done && <span style={{ fontSize: 11, color: BRAND.green, fontWeight: 700 }}>✓</span>}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={onRemove}
-            style={{ width: 30, height: 30, borderRadius: 8, background: T.border, border: 'none', color: T.text, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >−</button>
-          <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color: accent, minWidth: 28, textAlign: 'center' }}>
-            {glasses}
-          </span>
-          <button
-            onClick={onAdd}
-            style={{ width: 30, height: 30, borderRadius: 8, background: accent + '22', border: `1px solid ${accent}44`, color: accent, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >+</button>
-        </div>
+        <button
+          onClick={onRemove}
+          disabled={glasses === 0}
+          style={{
+            width: 32, height: 32, borderRadius: 8,
+            background: 'transparent', border: `1px solid ${T.border}`,
+            color: glasses === 0 ? T.muted : T.text,
+            fontSize: 18, cursor: glasses === 0 ? 'default' : 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            opacity: glasses === 0 ? 0.3 : 1,
+          }}
+        >−</button>
       </div>
-      <ProgressBar value={glasses} max={goalGlasses} color={accent} height={5} />
-      <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
-        {Array.from({ length: Math.min(goalGlasses, 12) }).map((_, i) => (
-          <span key={i} style={{ fontSize: 14, opacity: i < glasses ? 1 : 0.2 }}>💧</span>
+      <ProgressBar value={totalMl} max={goalMl} color={accent} height={4} />
+      <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+        {[250, 500, 750].map(ml => (
+          <button
+            key={ml}
+            onClick={() => onAddMl(ml)}
+            style={{
+              flex: 1, padding: '9px 0', borderRadius: 10,
+              background: accent + '14', border: `1px solid ${accent}33`,
+              color: accent, fontFamily: 'JetBrains Mono, monospace',
+              fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.04em',
+            }}
+          >+{ml}</button>
         ))}
-        {goalGlasses > 12 && <span style={{ fontSize: 12, color: T.muted }}>+{goalGlasses - 12}</span>}
       </div>
-      <div style={{ fontSize: 11, color: T.muted, marginTop: 4 }}>
-        Cíl: {goalGlasses} sklenic ({goalLitres} L)  •  1 sklenice = 250 ml  •  {pct.toFixed(0)} %
-      </div>
-    </Card>
+    </div>
   );
 }
 
@@ -175,42 +188,52 @@ function CaffeineTracker({
   const totalMg  = cups * CAFFEINE_PER_CUP;
   const isOver   = totalMg > CAFFEINE_LIMIT;
   const color    = isOver ? '#ef4444' : totalMg >= 320 ? '#f59e0b' : '#d97706';
-  const showCups = Math.min(Math.max(5, cups), 10);
-
   return (
-    <Card style={{ padding: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 20 }}>☕</span>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Kofein</div>
-            <div style={{ fontSize: 12, color: T.muted }}>{totalMg} / {CAFFEINE_LIMIT} mg</div>
+    <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: '14px 14px 12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+        <div>
+          <div style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, marginBottom: 4 }}>
+            KOFEIN
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 700, fontVariantNumeric: 'tabular-nums' as const, color: isOver ? '#ef4444' : T.text, lineHeight: 1 }}>
+              {totalMg}
+            </span>
+            <span style={{ fontSize: 11, color: isOver ? '#ef4444' : T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
+              mg / {CAFFEINE_LIMIT} mg{isOver ? ' !' : ''}
+            </span>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 6 }}>
           <button
             onClick={onRemove}
-            style={{ width: 30, height: 30, borderRadius: 8, background: T.border, border: 'none', color: T.text, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            disabled={cups === 0}
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: 'transparent', border: `1px solid ${T.border}`,
+              color: cups === 0 ? T.muted : T.text,
+              fontSize: 18, cursor: cups === 0 ? 'default' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              opacity: cups === 0 ? 0.3 : 1,
+            }}
           >−</button>
-          <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color, minWidth: 28, textAlign: 'center' }}>
-            {cups}
-          </span>
           <button
             onClick={onAdd}
-            style={{ width: 30, height: 30, borderRadius: 8, background: color + '22', border: `1px solid ${color}44`, color, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: color + '14', border: `1px solid ${color}33`,
+              color, fontSize: 18, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: 700,
+            }}
           >+</button>
         </div>
       </div>
-      <ProgressBar value={totalMg} max={CAFFEINE_LIMIT} color={color} height={5} />
-      <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
-        {Array.from({ length: showCups }).map((_, i) => (
-          <span key={i} style={{ fontSize: 14, opacity: i < cups ? 1 : 0.2 }}>☕</span>
-        ))}
+      <ProgressBar value={totalMg} max={CAFFEINE_LIMIT} color={color} height={4} />
+      <div style={{ fontSize: 10, color: T.muted, marginTop: 8, fontFamily: 'JetBrains Mono, monospace' }}>
+        {cups} {cups === 1 ? 'espresso' : 'espressa'} · {CAFFEINE_PER_CUP} mg/šálek
       </div>
-      <div style={{ fontSize: 11, color: isOver ? '#ef4444' : T.muted, marginTop: 4 }}>
-        {cups} {cups === 1 ? 'espresso' : 'espressa'} · {totalMg} mg · limit: {CAFFEINE_LIMIT} mg/den{isOver ? ' ⚠️ Překročen!' : ''}
-      </div>
-    </Card>
+    </div>
   );
 }
 
@@ -389,7 +412,7 @@ export default function Dashboard() {
   const primary    = primaryType(allTypes as any);
   const training   = TRAINING_TYPES.find(t => t.id === (trainingDay?.training_type ?? 'rest'))!;
 
-  const handleWaterAdd    = () => upsertTrainingDay({ water_glasses: (trainingDay?.water_glasses ?? 0) + 1 });
+  const handleWaterAddMl  = (ml: number) => upsertTrainingDay({ water_glasses: (trainingDay?.water_glasses ?? 0) + Math.round(ml / 250) });
   const handleWaterRemove = () => upsertTrainingDay({ water_glasses: Math.max(0, (trainingDay?.water_glasses ?? 0) - 1) });
   const handleCoffeeAdd    = () => upsertTrainingDay({ coffee_cups: (trainingDay?.coffee_cups ?? 0) + 1 });
   const handleCoffeeRemove = () => upsertTrainingDay({ coffee_cups: Math.max(0, (trainingDay?.coffee_cups ?? 0) - 1) });
@@ -614,7 +637,12 @@ export default function Dashboard() {
 
   const hydrationSection = (
     <>
-      <SectionTitle accent={BRAND.gold}>Hydratace & stimulanty</SectionTitle>
+      {isDesktop && <SectionTitle accent={BRAND.gold}>Hydratace & stimulanty</SectionTitle>}
+      {!isDesktop && (
+        <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 10 }}>
+          STIMULANTY
+        </div>
+      )}
       <div style={{
         display: 'grid',
         gridTemplateColumns: isDesktop ? 'repeat(2, minmax(0, 1fr))' : '1fr',
@@ -625,7 +653,7 @@ export default function Dashboard() {
           glasses={trainingDay?.water_glasses ?? 0}
           goalLitres={goals.water}
           accent={BRAND.blue}
-          onAdd={handleWaterAdd}
+          onAddMl={handleWaterAddMl}
           onRemove={handleWaterRemove}
         />
         <CaffeineTracker
