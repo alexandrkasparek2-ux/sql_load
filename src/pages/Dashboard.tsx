@@ -1187,6 +1187,8 @@ export default function Dashboard() {
               })()}
             </div>
 
+            {hydrationSection}
+
           </>
         )}
 
