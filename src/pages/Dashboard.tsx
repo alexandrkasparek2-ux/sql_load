@@ -1099,6 +1099,91 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* ── WEEKLY ENERGY OVERVIEW ───────────────────── */}
+            {historyData.length > 0 && (() => {
+              const last7       = historyData.slice(-7);
+              const hasBurn     = last7.some(d => d.burned > 0);
+              const weekIn      = last7.reduce((s, d) => s + d.kcal,   0);
+              const weekOut     = hasBurn ? last7.reduce((s, d) => s + d.burned, 0) : 0;
+              const weekBalance = weekOut > 0 ? weekIn - weekOut : null;
+
+              return (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 10 }}>
+                    ENERGIE · 7 DNÍ
+                  </div>
+                  <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: '14px 14px 12px' }}>
+                    {/* Summary chips */}
+                    <div style={{ display: 'grid', gridTemplateColumns: weekBalance !== null ? '1fr 1fr 1fr' : '1fr 1fr', gap: 8, marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${T.border}` }}>
+                      {[
+                        { label: 'PŘIJATO', val: weekIn > 0 ? `${Math.round(weekIn / 1000).toFixed(1).replace('.', ',')} k` : '—', color: accent },
+                        ...(weekOut > 0 ? [{ label: 'VÝDEJ', val: `${Math.round(weekOut / 1000).toFixed(1).replace('.', ',')} k`, color: BRAND.orange }] : []),
+                        ...(weekBalance !== null ? [{ label: 'BILANCE', val: `${weekBalance > 0 ? '+' : ''}${Math.round(weekBalance / 1000 * 10) / 10}k`.replace('.', ','), color: weekBalance <= 0 ? BRAND.green : '#ef4444' }] : []),
+                      ].map(s => (
+                        <div key={s.label} style={{ textAlign: 'center' }}>
+                          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700, fontVariantNumeric: 'tabular-nums' as const, color: s.color, lineHeight: 1 }}>
+                            {s.val}
+                          </div>
+                          <div style={{ fontSize: 8, color: T.muted, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em', marginTop: 3 }}>
+                            {s.label}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Per-day rows */}
+                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 7 }}>
+                      {last7.map(d => {
+                        const isToday  = d.date === today;
+                        const barIn    = d.goal > 0 ? Math.min(100, (d.kcal   / d.goal) * 100) : 0;
+                        const barOut   = d.goal > 0 ? Math.min(100, (d.burned / d.goal) * 100) : 0;
+                        const balance  = d.burned > 0 ? d.kcal - d.burned : null;
+                        const isEmpty  = d.kcal === 0 && !isToday;
+                        return (
+                          <div key={d.date} style={{ display: 'grid', gridTemplateColumns: '20px 1fr auto', gap: 8, alignItems: 'center', opacity: isEmpty ? 0.35 : 1 }}>
+                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: isToday ? accent : T.muted, fontWeight: isToday ? 700 : 400, textTransform: 'uppercase' as const }}>
+                              {d.label}
+                            </span>
+                            <div style={{ position: 'relative', height: 5, background: T.border, borderRadius: 3, overflow: 'hidden' }}>
+                              {/* burned bar (background) */}
+                              {d.burned > 0 && (
+                                <div style={{ position: 'absolute', inset: 0, width: `${barOut}%`, background: BRAND.orange + '44', borderRadius: 3 }} />
+                              )}
+                              {/* consumed bar (foreground) */}
+                              <div style={{ position: 'absolute', inset: 0, width: `${barIn}%`, background: barIn >= 95 ? BRAND.green : isToday ? accent : accent + 'bb', borderRadius: 3 }} />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, justifyContent: 'flex-end', minWidth: 80 }}>
+                              <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, fontVariantNumeric: 'tabular-nums' as const, color: isToday ? T.text : T.muted }}>
+                                {d.kcal > 0 ? d.kcal.toLocaleString('cs') : '—'}
+                              </span>
+                              {balance !== null && d.kcal > 0 && (
+                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, color: balance <= 0 ? BRAND.green : '#ef4444', fontVariantNumeric: 'tabular-nums' as const }}>
+                                  {balance > 0 ? `+${balance.toLocaleString('cs')}` : balance.toLocaleString('cs')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {/* Legend */}
+                    {hasBurn && (
+                      <div style={{ display: 'flex', gap: 12, marginTop: 12, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
+                          <div style={{ width: 12, height: 4, borderRadius: 2, background: accent }} />příjem
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
+                          <div style={{ width: 12, height: 4, borderRadius: 2, background: BRAND.orange + '66' }} />výdej
+                        </div>
+                        <div style={{ marginLeft: 'auto', fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
+                          bilance = příjem − výdej
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* ── AI NUDGE ──────────────────────────────────── */}
             <div
               onClick={() => navigate('/chat')}
