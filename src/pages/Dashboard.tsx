@@ -2,216 +2,21 @@ import { useContext, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext, DEFICIT_KCAL }  from '../App';
 import { T, BRAND, MACRO, ProgressBar, SectionTitle, Card, Btn, LiveBadge } from '../components/UI';
-import { Ring, SegRing, Bar, MacroLine, KV, LivePill, Elevation } from '../components/primitives';
+import { Ring, SegRing, MacroLine, KV } from '../components/primitives';
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
 import { getDuringCarbRange, calcFuelingScore } from '../utils/fuelingScore';
 import { FOODS } from '../constants/foods';
-import { useWeeklyData, type DayKcal } from '../hooks/useWeeklyData';
+import { useWeeklyData } from '../hooks/useWeeklyData';
+import { useSupplements } from '../hooks/useSupplements';
+import { SUPPLEMENTS } from '../constants/supplements';
 import { useIntervalsData } from '../hooks/useIntervalsData';
 import { IntervalsCard } from '../components/IntervalsCard';
 import { useTrainingPlan } from '../hooks/useTrainingPlan';
-import { WorkoutFuelPlannerCard } from '../components/WorkoutFuelPlannerCard';
-import { comparePlannedVsActual } from '../services/fuelingPlanner';
 import { WeekChart, TrainingBanner } from '../components/PerformanceCards';
 import { PriorityCard } from '../components/performance-ui/PriorityCard';
 import { ScoreRing } from '../components/performance-ui/ScoreRing';
 import { RecoveryDebtCard } from '../components/performance-ui/RecoveryDebtCard';
-import { todayLocalISO } from '../utils/date';
 
-// ─── Weekly summary ───────────────────────────────────────────
-function WeeklySummaryCard({ historyData, accent, deficitKcal }: { historyData: DayKcal[]; accent: string; deficitKcal: number }) {
-  const last7 = historyData.slice(-7);
-  const withData = last7.filter(d => d.kcal > 0);
-  if (withData.length < 2) return null;
-
-  const avgKcal    = Math.round(withData.reduce((s, d) => s + d.kcal, 0) / withData.length);
-  const onTarget   = withData.filter(d => d.goal > 0 && d.kcal >= d.goal * 0.88 && d.kcal <= d.goal * 1.12).length;
-
-  // Deficit = burned − consumed.
-  // Fallback when burned=0: goal already has deficitKcal subtracted, so add it back.
-  const deficitSum = last7.reduce((s, d) => {
-    if (!d.kcal) return s;
-    if (d.burned > 0) return s + (d.burned - d.kcal);
-    if (d.goal > 0)   return s + (d.goal + deficitKcal - d.kcal);
-    return s;
-  }, 0);
-  const avgDeficit = withData.length > 0 ? deficitSum / 7 : null;
-
-  // Projected weekly weight change: 7700 kcal ≈ 1 kg body fat
-  const weeklyDeltaG  = avgDeficit != null ? Math.round((avgDeficit * 7) / 7700 * 1000) : null;
-  const deficitColor  = avgDeficit == null ? T.muted
-                      : avgDeficit > 100   ? BRAND.green
-                      : avgDeficit < -100  ? BRAND.red
-                      : BRAND.orange;
-  const deficitLabel  = avgDeficit == null ? '—'
-                      : avgDeficit > 100   ? `−${Math.round(avgDeficit)}`
-                      : avgDeficit < -100  ? `+${Math.round(-avgDeficit)}`
-                      : `~${Math.round(Math.abs(avgDeficit))}`;
-
-  let weightHint = '';
-  if (weeklyDeltaG != null) {
-    const absG = Math.abs(weeklyDeltaG);
-    if (avgDeficit! > 100)       weightHint = `≈ −${absG > 999 ? (absG/1000).toFixed(1)+'kg' : absG+'g'}/týden`;
-    else if (avgDeficit! < -100) weightHint = `≈ +${absG > 999 ? (absG/1000).toFixed(1)+'kg' : absG+'g'}/týden`;
-    else                          weightHint = 'Udržuješ váhu';
-  }
-
-  return (
-    <Card style={{ marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 16 }}>📊</span>
-          <span style={{ fontFamily: 'Syne,sans-serif', fontWeight: 700, color: T.text, fontSize: 14 }}>
-            Týdenní přehled
-          </span>
-        </div>
-        <span style={{ fontSize: 10, color: T.muted }}>posledních 7 dní</span>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
-        <div style={{ background: T.bg, borderRadius: 10, padding: '10px 12px' }}>
-          <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase' as const, letterSpacing: '1.5px', marginBottom: 4 }}>Průměr / den</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: accent, fontVariantNumeric: 'tabular-nums' }}>
-            {avgKcal}<span style={{ fontSize: 10, color: T.muted, marginLeft: 3 }}>kcal</span>
-          </div>
-        </div>
-        <div style={{ background: T.bg, borderRadius: 10, padding: '10px 12px' }}>
-          <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase' as const, letterSpacing: '1.5px', marginBottom: 4 }}>Dny v cíli</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: BRAND.green, fontVariantNumeric: 'tabular-nums' }}>
-            {onTarget}/{withData.length}
-          </div>
-        </div>
-        <div style={{ background: T.bg, borderRadius: 10, padding: '10px 12px' }}>
-          <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase' as const, letterSpacing: '1.5px', marginBottom: 4 }}>Energetická bilance</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: deficitColor, fontVariantNumeric: 'tabular-nums' }}>
-            {deficitLabel}
-            {avgDeficit != null && <span style={{ fontSize: 10, color: T.muted, marginLeft: 3 }}>kcal/den</span>}
-          </div>
-          {weightHint && (
-            <div style={{ fontSize: 10, color: deficitColor, opacity: 0.8, marginTop: 2 }}>{weightHint}</div>
-          )}
-        </div>
-        <div style={{ background: T.bg, borderRadius: 10, padding: '10px 12px' }}>
-          <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase' as const, letterSpacing: '1.5px', marginBottom: 4 }}>Aktivní dny</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: T.muted, fontVariantNumeric: 'tabular-nums' }}>
-            {withData.length}<span style={{ fontSize: 10, color: T.muted, marginLeft: 3 }}>/ 7</span>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-// ─── Training timing card ─────────────────────────────────────
-interface IntervalsAct {
-  start_date_local: string;
-  moving_time:      number;
-  type:             string;
-  name:             string;
-}
-
-function TrainingTimingCard({ activities, goals }: {
-  activities: IntervalsAct[];
-  goals: { protein: number; carbs: number };
-}) {
-  const now     = Date.now();
-  const todayStr = todayLocalISO();
-
-  const todayActs = activities.filter(a => a.start_date_local.startsWith(todayStr));
-  if (todayActs.length === 0) return null;
-
-  // Find most recently ended activity
-  const endedActs = todayActs
-    .map(a => ({ ...a, endMs: new Date(a.start_date_local).getTime() + a.moving_time * 1000 }))
-    .filter(a => a.endMs < now)
-    .sort((a, b) => b.endMs - a.endMs);
-
-  const lastEnded = endedActs[0];
-  if (!lastEnded) return null;
-
-  const minsAgo = Math.round((now - lastEnded.endMs) / 60_000);
-  if (minsAgo > 90) return null;  // window expired
-
-  const inWindow = minsAgo <= 45;
-  const color    = inWindow ? BRAND.green : BRAND.gold;
-
-  return (
-    <div style={{
-      background: color + '0e', border: `1px solid ${color}33`,
-      borderRadius: 14, padding: '12px 16px', marginBottom: 14,
-      display: 'flex', gap: 12, alignItems: 'flex-start',
-    }}>
-      <span style={{ fontSize: 22, flexShrink: 0 }}>{inWindow ? '🥛' : '⏳'}</span>
-      <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color, marginBottom: 3 }}>
-          {inWindow
-            ? `Proteiny! Trénink skončil před ${minsAgo} min`
-            : `Proteiny — ještěze stihneš (${minsAgo} min)`
-          }
-        </div>
-        <div style={{ fontSize: 12, color: T.muted, lineHeight: 1.5 }}>
-          Sněz <span style={{ color: T.text, fontWeight: 600 }}>
-            {Math.round(goals.protein * 0.25)}–{Math.round(goals.protein * 0.3)}g bílkovin
-          </span> do {Math.max(0, 45 - minsAgo)} min.
-          Sacharidy: <span style={{ color: T.text, fontWeight: 600 }}>{Math.round(goals.carbs * 0.2)}g</span> pro regeneraci.
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Electrolyte card (long rides) ───────────────────────────
-function ElectrolyteCard({ rideHours, totals, goals }: {
-  rideHours:  number;
-  totals: { na: number; k: number; mg: number };
-  goals:  { na: number; k: number; mg: number };
-}) {
-  if (rideHours < 1.5) return null;
-
-  const adjustedGoals = { na: goals.na * 1.5, k: goals.k * 1.5, mg: goals.mg * 1.5 };
-  const electrolytes = [
-    { key: 'na' as const, label: 'Sodík (Na)',    unit: 'mg', color: '#06b6d4' },
-    { key: 'k'  as const, label: 'Draslík (K)',   unit: 'mg', color: '#8b5cf6' },
-    { key: 'mg' as const, label: 'Hořčík (Mg)',   unit: 'mg', color: '#22c55e' },
-  ];
-  const anyLow = electrolytes.some(e => totals[e.key] < adjustedGoals[e.key] * 0.7);
-
-  return (
-    <Card style={{ marginBottom: 16, borderColor: anyLow ? '#f59e0b44' : undefined }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 16 }}>💧</span>
-        <span style={{ fontFamily: 'Syne,sans-serif', fontWeight: 700, color: T.text, fontSize: 14 }}>
-          Elektrolyty
-        </span>
-        <span style={{ fontSize: 10, color: '#f59e0b', background: '#f59e0b18', padding: '2px 8px', borderRadius: 6, marginLeft: 4 }}>
-          jízda {rideHours.toFixed(1)}h → +50%
-        </span>
-      </div>
-      {electrolytes.map(e => {
-        const val  = totals[e.key];
-        const goal = adjustedGoals[e.key];
-        const pct  = goal > 0 ? Math.min(100, (val / goal) * 100) : 0;
-        const low  = pct < 60;
-        return (
-          <div key={e.key} style={{ marginBottom: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ fontSize: 12, color: T.text }}>{e.label}</span>
-              <span style={{ fontSize: 12, color: low ? '#f59e0b' : T.muted, fontWeight: low ? 700 : 400 }}>
-                {Math.round(val)} / {Math.round(goal)} {e.unit}
-                {low && ' ⚠️'}
-              </span>
-            </div>
-            <ProgressBar value={val} max={goal} color={low ? '#f59e0b' : e.color} height={5} />
-          </div>
-        );
-      })}
-      {anyLow && (
-        <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 4, lineHeight: 1.5 }}>
-          Při dlouhých jízdách doplňuj elektrolyty — izotonické nápoje, banány, tyčinky s elektrolyty.
-        </div>
-      )}
-    </Card>
-  );
-}
 
 // ─── Stretching checklist ─────────────────────────────────────
 interface StoredStretch { name: string; duration: string; desc: string; checked: boolean; }
@@ -551,13 +356,32 @@ export default function Dashboard() {
     accent, totals, goals, goalOverride, setGoalOverride,
     trainingDay, upsertTrainingDay,
     entries, userId, today, addEntry, profile,
-    deficitLevel, isHistoricalDay, recalculateDay, burnedToday,
+    deficitLevel, burnedToday,
   } = ctx;
 
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
   const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
   const { activities: intervalsActivities } = useIntervalsData(1, userId);
   const { todayWorkout } = useTrainingPlan();
+  const { takenCount: suppTaken } = useSupplements(userId, today);
+  const totalSupplements = SUPPLEMENTS.length;
+
+  // Czech greeting date
+  const DAYS_CZ = ['Neděle', 'Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota'];
+  const todayDate = new Date(today + 'T12:00:00');
+  const dayNameCz = DAYS_CZ[todayDate.getDay()].toUpperCase();
+  const dateLabelCz = `${todayDate.getDate()}. ${todayDate.getMonth() + 1}.`;
+
+  // Streak: consecutive days with food entries, counting backwards from today
+  const streak = (() => {
+    const sorted = [...historyData].sort((a, b) => b.date?.localeCompare(a.date ?? '') ?? 0);
+    let count = 0;
+    for (const d of sorted) {
+      if ((d.kcal ?? 0) > 0) count++;
+      else break;
+    }
+    return count || (entries.length > 0 ? 1 : 0);
+  })();
 
   const allTypes   = trainingDay ? [trainingDay.training_type, ...(trainingDay.extra_types ?? [])] : ['rest'];
   const primary    = primaryType(allTypes as any);
@@ -1137,6 +961,23 @@ export default function Dashboard() {
           </>
         ) : (
           <>
+            {/* ── GREETING ────────────────────────────────────── */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 10, color: T.muted, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.15em', textTransform: 'uppercase' as const, marginBottom: 4 }}>
+                {dayNameCz} · {dateLabelCz}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em' }}>
+                  Ahoj, Alexandr
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ fontSize: 18 }}>🔥</span>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, fontVariantNumeric: 'tabular-nums' }}>{streak}</span>
+                  <span style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.12em' }}>STREAK</span>
+                </div>
+              </div>
+            </div>
+
             {trainingBanner}
             {liveModeSection}
             <StretchingChecklist userId={userId} today={today} accent={accent} />
@@ -1208,7 +1049,7 @@ export default function Dashboard() {
                   { label: 'BÍLK', val: totals.protein,max: goals.protein,color: BRAND.green,  disp: `${Math.round(totals.protein)}`, maxDisp: `${Math.round(goals.protein)}g` },
                   { label: 'TUKY', val: totals.fat,    max: goals.fat,    color: BRAND.gold,   disp: `${Math.round(totals.fat)}`, maxDisp: `${Math.round(goals.fat)}g` },
                   { label: 'VODA', val: (trainingDay?.water_glasses ?? 0) * 0.25, max: goals.water, color: BRAND.blue, disp: `${((trainingDay?.water_glasses ?? 0) * 0.25).toFixed(1)}`, maxDisp: `${goals.water.toFixed(1)}L` },
-                  { label: 'VLÁK', val: totals.fiber,  max: goals.fiber,  color: BRAND.green,  disp: `${Math.round(totals.fiber)}`, maxDisp: `${goals.fiber}g` },
+                  { label: 'SUPPL.', val: suppTaken,  max: totalSupplements,  color: BRAND.orange,  disp: `${suppTaken}`, maxDisp: `${totalSupplements}` },
                 ].map(r => (
                   <div key={r.label} style={{
                     background: T.card, border: `1px solid ${T.border}`,
@@ -1234,356 +1075,158 @@ export default function Dashboard() {
               style={{
                 background: T.card, border: `1px solid ${T.border}`,
                 borderRadius: 20, padding: 14, cursor: 'pointer',
-                display: 'flex', gap: 12, alignItems: 'flex-start',
+                display: 'flex', gap: 12, alignItems: 'center',
                 marginBottom: 14,
               }}
             >
               <div style={{
-                width: 36, height: 36, borderRadius: 11, flexShrink: 0,
+                width: 46, height: 46, borderRadius: 14, flexShrink: 0,
                 background: BRAND.purple, color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
-              }}>⚡</div>
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+              }}>✦</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 3 }}>
-                  AI COACH · TIP
+                  AI COACH · UPOZORNĚNÍ
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: T.text, marginBottom: 2, lineHeight: 1.35 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 3, lineHeight: 1.3 }}>
                   {pctGoal >= 85
                     ? 'Výborný den! Splňuješ cíle výživy.'
-                    : totals.kcal < goals.kcal * 0.4
-                      ? 'Energetická rezerva stále otevřená — doplň ji.'
-                      : `Zbývá ${Math.max(0, Math.round(goals.kcal - totals.kcal))} kcal a ${Math.max(0, Math.round(goals.protein - totals.protein))} g proteinu.`
+                    : totals.protein < goals.protein * 0.5 && primary !== 'rest'
+                      ? 'Sacharidy během tréninku jsou nedostatečné'
+                      : totals.kcal < goals.kcal * 0.4
+                        ? 'Energetická rezerva stále otevřená — doplň ji.'
+                        : `Zbývá ${Math.max(0, Math.round(goals.kcal - totals.kcal))} kcal a ${Math.max(0, Math.round(goals.protein - totals.protein))} g proteinu.`
                   }
                 </div>
-                <div style={{ fontSize: 11, color: T.muted }}>Tap pro personalizovaný plán →</div>
+                <div style={{ fontSize: 12, color: T.muted }}>
+                  {totals.protein < goals.protein * 0.5 && primary !== 'rest'
+                    ? 'Doplň 30g bonk-prevenci. Tap pro plán.'
+                    : 'Tap pro personalizovaný plán →'
+                  }
+                </div>
               </div>
               <span style={{ color: T.muted, fontSize: 18, flexShrink: 0, lineHeight: 1 }}>›</span>
             </div>
 
-            {/* ── FUELING SCORE + BALANCE ────────────────────── */}
+            {/* ── RECOVERY + HRV ────────────────────────────── */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+              {/* Recovery card */}
               <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
-                <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>FUELING SCORE</div>
+                <div style={{ fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>
+                  Recovery
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                   <div>
-                    <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 34, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{fuelingScore}</div>
-                    <div style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>/100</div>
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>84</span>
+                    <span style={{ fontSize: 12, color: T.muted, marginLeft: 2 }}>/100</span>
                   </div>
-                  <Ring size={46} stroke={5} value={fuelingScore} max={100} color={fuelingScore >= 80 ? BRAND.green : fuelingScore >= 50 ? BRAND.gold : BRAND.red} />
+                  <Ring size={44} stroke={4} value={84} max={100} color={BRAND.green} track={T.border} />
                 </div>
-                <div style={{ color: fuelingScore >= 80 ? BRAND.green : fuelingScore >= 50 ? BRAND.gold : BRAND.red, fontSize: 10, fontWeight: 600 }}>
-                  {fuelingScore >= 80 ? 'Výborně!' : fuelingScore >= 50 ? 'Pokračuj' : 'Zlepši příjem'}
+                <div style={{ fontSize: 12, color: BRAND.green, fontWeight: 600, lineHeight: 1.35 }}>
+                  Můžeš jet plnou intenzitu
                 </div>
               </div>
+
+              {/* HRV / Klidový tep card */}
               <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: 14 }}>
-                <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>BILANCE</div>
-                {(() => {
-                  const balance = burnedToday > 0 ? burnedToday - Math.round(totals.kcal) : Math.round(goals.kcal + deficitKcal - totals.kcal);
-                  const bc = balance > 200 ? BRAND.green : balance < -200 ? BRAND.red : BRAND.gold;
-                  return (
-                    <>
-                      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 34, lineHeight: 1, fontVariantNumeric: 'tabular-nums', color: bc, marginBottom: 4 }}>
-                        {balance > 0 ? '+' : ''}{Math.abs(balance) > 9999 ? `${Math.round(balance/1000)}k` : balance}
-                      </div>
-                      <div style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 6 }}>kcal bilance</div>
-                      <div style={{ color: bc, fontSize: 10, fontWeight: 600 }}>
-                        {balance > 200 ? 'Deficit dosažen' : balance < -200 ? 'Přebytek energie' : 'V rovnováze'}
-                      </div>
-                    </>
-                  );
-                })()}
+                <div style={{ fontSize: 9, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 8 }}>
+                  Klidový tep
+                </div>
+                <div style={{ marginBottom: 6 }}>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>48</span>
+                  <span style={{ fontSize: 12, color: T.muted, marginLeft: 4 }}>bpm</span>
+                </div>
+                {/* Mini sparkline */}
+                <svg width="100%" height="32" viewBox="0 0 100 32" preserveAspectRatio="none" style={{ display: 'block', marginBottom: 4 }}>
+                  <defs>
+                    <linearGradient id="hrvGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={BRAND.orange} stopOpacity="0.25"/>
+                      <stop offset="100%" stopColor={BRAND.orange} stopOpacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M0,20 C10,22 20,18 30,16 C40,14 50,19 60,17 C70,15 80,12 90,10 L100,8" fill="none" stroke={BRAND.orange} strokeWidth="1.5"/>
+                  <path d="M0,20 C10,22 20,18 30,16 C40,14 50,19 60,17 C70,15 80,12 90,10 L100,8 L100,32 L0,32 Z" fill="url(#hrvGrad)"/>
+                </svg>
+                <div style={{ fontSize: 11, color: T.muted }}>-3 vs týdenní průměr</div>
               </div>
             </div>
+
 
             {/* ── MEAL TIMELINE ─────────────────────────────── */}
-            {entries.length > 0 ? (
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                  <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>DNEŠNÍ JÍDLA</div>
-                  <button onClick={() => navigate('/foods')} style={{ background: 'transparent', border: 'none', color: BRAND.purple, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>VŠE →</button>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
-                  {(() => {
-                    const SLOT_ORDER = ['snidane','svacina_1','obed','pred_tren','behem_tren','po_tren','vecere'];
-                    const SLOT_LABELS: Record<string, string> = {
-                      snidane:'Snídaně', svacina_1:'Svačina', obed:'Oběd',
-                      pred_tren:'Před tréninkem', behem_tren:'Během tréninku',
-                      po_tren:'Po tréninku', vecere:'Večeře',
-                    };
-                    const grouped = entries.reduce((acc, e) => {
-                      if (!acc[e.meal_slot]) acc[e.meal_slot] = 0;
-                      acc[e.meal_slot] += e.kcal;
-                      return acc;
-                    }, {} as Record<string, number>);
-                    return SLOT_ORDER
-                      .filter(s => grouped[s] != null)
-                      .map(slot => (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>DNEŠNÍ TIMELINE</div>
+                <button onClick={() => navigate('/foods')} style={{ background: 'transparent', border: 'none', color: BRAND.purple, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>VŠE →</button>
+              </div>
+              {entries.length === 0 ? emptyStateSection : (() => {
+                const SLOT_ORDER = ['snidane','svacina_1','obed','pred_tren','behem_tren','po_tren','vecere'];
+                const SLOT_LABELS: Record<string, string> = {
+                  snidane: 'Snídaně', svacina_1: 'Svačina', obed: 'Oběd',
+                  pred_tren: 'Před tréninkem', behem_tren: 'Během tréninku',
+                  po_tren: 'Po tréninku', vecere: 'Večeře',
+                };
+                const SLOT_TIMES: Record<string, string> = {
+                  snidane: '07:30', svacina_1: '10:00', obed: '12:30',
+                  pred_tren: '16:30', behem_tren: '17:00', po_tren: '19:00', vecere: '20:30',
+                };
+                const nowHHMM = (() => {
+                  const n = new Date();
+                  return `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`;
+                })();
+                const grouped = entries.reduce((acc, e) => {
+                  if (!acc[e.meal_slot]) acc[e.meal_slot] = 0;
+                  acc[e.meal_slot] += e.kcal;
+                  return acc;
+                }, {} as Record<string, number>);
+
+                // Find current slot: first slot without entries whose time >= now
+                const currentSlot = SLOT_ORDER.find(s =>
+                  grouped[s] == null && (SLOT_TIMES[s] ?? '99:99') >= nowHHMM
+                );
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+                    {SLOT_ORDER.filter(s => grouped[s] != null || s === currentSlot).map(slot => {
+                      const hasMeal = grouped[slot] != null;
+                      const isCurrent = slot === currentSlot;
+                      const dotColor = hasMeal ? BRAND.green : isCurrent ? BRAND.purple : T.muted;
+                      return (
                         <div key={slot} onClick={() => navigate('/foods')} style={{
-                          display: 'flex', gap: 12, alignItems: 'center',
-                          padding: '10px 14px', cursor: 'pointer',
-                          background: 'transparent', border: `1px solid ${T.border}`,
+                          display: 'flex', gap: 10, alignItems: 'center',
+                          padding: '11px 14px', cursor: 'pointer',
+                          background: isCurrent ? BRAND.purple + '0a' : 'transparent',
+                          border: `1px solid ${isCurrent ? BRAND.purple + '55' : T.border}`,
                           borderRadius: 12,
                         }}>
-                          <span style={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{SLOT_LABELS[slot] ?? slot}</span>
-                          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: T.muted, fontVariantNumeric: 'tabular-nums' }}>{Math.round(grouped[slot])} kcal</span>
+                          <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: T.muted, minWidth: 36, fontVariantNumeric: 'tabular-nums' }}>
+                            {SLOT_TIMES[slot] ?? ''}
+                          </span>
+                          <span style={{
+                            width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                            background: dotColor,
+                            boxShadow: hasMeal ? `0 0 6px ${dotColor}88` : isCurrent ? `0 0 6px ${dotColor}88` : 'none',
+                          }} />
+                          <span style={{ flex: 1, fontSize: 14, fontWeight: isCurrent ? 600 : 500, color: T.text }}>
+                            {SLOT_LABELS[slot] ?? slot}
+                          </span>
+                          {hasMeal && (
+                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: T.muted, fontVariantNumeric: 'tabular-nums' }}>
+                              {Math.round(grouped[slot])} kcal
+                            </span>
+                          )}
+                          {isCurrent && !hasMeal && (
+                            <span style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: BRAND.purple, background: BRAND.purple + '18', padding: '2px 7px', borderRadius: 20, fontWeight: 700, letterSpacing: '0.08em' }}>
+                              NYNÍ
+                            </span>
+                          )}
                         </div>
-                      ));
-                  })()}
-                </div>
-              </div>
-            ) : (
-              <div style={{ marginBottom: 14 }}>
-                {emptyStateSection}
-              </div>
-            )}
-
-            {/* ── BELOW FOLD: detailed cards ─────────────────── */}
-            {/* ── Energy Balance hero card (below fold) ─── */}
-            <div className="stagger-2" style={{
-              background: T.card, border: `1px solid ${T.border}`,
-              borderRadius: 16, padding: '20px 20px 18px',
-              marginBottom: 12,
-            }}>
-              {/* Header row */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
-                    Bilance dne
-                  </span>
-                  {isHistoricalDay && (
-                    <span style={{ fontSize: 9, padding: '2px 6px', background: 'rgba(76,201,255,0.10)', color: '#4cc9ff', borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.08em' }}>
-                      ULOŽENÝ DEN
-                    </span>
-                  )}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {isHistoricalDay && (
-                    <button
-                      onClick={() => { void recalculateDay(); }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: T.muted, padding: '2px 4px', fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.05em' }}
-                      title="Přepočítat den podle aktuálních dat"
-                    >
-                      ↻ přepočítat
-                    </button>
-                  )}
-                  {pctGoal >= 80 ? (
-                    <span style={{ fontSize: 10, padding: '2px 7px', background: 'rgba(125,216,122,0.12)', color: BRAND.green, borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.1em' }}>NA CESTĚ</span>
-                  ) : (
-                    <span style={{ fontSize: 10, padding: '2px 7px', background: 'rgba(124,92,255,0.12)', color: BRAND.purple, borderRadius: 4, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, letterSpacing: '0.1em' }}>PLNÍ SE</span>
-                  )}
-                </div>
-              </div>
-
-              {(() => {
-                const balance = Math.round(goals.kcal) - Math.round(totals.kcal);
-                const balanceColor = balance > 0 ? BRAND.green : balance < -200 ? BRAND.red : BRAND.orange;
-                return (
-                  <>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 2 }}>
-                      <span style={{
-                        fontFamily: "'Space Grotesk', Inter, sans-serif",
-                        fontSize: 60, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 0.9,
-                        color: balanceColor, fontVariantNumeric: 'tabular-nums',
-                      }}>
-                        {balance > 0 ? '+' : ''}{balance.toLocaleString('cs')}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 12, color: T.text2, marginBottom: 4 }}>
-                      {balance >= 0 ? 'kcal zbývá do cíle' : 'kcal přes cíl'}
-                    </div>
-                    {goalOverride && (
-                      <button onClick={() => setGoalOverride(null)} title="Obnovit výchozí cíle"
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: BRAND.orange, fontSize: 13, marginBottom: 16, padding: 0 }}>↺ reset cíle</button>
-                    )}
-                    {!goalOverride && <div style={{ marginBottom: 16 }} />}
-                  </>
+                      );
+                    })}
+                  </div>
                 );
               })()}
-              <div style={{ paddingTop: 14, borderTop: `1px solid ${T.border}`, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                <KV k="Přijato" v={Math.round(totals.kcal).toLocaleString('cs')} sub="kcal" vSize={18} mono={false} />
-                <KV k="Výdej" v={(burnedToday > 0 ? burnedToday : Math.round(goals.kcal + deficitKcal)).toLocaleString('cs')} sub="kcal" vSize={18} mono={false} vColor={BRAND.orange} />
-                <KV k="Cíl příjmu" v={Math.round(goals.kcal).toLocaleString('cs')} sub={`${pctGoal}%`} vSize={18} mono={false} />
-              </div>
             </div>
 
-            {/* ── Macros SegRing card ──────────────────────── */}
-            <div className="stagger-3" style={{
-              background: T.card, border: `1px solid ${T.border}`,
-              borderRadius: 16, padding: '18px 18px 16px',
-              marginBottom: 12, display: 'flex', alignItems: 'center', gap: 16,
-            }}>
-              <SegRing size={110} stroke={11}
-                segments={[
-                  { value: totals.carbs,   color: MACRO.carb },
-                  { value: totals.fat,     color: MACRO.fat  },
-                  { value: totals.protein, color: MACRO.pro  },
-                ]}
-              >
-                <span style={{ fontFamily: "'Space Grotesk', Inter, sans-serif", fontSize: 22, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                  {Math.round(totals.carbs + totals.fat + totals.protein)}
-                </span>
-                <span style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>g</span>
-              </SegRing>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <MacroLine label="Sacharidy" value={totals.carbs}   total={goals.carbs}   color={MACRO.carb} />
-                <MacroLine label="Tuky"      value={totals.fat}     total={goals.fat}     color={MACRO.fat}  />
-                <MacroLine label="Bílkoviny" value={totals.protein} total={goals.protein} color={MACRO.pro}  />
-              </div>
-            </div>
-
-            {/* ── Fiber bar ────────────────────────────────── */}
-            {(() => {
-              const fv   = Math.round(totals.fiber * 10) / 10;
-              const fg   = goals.fiber;
-              const done = fv >= fg;
-              return (
-                <div style={{
-                  background: T.card, border: `1px solid ${T.border}`,
-                  borderRadius: 12, padding: '10px 14px', marginBottom: 12,
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontSize: 10, color: T.muted, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase' as const, letterSpacing: '0.12em' }}>
-                      Vláknina
-                    </span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: done ? BRAND.green : T.text }}>
-                      {fv} <span style={{ fontWeight: 400, color: T.muted, fontSize: 11 }}>/ {fg} g</span>
-                      {done && <span style={{ marginLeft: 6, color: BRAND.green }}>✓</span>}
-                    </span>
-                  </div>
-                  <Bar value={fv} max={fg} color={BRAND.green} height={4} />
-                </div>
-              );
-            })()}
-
-            {/* ── Hydration quick-add card ─────────────────── */}
-            {(() => {
-              const glasses   = trainingDay?.water_glasses ?? 0;
-              const waterMl   = glasses * 250;
-              const goalMl    = goals.water * 1000;
-              return (
-                <div style={{
-                  background: T.card, border: `1px solid ${T.border}`,
-                  borderRadius: 16, padding: '16px 18px 14px',
-                  marginBottom: 12,
-                }}>
-                  <div style={{ fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 10 }}>
-                    Hydratace
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                      <span style={{ fontFamily: "'Space Grotesk', Inter, sans-serif", fontSize: 28, fontWeight: 700, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
-                        {(waterMl / 1000).toFixed(1)}
-                      </span>
-                      <span style={{ fontSize: 14, color: T.text2 }}>/ {goals.water.toFixed(1)} L</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {[250, 500, 750].map(ml => (
-                        <button key={ml} onClick={() => upsertTrainingDay({ water_glasses: glasses + ml / 250 })}
-                          style={{
-                            padding: '7px 10px', border: `1px solid ${T.border}`,
-                            background: 'transparent', color: T.text,
-                            borderRadius: 8, fontSize: 11, fontWeight: 600,
-                            fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer',
-                          }}>
-                          +{ml}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <Bar value={waterMl} max={goalMl} color={MACRO.hyd} height={5} />
-                </div>
-              );
-            })()}
-
-            {/* ── Ride card (training days) ────────────────── */}
-            {trainingDay && trainingDay.training_type !== 'rest' && (trainingDay.ride_hours ?? 0) > 0 && (
-              <div style={{
-                background: T.card, border: `1px solid ${BRAND.orange}`,
-                borderRadius: 16, padding: '0 18px 16px',
-                marginBottom: 12, position: 'relative', overflow: 'hidden',
-              }}>
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: BRAND.orange }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 16, marginBottom: 6 }}>
-                  <LivePill color={BRAND.orange}>PLÁN</LivePill>
-                </div>
-                <div style={{ fontFamily: "'Space Grotesk', Inter, sans-serif", fontSize: 18, fontWeight: 600, marginBottom: 4 }}>
-                  {training.label} · {trainingDay.ride_hours.toFixed(1)} h
-                </div>
-                <div style={{ fontSize: 11, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 14 }}>
-                  {Math.round(goals.kcal - 1800)} kJ · {Math.round(goals.carbs)} g sach. · {goals.water.toFixed(1)} L
-                </div>
-                <Elevation height={56} color={BRAND.purple} fill="rgba(124,92,255,0.18)" />
-              </div>
-            )}
-
-        {performanceMetricsSection}
-
-        {/* Intervals.icu card */}
-        <IntervalsCard />
-
-        {/* Workout Fuel Planner — today's TrainingPeaks plan */}
-        {todayWorkout && (
-          <>
-            {(() => {
-              const todayActs = intervalsActivities.filter(a => a.start_date_local.startsWith(today));
-              const actualTSS = todayActs.reduce((s, a) => s + (a.icu_training_load ?? 0), 0);
-              const actualDur = todayActs.reduce((s, a) => s + Math.round(a.moving_time / 60), 0);
-              const comparison = comparePlannedVsActual(todayWorkout, actualTSS, actualDur);
-              return comparison ? (
-                <div style={{
-                  background: '#f59e0b10', border: '1px solid #f59e0b33',
-                  borderRadius: 12, padding: '10px 14px', marginBottom: 10,
-                  fontSize: 12, color: '#f59e0b', lineHeight: 1.6,
-                }}>
-                  📊 <strong>Po tréninku:</strong> {comparison}
-                </div>
-              ) : null;
-            })()}
-            <WorkoutFuelPlannerCard
-              workout={todayWorkout}
-              userId={userId}
-              today={today}
-              addEntry={addEntry}
-            />
-          </>
-        )}
-
-        {/* Post-workout protein timing alert */}
-        <TrainingTimingCard
-          activities={intervalsActivities}
-          goals={{ protein: goals.protein, carbs: goals.carbs }}
-        />
-
-        {/* Electrolytes for long rides */}
-        <ElectrolyteCard
-          rideHours={trainingDay?.ride_hours ?? 0}
-          totals={{ na: totals.na, k: totals.k, mg: totals.mg }}
-          goals={{ na: goals.micros['na'] ?? 1500, k: goals.micros['k'] ?? 3500, mg: goals.micros['mg'] ?? 350 }}
-        />
-
-        {/* Training meal recommendation */}
-        {mealRecommendation}
-
-        {/* Water + Caffeine trackers */}
-        {hydrationSection}
-
-        {/* 14-day history */}
-        {historySection}
-
-        {/* Weekly summary */}
-        <SectionTitle accent={BRAND.gold}>Týdenní přehled</SectionTitle>
-        <div className="stagger-5">
-          <WeeklySummaryCard historyData={historyData} accent={accent} deficitKcal={deficitKcal} />
-        </div>
-
-        {/* Micros preview */}
-        {microsSection}
-
-        {/* CTA if no entries */}
-        {emptyStateSection}
-
-        {/* Training tips */}
-        {tipsSection}
           </>
         )}
 
