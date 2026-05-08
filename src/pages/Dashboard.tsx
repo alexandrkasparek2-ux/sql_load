@@ -391,8 +391,7 @@ export default function Dashboard() {
   const shiftDay = (delta: number) => {
     const d = new Date(today + 'T00:00:00');
     d.setDate(d.getDate() + delta);
-    const next = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    if (next <= realToday) setToday(next);
+    setToday(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
   };
 
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
@@ -1035,8 +1034,7 @@ export default function Dashboard() {
                 </div>
                 <button
                   onClick={() => shiftDay(1)}
-                  disabled={isViewingToday}
-                  style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none', color: isViewingToday ? T.border : T.muted, fontSize: 18, cursor: isViewingToday ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none', color: T.muted, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >›</button>
               </div>
             </div>

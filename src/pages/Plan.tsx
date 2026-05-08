@@ -417,6 +417,7 @@ export default function Plan() {
   const [experimentNote, setExperimentNote] = useState('');
   const [savingExperiment, setSavingExperiment] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
   const { activities, loading, error, stale, isConnected, cacheAge, sync } = useIntervalsData(90);
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
@@ -848,29 +849,72 @@ export default function Plan() {
                 return [hrsStr, dayPlan!.tss > 0 ? `${Math.round(dayPlan!.tss)} TSS` : null].filter(Boolean).join(' · ');
               })();
 
+              const isExpanded = expandedDay === date;
+              const canExpand = hasActual || !!dayPlan;
+
               return (
-                <div key={date} style={{ background: T.card, border: `1px solid ${isToday ? BRAND.purple : T.border}`, borderRadius: 14, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 38, flexShrink: 0, textAlign: 'center' as const }}>
-                    <div style={{ fontSize: 9, letterSpacing: '0.1em', color: T.muted, fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.3 }}>{abr}</div>
-                    <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1.1, color: T.text }}>{dateNum}</div>
-                  </div>
-                  <div style={{ width: 3, height: 36, borderRadius: 2, background: borderColor, flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: isRest ? T.muted : T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
-                      {title}
+                <div key={date} style={{ background: T.card, border: `1px solid ${isToday ? BRAND.purple : isExpanded ? BRAND.purple + '55' : T.border}`, borderRadius: 14, overflow: 'hidden' }}>
+                  {/* Main row */}
+                  <div
+                    onClick={() => canExpand && setExpandedDay(d => d === date ? null : date)}
+                    style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 12, cursor: canExpand ? 'pointer' : 'default' }}
+                  >
+                    <div style={{ width: 38, flexShrink: 0, textAlign: 'center' as const }}>
+                      <div style={{ fontSize: 9, letterSpacing: '0.1em', color: T.muted, fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.3 }}>{abr}</div>
+                      <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", lineHeight: 1.1, color: T.text }}>{dateNum}</div>
                     </div>
-                    <div style={{ fontSize: 11, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginTop: 1 }}>
-                      {subtitle}
+                    <div style={{ width: 3, height: 36, borderRadius: 2, background: borderColor, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: isRest ? T.muted : T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                        {title}
+                      </div>
+                      <div style={{ fontSize: 11, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginTop: 1 }}>
+                        {subtitle}
+                      </div>
+                    </div>
+                    <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {hasActual && <div style={{ fontSize: 12, color: BRAND.green, fontWeight: 700 }}>✓</div>}
+                      {isToday && <div style={{ fontSize: 10, fontWeight: 700, color: BRAND.purple, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>DNES</div>}
+                      {canExpand && <div style={{ fontSize: 14, color: T.muted, lineHeight: 1, transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>›</div>}
                     </div>
                   </div>
-                  <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    {hasActual && (
-                      <div style={{ fontSize: 12, color: BRAND.green, fontWeight: 700 }}>✓</div>
-                    )}
-                    {isToday && (
-                      <div style={{ fontSize: 10, fontWeight: 700, color: BRAND.purple, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em' }}>DNES</div>
-                    )}
-                  </div>
+
+                  {/* Expanded detail */}
+                  {isExpanded && (
+                    <div style={{ borderTop: `1px solid ${T.border}`, padding: '12px 14px', display: 'flex', flexDirection: 'column' as const, gap: 10 }}>
+                      {/* Actual activities */}
+                      {dayActs.length > 0 && dayActs.map((act, i) => (
+                        <div key={act.id ?? i} style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 16 }}>{sportIcon(act.type)}</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: T.text, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{act.name}</span>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                            {[
+                              { label: 'ČAS',      val: formatDuration(act.moving_time) },
+                              { label: 'TSS',      val: act.icu_training_load != null ? Math.round(act.icu_training_load).toString() : '—' },
+                              { label: 'DIST',     val: act.distance > 0 ? `${(act.distance / 1000).toFixed(1)} km` : '—' },
+                              { label: 'SR',       val: act.average_heartrate ? `${Math.round(act.average_heartrate)} bpm` : '—' },
+                              { label: 'VÝKON',    val: act.icu_average_watts ? `${Math.round(act.icu_average_watts)} W` : '—' },
+                              { label: 'KCAL',     val: act.calories ? act.calories.toLocaleString('cs') : '—' },
+                            ].filter(s => s.val !== '—').map(s => (
+                              <div key={s.label} style={{ background: T.bg, borderRadius: 8, padding: '7px 10px' }}>
+                                <div style={{ fontSize: 8, color: T.muted, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.1em', marginBottom: 2 }}>{s.label}</div>
+                                <div style={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: 'tabular-nums' as const }}>{s.val}</div>
+                              </div>
+                            ))}
+                          </div>
+                          {i < dayActs.length - 1 && <div style={{ height: 1, background: T.border }} />}
+                        </div>
+                      ))}
+                      {/* Planned (if no actual) */}
+                      {!hasActual && dayPlan && (
+                        <div style={{ fontSize: 12, color: T.muted, fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.6 }}>
+                          {dayPlan.description ?? 'Bez popisu'}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
