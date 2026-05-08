@@ -379,9 +379,21 @@ export default function Dashboard() {
   const {
     accent, totals, goals, goalOverride, setGoalOverride,
     trainingDay, upsertTrainingDay,
-    entries, userId, today, addEntry, profile,
+    entries, userId, today, setToday, addEntry, profile,
     deficitLevel, burnedToday,
   } = ctx;
+
+  const realToday = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+  const isViewingToday = today === realToday;
+  const shiftDay = (delta: number) => {
+    const d = new Date(today + 'T00:00:00');
+    d.setDate(d.getDate() + delta);
+    const next = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if (next <= realToday) setToday(next);
+  };
 
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
   const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
@@ -992,19 +1004,40 @@ export default function Dashboard() {
         ) : (
           <>
             {/* ── GREETING ────────────────────────────────────── */}
-            <div style={{ marginBottom: 18 }}>
-              <div style={{ fontSize: 10, color: T.muted, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.15em', textTransform: 'uppercase' as const, marginBottom: 4 }}>
-                {dayNameCz} · {dateLabelCz}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 700, letterSpacing: '-0.02em' }}>
-                  Ahoj, Alexandr
+                  {isViewingToday ? 'Ahoj, Alexandr' : dayNameCz.charAt(0) + dayNameCz.slice(1).toLowerCase()}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ fontSize: 18 }}>🔥</span>
-                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, fontVariantNumeric: 'tabular-nums' }}>{streak}</span>
-                  <span style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.12em' }}>STREAK</span>
+                {isViewingToday && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 18 }}>🔥</span>
+                    <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, fontVariantNumeric: 'tabular-nums' }}>{streak}</span>
+                    <span style={{ fontSize: 9, color: T.muted, fontFamily: 'JetBrains Mono, monospace', letterSpacing: '0.12em' }}>STREAK</span>
+                  </div>
+                )}
+              </div>
+              {/* Date navigation */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: '6px 8px' }}>
+                <button
+                  onClick={() => shiftDay(-1)}
+                  style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none', color: T.muted, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >‹</button>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, fontWeight: 600, color: T.text }}>
+                    {dayNameCz.charAt(0) + dayNameCz.slice(1).toLowerCase()} · {dateLabelCz}
+                  </span>
+                  {isViewingToday && (
+                    <span style={{ marginLeft: 8, fontSize: 9, fontFamily: 'JetBrains Mono, monospace', background: BRAND.purple + '22', color: BRAND.purple, padding: '2px 6px', borderRadius: 10, fontWeight: 700, letterSpacing: '0.08em' }}>
+                      DNES
+                    </span>
+                  )}
                 </div>
+                <button
+                  onClick={() => shiftDay(1)}
+                  disabled={isViewingToday}
+                  style={{ width: 32, height: 32, borderRadius: 8, background: 'transparent', border: 'none', color: isViewingToday ? T.border : T.muted, fontSize: 18, cursor: isViewingToday ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >›</button>
               </div>
             </div>
 
