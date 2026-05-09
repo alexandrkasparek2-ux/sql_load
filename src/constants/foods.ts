@@ -2458,6 +2458,13 @@ export const FOODS: Food[] = [
     micros: { na: 480, k: 200, mg: 12, ca: 15, fe: 0.5, vit_c: 2, vit_d: 0, b12: 0.3, omega3: 20, zn: 0.8 },
   },
   {
+    id: 'chicken_broth',
+    cat: '🍲 Polévky',
+    name: 'Kuřecí vývar',
+    kcal: 15, carbs: 0.5, protein: 2.5, fat: 0.4, fiber: 0, per: 400,
+    micros: { na: 420, k: 180, mg: 10, ca: 10, fe: 0.3, vit_c: 1, vit_d: 0, b12: 0.2, omega3: 15, zn: 0.5 },
+  },
+  {
     id: 'porkova_polevka',
     cat: '🍲 Polévky',
     name: 'Pórková polévka',
