@@ -3378,6 +3378,13 @@ export const FOODS: Food[] = [
     kcal: 247, carbs: 80.6, protein: 4.0, fat: 1.2, fiber: 53.1, per: 5,
     micros: { na: 10, k: 431, mg: 60, ca: 1002, fe: 8.3, vit_c: 3.8, vit_d: 0, b12: 0, omega3: 83, zn: 1.8 },
   },
+  {
+    id: 'ice_cream_cone',
+    cat: '🍫 Sladkosti',
+    name: 'Kornoutek od zmrzliny (oplatka)',
+    kcal: 393, carbs: 80.0, protein: 8.0, fat: 4.5, fiber: 1.5, per: 10,
+    micros: { na: 190, k: 120, mg: 15, ca: 30, fe: 2.0, vit_c: 0, vit_d: 0, b12: 0, omega3: 10, zn: 0.5 },
+  },
   // ──────────────────────────────────────────
   // 🥐 Pečivo & Buchty
   // ──────────────────────────────────────────
