@@ -132,6 +132,45 @@ const MEAL_PLAN_RE = /```meal-plan\s*([\s\S]*?)\s*```/;
 const RECIPE_RE    = /```recipe-suggestion\s*([\s\S]*?)\s*```/;
 const LOG_MEAL_RE  = /```log-meal\s*([\s\S]*?)\s*```/;
 
+// Keywords that indicate meal dictation — triggers Haiku fallback extraction
+const MEAL_RE = /snědl|měl\s+jsem|jsem\s+měl|mám\s+k|dám\s+si|zapiš|loguj|jedl|k\s+obědu|k\s+snídani|k\s+večeři|svačin|nadiktuj|budu\s+mít|naplánuj|zapsat|obědvám|večeřím|snídám|přidej\s+mi|zaloguj\s+mi/i;
+
+async function extractMealsViaHaiku(userText: string, apiKey: string): Promise<LogMealAction | undefined> {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        system: `Jsi extractor jídel. Uživatel napsal co snědl nebo co plánuje jíst. Extrahuj jídla jako JSON.
+Odpověz POUZE tímto JSON objektem, žádný jiný text:
+{"slot":"obed","items":[{"name":"Kuřecí prsa","grams":200,"kcal":220,"carbs":0,"protein":46,"fat":4}]}
+Sloty: snidane / dop_svacina / obed / odp_svacina / pred_tren / behem_tren / po_tren / vecere
+Odhadni slot podle kontextu (snídaně ráno, oběd v poledne, večeře večer).
+Chybí-li gramáž → odhadni typickou porci (150–400 g).
+Odhadni makra z vlastní znalosti. Každá potravina = 1 položka v items.
+Pokud text neobsahuje žádná jídla, vrať: {"slot":"obed","items":[]}`,
+        messages: [{ role: 'user', content: userText }],
+      }),
+    });
+    if (!res.ok) return undefined;
+    const data = await res.json() as { content?: { type: string; text: string }[] };
+    const raw = data.content?.find(c => c.type === 'text')?.text?.trim() ?? '';
+    const clean = raw.replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'').trim();
+    const parsed = JSON.parse(clean) as LogMealAction;
+    if (!Array.isArray(parsed.items) || parsed.items.length === 0) return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
 const SYSTEM_PROMPT = `Jsi výživový poradce specializovaný na cyklistiku. Odpovídej stručně, prakticky, česky. Nepoužívej markdown (žádné ##, **, atd.) – prostý text.
 
 Pravidla:
@@ -213,6 +252,9 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
     try {
       const key = localStorage.getItem('anthropic_api_key') || (import.meta.env.VITE_ANTHROPIC_API_KEY as string);
       if (!key) throw new Error('Vlož Anthropic API klíč v Nastavení → AI Poradce');
+
+      // Start Haiku meal extraction in parallel if message looks like meal dictation
+      const haikuPromise = MEAL_RE.test(t) ? extractMealsViaHaiku(t, key) : Promise.resolve(undefined);
 
       const history = updated.slice(-20).map(m => ({
         role:    m.role === 'user' ? 'user' : 'assistant',
@@ -342,6 +384,12 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
           logMealAction = JSON.parse(logMealMatch[1]) as LogMealAction;
           fullText = fullText.replace(LOG_MEAL_RE, '').trim();
         } catch { /* skip */ }
+      }
+
+      // Fallback: use Haiku extraction if main model didn't generate log-meal block
+      if (!logMealAction && !foodAction && !mealPlanAction) {
+        const haikuResult = await haikuPromise;
+        if (haikuResult) logMealAction = haikuResult;
       }
 
       setMessages(prev =>
