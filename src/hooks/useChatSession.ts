@@ -233,10 +233,7 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
           model:      'claude-sonnet-4-6',
           max_tokens: 1024,
           stream:     true,
-          system: [
-            { type: 'text', text: SYSTEM_PROMPT,                                cache_control: { type: 'ephemeral' } },
-            { type: 'text', text: `Aktuální data uživatele:\n${buildContext(ctx, tp)}` },
-          ],
+          system: SYSTEM_PROMPT + `\n\nAktuální data uživatele:\n${buildContext(ctx, tp)}`,
           messages: history,
         }),
       });
