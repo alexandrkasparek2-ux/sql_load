@@ -28,7 +28,6 @@ export interface GoalsAction {
 }
 
 export interface MealPlanItem {
-  date?:   string; // YYYY-MM-DD, optional, defaults to today
   slot:    string;
   name:    string;
   grams:   number;
@@ -48,7 +47,6 @@ export interface RecipeSuggestionAction {
 }
 
 export interface LogMealAction {
-  date?: string; // YYYY-MM-DD, optional, defaults to today
   slot:  string;
   items: { name: string; grams: number; kcal: number; carbs: number; protein: number; fat: number }[];
 }
@@ -116,15 +114,7 @@ function buildContext(ctx: AppCtx, tp?: TPContext): string {
     tpLines.push(`TrainingPeaks zítra: "${w.title}" — ${meta.label}${w.durationMin > 0 ? `, ${w.durationMin} min` : ''}${w.tss > 0 ? `, TSS ${w.tss}` : ''}`);
   }
 
-  const todayStr = ctx.today; // YYYY-MM-DD
-  const tomorrowStr = (() => {
-    const d = new Date(todayStr + 'T00:00:00');
-    d.setDate(d.getDate() + 1);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  })();
-
   return [
-    `Dnešní datum: ${todayStr} | Zítřejší datum: ${tomorrowStr}`,
     `Cyklista: ${profile.weight}kg, ${profile.height}cm, ${profile.age}let, ${profile.gender === 'male' ? 'muž' : 'žena'}`,
     `Trénink (Intervals.icu): ${trainLabel[type] ?? type}${h > 0 ? ` ${h}h` : ''}`,
     ...(tpLines.length > 0 ? tpLines : ['TrainingPeaks: nepropojeno nebo žádný plán']),
@@ -142,87 +132,56 @@ const MEAL_PLAN_RE = /```meal-plan\s*([\s\S]*?)\s*```/;
 const RECIPE_RE    = /```recipe-suggestion\s*([\s\S]*?)\s*```/;
 const LOG_MEAL_RE  = /```log-meal\s*([\s\S]*?)\s*```/;
 
-// Detect if user message is meal dictation (triggers fallback extraction)
-const MEAL_DICTATION_RE = /snědl|měl jsem|mám k|dám si|zapiš|loguj|jedl|k obědu|k snídani|k večeři|svačin|nadiktuj|budu mít|naplánuj|zapsat|zapíšu|obědvám|večeřím|snídám/i;
-
-async function extractMealsFromText(userText: string, apiKey: string): Promise<LogMealAction | undefined> {
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 512,
-        system: `Extrahuj jídla z textu jako JSON. Odpověz POUZE validním JSON objektem, bez jakéhokoliv dalšího textu.
-Formát: {"slot":"obed","items":[{"name":"Kuřecí prsa","grams":200,"kcal":220,"carbs":0,"protein":46,"fat":4}]}
-Sloty: snidane / dop_svacina / obed / odp_svacina / pred_tren / behem_tren / po_tren / vecere
-Pokud gramáž chybí, odhadni typickou porci. Odhadni makra z vlastní znalosti. Každá potravina = 1 položka v items.`,
-        messages: [{ role: 'user', content: userText }],
-      }),
-    });
-    if (!res.ok) return undefined;
-    const data = await res.json() as { content?: { type: string; text: string }[] };
-    const raw = data.content?.find(c => c.type === 'text')?.text?.trim() ?? '';
-    const json = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-    const parsed = JSON.parse(json) as LogMealAction;
-    if (!parsed.items?.length) return undefined;
-    return parsed;
-  } catch {
-    return undefined;
-  }
-}
-
 const SYSTEM_PROMPT = `Jsi výživový poradce specializovaný na cyklistiku. Odpovídej stručně, prakticky, česky. Nepoužívej markdown (žádné ##, **, atd.) – prostý text.
 
 Pravidla:
 - Zohledni tréninkový typ a cíle dne
+- Doporučuj konkrétní potraviny nebo množství
 - Nejdi úvody jako "Samozřejmě!" – jdi rovnou k věci
 - Vidíš záznamy deníku s jejich ID v hranatých závorkách [uuid]
-- Vždy jen 1 akci na konci odpovědi
 
-AKCE – použij vždy jednu z těchto:
+Akce které SMÍŠ provádět (vždy jen 1 akci na konci odpovědi):
 
-1. Zapsat jídla do deníku – použij VŽDY když uživatel říká co jedl nebo co sní (snědl jsem / měl jsem / dám si / zapiš / loguj / k obědu / k snídani / k večeři / svačina):
-\`\`\`log-meal
-{"slot":"obed","items":[{"name":"Kuřecí prsa","grams":200,"kcal":220,"carbs":0,"protein":46,"fat":4},{"name":"Rýže vařená","grams":150,"kcal":195,"carbs":43,"protein":4,"fat":0}]}
-\`\`\`
-(slot: snidane / dop_svacina / obed / odp_svacina / pred_tren / behem_tren / po_tren / vecere)
-(odhadni makra; chybějící gramáž = typická porce; každá potravina = 1 položka)
-
-2. Přidat 1 potravinu z databáze (slova: "přidej", "zaloguj" + 1 potravina):
+1. Přidat jídlo (slova: "přidej", "zaloguj", "přidal jsem"):
 \`\`\`food-action
 {"query":"název potraviny česky","grams":množství}
 \`\`\`
 
-3. Smazat záznam (slova: "smaž", "odstraň", "vymaž"):
+2. Smazat záznam (slova: "smaž", "odstraň", "vymaž" + název nebo ID):
 \`\`\`delete-entry
 {"id":"uuid záznamu","food_name":"název pro potvrzení"}
 \`\`\`
 
-4. Upravit gramáž (slova: "uprav", "změň", "bylo to", "oprav"):
+3. Upravit gramáž záznamu (slova: "uprav", "změň", "bylo to", "oprav"):
 \`\`\`edit-entry
 {"id":"uuid záznamu","food_name":"název pro potvrzení","grams":nová gramáž}
 \`\`\`
 
-5. Nastavit denní cíle (slova: "nastav cíle", "snižme kalorie", "zvyšme bílkoviny"):
+4. Nastavit denní cíle (slova: "nastav cíle", "změň cíle", "uprav cíle", "chci jíst", "snižme kalorie", "zvyšme bílkoviny"):
 \`\`\`set-goals
 {"kcal":číslo,"carbs":číslo,"protein":číslo,"fat":číslo,"water":číslo}
 \`\`\`
+(uveď jen pole která chceš změnit, ostatní zůstanou původní)
 
-6. Vygenerovat jídelníček (slova: "vygeneruj jídelníček", "plán na celý den"):
+5. Vygenerovat denní jídelníček (slova: "vygeneruj jídelníček", "plán na celý den", "co mám jíst dnes", "navrhni jídla na den"):
 \`\`\`meal-plan
-[{"slot":"snidane","name":"Ovesná kaše","grams":350,"kcal":380,"carbs":62,"protein":14,"fat":6}]
+[{"slot":"snidane","name":"Ovesná kaše s banánem","grams":350,"kcal":380,"carbs":62,"protein":14,"fat":6},{"slot":"obed","name":"Kuřecí prsa s rýží","grams":450,"kcal":520,"carbs":55,"protein":48,"fat":10}]
+\`\`\`
+(použij sloty: snidane, dop_svacina, obed, odp_svacina, pred_tren, behem_tren, po_tren, vecere)
+(celkové kcal musí odpovídat dennímu cíli uživatele; navrhni 4–6 jídel)
+
+6. Navrhnout recept z ingrediencí (slova: "mám doma", "co uvařit z", "navrhni recept", "šéfkuchař"):
+\`\`\`recipe-suggestion
+{"name":"Kuřecí stir-fry s rýží","servings":2,"ingredients":[{"name":"Kuřecí prsa","grams":300},{"name":"Rýže","grams":200},{"name":"Brokolice","grams":150}],"macros":{"kcal":540,"carbs":62,"protein":48,"fat":8},"prep_time":"20 min","cycling_note":"Ideální regenerační jídlo po tréninku"}
 \`\`\`
 
-7. Navrhnout recept (slova: "mám doma", "co uvařit z", "navrhni recept"):
-\`\`\`recipe-suggestion
-{"name":"název","servings":2,"ingredients":[{"name":"Kuřecí prsa","grams":300}],"macros":{"kcal":540,"carbs":62,"protein":48,"fat":8},"prep_time":"20 min"}
-\`\`\``;
+7. Zapsat jídlo/ingredience přímo do deníku (uživatel nadiktuje co snědl):
+\`\`\`log-meal
+{"slot":"obed","items":[{"name":"Kuřecí prsa","grams":200,"kcal":220,"carbs":0,"protein":46,"fat":4},{"name":"Rýže vařená","grams":150,"kcal":195,"carbs":43,"protein":4,"fat":0}]}
+\`\`\`
+(slot: snidane/dop_svacina/obed/odp_svacina/pred_tren/behem_tren/po_tren/vecere — zvol podle denní doby)
+(odhadni makra z vlastní znalosti; pokud gramáž chybí, odhadni typickou porci)
+(VŽDY použij tuto akci když uživatel říká "snědl jsem", "měl jsem k obědu", "zapiš mi", "nadiktuju ti", "loguj mi" + seznam jídel/ingrediencí)`;
 
 export function useChatSession(ctx: AppCtx, tp?: TPContext) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory());
@@ -383,11 +342,6 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
           logMealAction = JSON.parse(logMealMatch[1]) as LogMealAction;
           fullText = fullText.replace(LOG_MEAL_RE, '').trim();
         } catch { /* skip */ }
-      }
-
-      // Fallback: if no log-meal block parsed but user was dictating a meal, extract via Haiku
-      if (!logMealAction && !foodAction && !mealPlanAction && MEAL_DICTATION_RE.test(t)) {
-        logMealAction = await extractMealsFromText(t, key);
       }
 
       setMessages(prev =>

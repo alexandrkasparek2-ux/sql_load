@@ -104,15 +104,6 @@ export default function Chat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // Auto-log meal when model responds with log-meal action (no button click needed)
-  useEffect(() => {
-    if (loading) return;
-    const last = messages[messages.length - 1];
-    if (last?.role === 'model' && last.logMealAction && !actioned.has(last.id)) {
-      handleLogMeal(last.id, last.logMealAction);
-    }
-  }, [messages, loading]); // eslint-disable-line react-hooks/exhaustive-deps
-
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const media = window.matchMedia('(min-width: 1440px)');
@@ -149,7 +140,7 @@ export default function Chat() {
   const handleMealPlan = useCallback(async (msgId: string, meals: MealPlanItem[]) => {
     for (const meal of meals) {
       await addEntry({
-        user_id: userId, date: meal.date ?? today,
+        user_id: userId, date: today,
         meal_slot: meal.slot in SLOT_LABELS ? meal.slot : 'odp_svacina',
         food_id: `chat_plan_${Date.now()}_${meal.slot}`,
         food_name: meal.name, grams: meal.grams,
@@ -164,9 +155,8 @@ export default function Chat() {
   const handleLogMeal = useCallback(async (msgId: string, action: LogMealAction) => {
     const VALID_SLOTS = ['snidane','dop_svacina','obed','odp_svacina','pred_tren','behem_tren','po_tren','vecere'];
     const slot = VALID_SLOTS.includes(action.slot) ? action.slot : 'obed';
-    let failed = 0;
     for (const item of action.items) {
-      const result = await addEntry({
+      await addEntry({
         user_id: userId, date: today,
         meal_slot: slot,
         food_id: `chat_log_${Date.now()}_${Math.random().toString(36).slice(2)}`,
@@ -174,15 +164,10 @@ export default function Chat() {
         kcal: item.kcal, carbs: item.carbs, protein: item.protein, fat: item.fat,
         fiber: 0, na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
       });
-      if (!result) failed++;
     }
     setActioned(prev => new Set([...prev, msgId]));
     const totalKcal = action.items.reduce((s, i) => s + i.kcal, 0);
-    if (failed > 0) {
-      showToast(`Chyba: ${failed} položek se nepodařilo zapsat`, 'error');
-    } else {
-      showToast(`${action.items.length} ingrediencí zapsáno · ${Math.round(totalKcal)} kcal`);
-    }
+    showToast(`${action.items.length} ingrediencí zapsáno · ${Math.round(totalKcal)} kcal`);
   }, [addEntry, userId, today]);
 
   const handleRecipe = useCallback(async (msgId: string, recipe: RecipeSuggestionAction) => {
