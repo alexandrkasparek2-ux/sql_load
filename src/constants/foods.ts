@@ -3885,4 +3885,20 @@ export const FOODS: Food[] = [
     kcal: 148, carbs: 22.0, protein: 8.5, fat: 3.5, fiber: 1.2, per: 250,
     micros: { na: 170, k: 150, mg: 14, ca: 110, fe: 0.7, vit_c: 3, vit_d: 0.3, b12: 0.5, omega3: 25, zn: 0.6 },
   },
+  {
+    id: 'skoricovy_snek',
+    cat: '🥐 Pečivo & Buchty',
+    name: 'Skořicový šnek',
+    // kynuté těsto, máslo, cukr, skořice, případně glazura
+    kcal: 368, carbs: 52.0, protein: 6.5, fat: 15.0, fiber: 1.5, per: 90,
+    micros: { na: 280, k: 95, mg: 14, ca: 45, fe: 1.6, vit_c: 0, vit_d: 0.1, b12: 0.1, omega3: 80, zn: 0.6 },
+  },
+  {
+    id: 'gnocchi',
+    cat: '🍟 Přílohy',
+    name: 'Gnocchi (vařené)',
+    // bramborové noky, mouka, vejce, sůl
+    kcal: 130, carbs: 26.5, protein: 3.5, fat: 1.2, fiber: 1.0, per: 200,
+    micros: { na: 220, k: 230, mg: 16, ca: 12, fe: 0.8, vit_c: 4, vit_d: 0.0, b12: 0.0, omega3: 10, zn: 0.3 },
+  },
 ];
