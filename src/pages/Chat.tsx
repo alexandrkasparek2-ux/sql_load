@@ -104,15 +104,6 @@ export default function Chat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // Auto-log when model response contains logMealAction
-  useEffect(() => {
-    if (loading) return;
-    const last = messages[messages.length - 1];
-    if (last?.role === 'model' && last.logMealAction && !actioned.has(last.id)) {
-      handleLogMeal(last.id, last.logMealAction);
-    }
-  }, [messages, loading]); // eslint-disable-line react-hooks/exhaustive-deps
-
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const media = window.matchMedia('(min-width: 1440px)');
