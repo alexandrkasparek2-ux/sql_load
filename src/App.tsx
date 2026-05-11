@@ -77,6 +77,7 @@ export interface AppCtx {
   goalOverride:      Partial<Goals> | null;
   setGoalOverride:   (o: Partial<Goals> | null) => void;
   addEntry:          (e: Omit<FoodEntry, 'id'>) => Promise<FoodEntry | null>;
+  reloadEntries:     () => Promise<void>;
   removeEntry:       (id: string) => Promise<void>;
   updateEntry:       (id: string, newGrams: number, newMealSlot?: string) => Promise<void>;
   updateEntryMacros: (id: string, macros: { kcal: number; carbs: number; protein: number; fat: number }, newMealSlot?: string) => Promise<void>;
@@ -205,7 +206,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
 
   const { profile,     save: saveProfile    } = useProfile(userId);
   const { trainingDay, upsert              } = useTrainingDay(userId, today);
-  const { entries, totals, addEntry, removeEntry, updateEntry, updateEntryMacros } = useFoodEntries(userId, today);
+  const { entries, totals, addEntry, removeEntry, updateEntry, updateEntryMacros, reload: reloadEntries } = useFoodEntries(userId, today);
 
   const { value: deficitLevel, setValue: setStoredDeficitLevel } = useUserSetting<DeficitLevel>(
     userId,
@@ -471,6 +472,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     goalOverride,
     setGoalOverride,
     addEntry,
+    reloadEntries,
     removeEntry,
     updateEntry,
     updateEntryMacros,

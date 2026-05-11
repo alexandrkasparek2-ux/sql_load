@@ -82,7 +82,7 @@ function renderMarkdown(text: string | undefined, color: string) {
 
 export default function Chat() {
   const ctx = useContext(AppContext);
-  const { accent, addEntry, removeEntry, updateEntry, setGoalOverride, userId, today, totals, goals, trainingDay } = ctx;
+  const { accent, addEntry, reloadEntries, removeEntry, updateEntry, setGoalOverride, userId, today, totals, goals, trainingDay } = ctx;
   const { todayWorkout, upcoming } = useTrainingPlan();
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = formatLocalISODate(tomorrow);
@@ -174,10 +174,11 @@ export default function Chat() {
         fiber: 0, na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
       });
     }
+    await reloadEntries();
     setActioned(prev => new Set([...prev, msgId]));
     const totalKcal = action.items.reduce((s, i) => s + i.kcal, 0);
     showToast(`${action.items.length} ${action.items.length === 1 ? 'položka zapsána' : 'položky zapsány'} do ${SLOT_LABELS[slot] ?? slot} · ${Math.round(totalKcal)} kcal`);
-  }, [addEntry, userId, today]);
+  }, [addEntry, reloadEntries, userId, today]);
 
   const handleRecipe = useCallback(async (msgId: string, recipe: RecipeSuggestionAction) => {
     const totalGrams = recipe.ingredients.reduce((s, i) => s + i.grams, 0) || 300;
