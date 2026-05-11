@@ -162,7 +162,8 @@ export default function Chat() {
 
   const handleLogMeal = useCallback(async (msgId: string, action: LogMealAction) => {
     const VALID_SLOTS = ['snidane','dop_svacina','obed','odp_svacina','pred_tren','behem_tren','po_tren','vecere'];
-    const slot = VALID_SLOTS.includes(action.slot) ? action.slot : 'obed';
+    const normalized = action.slot?.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '') ?? '';
+    const slot = VALID_SLOTS.includes(normalized) ? normalized : 'obed';
     for (const item of action.items) {
       await addEntry({
         user_id: userId, date: today,
@@ -175,7 +176,7 @@ export default function Chat() {
     }
     setActioned(prev => new Set([...prev, msgId]));
     const totalKcal = action.items.reduce((s, i) => s + i.kcal, 0);
-    showToast(`${action.items.length} ingrediencí zapsáno · ${Math.round(totalKcal)} kcal`);
+    showToast(`${action.items.length} ${action.items.length === 1 ? 'položka zapsána' : 'položky zapsány'} do ${SLOT_LABELS[slot] ?? slot} · ${Math.round(totalKcal)} kcal`);
   }, [addEntry, userId, today]);
 
   const handleRecipe = useCallback(async (msgId: string, recipe: RecipeSuggestionAction) => {
