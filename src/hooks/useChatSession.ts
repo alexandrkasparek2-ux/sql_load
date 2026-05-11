@@ -28,6 +28,7 @@ export interface GoalsAction {
 }
 
 export interface MealPlanItem {
+  date?:   string; // YYYY-MM-DD, optional, defaults to today
   slot:    string;
   name:    string;
   grams:   number;
@@ -47,6 +48,7 @@ export interface RecipeSuggestionAction {
 }
 
 export interface LogMealAction {
+  date?: string; // YYYY-MM-DD, optional, defaults to today
   slot:  string;
   items: { name: string; grams: number; kcal: number; carbs: number; protein: number; fat: number }[];
 }
@@ -114,7 +116,15 @@ function buildContext(ctx: AppCtx, tp?: TPContext): string {
     tpLines.push(`TrainingPeaks zítra: "${w.title}" — ${meta.label}${w.durationMin > 0 ? `, ${w.durationMin} min` : ''}${w.tss > 0 ? `, TSS ${w.tss}` : ''}`);
   }
 
+  const todayStr = ctx.today; // YYYY-MM-DD
+  const tomorrowStr = (() => {
+    const d = new Date(todayStr + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  })();
+
   return [
+    `Dnešní datum: ${todayStr} | Zítřejší datum: ${tomorrowStr}`,
     `Cyklista: ${profile.weight}kg, ${profile.height}cm, ${profile.age}let, ${profile.gender === 'male' ? 'muž' : 'žena'}`,
     `Trénink (Intervals.icu): ${trainLabel[type] ?? type}${h > 0 ? ` ${h}h` : ''}`,
     ...(tpLines.length > 0 ? tpLines : ['TrainingPeaks: nepropojeno nebo žádný plán']),
@@ -168,6 +178,7 @@ Akce které SMÍŠ provádět (vždy jen 1 akci na konci odpovědi):
 [{"slot":"snidane","name":"Ovesná kaše s banánem","grams":350,"kcal":380,"carbs":62,"protein":14,"fat":6},{"slot":"obed","name":"Kuřecí prsa s rýží","grams":450,"kcal":520,"carbs":55,"protein":48,"fat":10}]
 \`\`\`
 (použij sloty: snidane, dop_svacina, obed, odp_svacina, pred_tren, behem_tren, po_tren, vecere)
+(volitelně přidej "date":"YYYY-MM-DD" ke každé položce pokud jde o jiný den — jinak se použije dnešní datum)
 (celkové kcal musí odpovídat dennímu cíli uživatele; navrhni 4–6 jídel)
 
 6. Navrhnout recept z ingrediencí (slova: "mám doma", "co uvařit z", "navrhni recept", "šéfkuchař"):
@@ -175,13 +186,14 @@ Akce které SMÍŠ provádět (vždy jen 1 akci na konci odpovědi):
 {"name":"Kuřecí stir-fry s rýží","servings":2,"ingredients":[{"name":"Kuřecí prsa","grams":300},{"name":"Rýže","grams":200},{"name":"Brokolice","grams":150}],"macros":{"kcal":540,"carbs":62,"protein":48,"fat":8},"prep_time":"20 min","cycling_note":"Ideální regenerační jídlo po tréninku"}
 \`\`\`
 
-7. Zapsat jídlo/ingredience přímo do deníku (uživatel nadiktuje co snědl):
+7. Zapsat jídlo/ingredience přímo do deníku (uživatel nadiktuje co snědl nebo co bude jíst):
 \`\`\`log-meal
-{"slot":"obed","items":[{"name":"Kuřecí prsa","grams":200,"kcal":220,"carbs":0,"protein":46,"fat":4},{"name":"Rýže vařená","grams":150,"kcal":195,"carbs":43,"protein":4,"fat":0}]}
+{"date":"YYYY-MM-DD","slot":"obed","items":[{"name":"Kuřecí prsa","grams":200,"kcal":220,"carbs":0,"protein":46,"fat":4},{"name":"Rýže vařená","grams":150,"kcal":195,"carbs":43,"protein":4,"fat":0}]}
 \`\`\`
-(slot: snidane/dop_svacina/obed/odp_svacina/pred_tren/behem_tren/po_tren/vecere — zvol podle denní doby)
+(date: použij dnešní datum pokud mluví o dnešku/minulosti; zítřejší datum pokud říká "zítra"; konkrétní datum pokud ho uvede)
+(slot: snidane/dop_svacina/obed/odp_svacina/pred_tren/behem_tren/po_tren/vecere — zvol podle denní doby nebo co uživatel říká)
 (odhadni makra z vlastní znalosti; pokud gramáž chybí, odhadni typickou porci)
-(VŽDY použij tuto akci když uživatel říká "snědl jsem", "měl jsem k obědu", "zapiš mi", "nadiktuju ti", "loguj mi" + seznam jídel/ingrediencí)`;
+(VŽDY použij tuto akci když uživatel říká "snědl jsem", "měl jsem k obědu", "zapiš mi", "nadiktuju ti", "loguj mi", "budu mít zítra", "naplánuj mi" + seznam jídel/ingrediencí)`;
 
 export function useChatSession(ctx: AppCtx, tp?: TPContext) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory());

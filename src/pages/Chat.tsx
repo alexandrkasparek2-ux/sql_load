@@ -140,7 +140,7 @@ export default function Chat() {
   const handleMealPlan = useCallback(async (msgId: string, meals: MealPlanItem[]) => {
     for (const meal of meals) {
       await addEntry({
-        user_id: userId, date: today,
+        user_id: userId, date: meal.date ?? today,
         meal_slot: meal.slot in SLOT_LABELS ? meal.slot : 'odp_svacina',
         food_id: `chat_plan_${Date.now()}_${meal.slot}`,
         food_name: meal.name, grams: meal.grams,
@@ -155,9 +155,10 @@ export default function Chat() {
   const handleLogMeal = useCallback(async (msgId: string, action: LogMealAction) => {
     const VALID_SLOTS = ['snidane','dop_svacina','obed','odp_svacina','pred_tren','behem_tren','po_tren','vecere'];
     const slot = VALID_SLOTS.includes(action.slot) ? action.slot : 'obed';
+    const entryDate = action.date ?? today;
     for (const item of action.items) {
       await addEntry({
-        user_id: userId, date: today,
+        user_id: userId, date: entryDate,
         meal_slot: slot,
         food_id: `chat_log_${Date.now()}_${Math.random().toString(36).slice(2)}`,
         food_name: item.name, grams: item.grams,
@@ -550,7 +551,7 @@ export default function Chat() {
                   overflow: 'hidden',
                 }}>
                   <div style={{ padding: '10px 14px 6px', fontSize: 11, fontWeight: 700, color: BRAND.blue, textTransform: 'uppercase' as const, letterSpacing: '1px' }}>
-                    📝 {SLOT_LABELS[m.logMealAction.slot] ?? m.logMealAction.slot} · {Math.round(m.logMealAction.items.reduce((s, i) => s + i.kcal, 0))} kcal
+                    📝 {m.logMealAction.date && m.logMealAction.date !== today ? `${m.logMealAction.date} · ` : ''}{SLOT_LABELS[m.logMealAction.slot] ?? m.logMealAction.slot} · {Math.round(m.logMealAction.items.reduce((s, i) => s + i.kcal, 0))} kcal
                   </div>
                   {m.logMealAction.items.map((item, i) => (
                     <div key={i} style={{
