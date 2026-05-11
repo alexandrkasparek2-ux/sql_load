@@ -142,6 +142,47 @@ const MEAL_PLAN_RE = /```meal-plan\s*([\s\S]*?)\s*```/;
 const RECIPE_RE    = /```recipe-suggestion\s*([\s\S]*?)\s*```/;
 const LOG_MEAL_RE  = /```log-meal\s*([\s\S]*?)\s*```/;
 
+// Detect if user message is meal dictation (triggers fallback extraction)
+const MEAL_DICTATION_RE = /snědl|měl jsem|mám k|dám si|zapiš|loguj|jedl|k obědu|k snídani|k večeři|svačin|nadiktuj|budu mít|naplánuj|zapsat|zapíšu|obědvám|večeřím|snídám/i;
+
+async function extractMealsFromText(
+  userText: string,
+  apiKey: string,
+  todayStr: string,
+  tomorrowStr: string,
+): Promise<LogMealAction | undefined> {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 512,
+        system: `Extrahuj jídla/ingredience z textu jako JSON. Odpověz POUZE validním JSON objektem, bez jakéhokoliv dalšího textu.
+Formát: {"slot":"obed","date":"YYYY-MM-DD","items":[{"name":"Kuřecí prsa","grams":200,"kcal":220,"carbs":0,"protein":46,"fat":4}]}
+Sloty: snidane / dop_svacina / obed / odp_svacina / pred_tren / behem_tren / po_tren / vecere
+Dnešní datum: ${todayStr} | Zítřejší datum: ${tomorrowStr}
+Pokud gramáž chybí, odhadni typickou porci (např. 150–300g). Odhadni makra z vlastní znalosti. Každá potravina = jedna položka v items.`,
+        messages: [{ role: 'user', content: userText }],
+      }),
+    });
+    if (!res.ok) return undefined;
+    const data = await res.json() as { content?: { type: string; text: string }[] };
+    const raw = data.content?.find(c => c.type === 'text')?.text?.trim() ?? '';
+    const json = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+    const parsed = JSON.parse(json) as LogMealAction;
+    if (!parsed.items?.length) return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
 const SYSTEM_PROMPT = `Jsi výživový poradce specializovaný na cyklistiku. Odpovídej stručně, prakticky, česky. Nepoužívej markdown (žádné ##, **, atd.) – prostý text.
 
 KRITICKÉ PRAVIDLO – ZÁPIS JÍDEL DO DENÍKU:
@@ -356,6 +397,15 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
           logMealAction = JSON.parse(logMealMatch[1]) as LogMealAction;
           fullText = fullText.replace(LOG_MEAL_RE, '').trim();
         } catch { /* skip */ }
+      }
+
+      // Fallback: if no log-meal block parsed but user was dictating a meal, extract via mini API call
+      if (!logMealAction && !foodAction && !mealPlanAction && MEAL_DICTATION_RE.test(t)) {
+        const todayStr = ctx.today;
+        const _d = new Date(todayStr + 'T00:00:00');
+        _d.setDate(_d.getDate() + 1);
+        const tomorrowStr = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
+        logMealAction = await extractMealsFromText(t, key, todayStr, tomorrowStr);
       }
 
       setMessages(prev =>
