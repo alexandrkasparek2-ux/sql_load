@@ -132,6 +132,43 @@ const MEAL_PLAN_RE = /```meal-plan\s*([\s\S]*?)\s*```/;
 const RECIPE_RE    = /```recipe-suggestion\s*([\s\S]*?)\s*```/;
 const LOG_MEAL_RE  = /```log-meal\s*([\s\S]*?)\s*```/;
 
+const MEAL_RE = /snědl|měl\s+jsem|jsem\s+měl|dám\s+si|zapiš|loguj|jedl|k\s+obědu|k\s+snídani|k\s+večeři|svačin|nadiktuj|zapsat|obědvám|večeřím|snídám|přidávám|přidat\s+na|chci\s+přidat|chci\s+zalogovat|mám\s+k|mám\s+na/i;
+
+async function extractMealsViaHaiku(userText: string, apiKey: string): Promise<LogMealAction | undefined> {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        system: `Jsi extractor jídel. Uživatel napsal co jedl nebo co přidává do deníku. Extrahuj jídla jako JSON.
+Odpověz POUZE tímto JSON objektem, žádný jiný text:
+{"slot":"vecere","items":[{"name":"Šnek","grams":55,"kcal":120,"carbs":8,"protein":6,"fat":7}]}
+Sloty: snidane / dop_svacina / obed / odp_svacina / pred_tren / behem_tren / po_tren / vecere
+Odhadni slot podle kontextu (ráno=snidane, poledne=obed, odpoledne=odp_svacina, večer=vecere).
+Chybí-li gramáž → odhadni typickou porci. Odhadni makra z vlastní znalosti.
+Pokud text neobsahuje žádná jídla, vrať: {"slot":"obed","items":[]}`,
+        messages: [{ role: 'user', content: userText }],
+      }),
+    });
+    if (!res.ok) return undefined;
+    const data = await res.json() as { content?: { type: string; text: string }[] };
+    const raw = data.content?.find(c => c.type === 'text')?.text?.trim() ?? '';
+    const clean = raw.replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,'').trim();
+    const parsed = JSON.parse(clean) as LogMealAction;
+    if (!Array.isArray(parsed.items) || parsed.items.length === 0) return undefined;
+    return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
 const SYSTEM_PROMPT = `Jsi výživový poradce specializovaný na cyklistiku. Odpovídej stručně, prakticky, česky. Nepoužívej markdown (žádné ##, **, atd.) – prostý text.
 
 Pravidla:
@@ -213,6 +250,8 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
     try {
       const key = localStorage.getItem('anthropic_api_key') || (import.meta.env.VITE_ANTHROPIC_API_KEY as string);
       if (!key) throw new Error('Vlož Anthropic API klíč v Nastavení → AI Poradce');
+
+      const haikuPromise = MEAL_RE.test(t) ? extractMealsViaHaiku(t, key) : Promise.resolve(undefined);
 
       const history = updated.slice(-20).map(m => ({
         role:    m.role === 'user' ? 'user' : 'assistant',
@@ -339,6 +378,11 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
           logMealAction = JSON.parse(logMealMatch[1]) as LogMealAction;
           fullText = fullText.replace(LOG_MEAL_RE, '').trim();
         } catch { /* skip */ }
+      }
+
+      if (!logMealAction && !foodAction && !mealPlanAction) {
+        const haiku = await haikuPromise;
+        if (haiku) logMealAction = haiku;
       }
 
       setMessages(prev =>
