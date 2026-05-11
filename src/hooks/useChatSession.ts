@@ -230,7 +230,7 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
           'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
-          model:      'claude-opus-4-7',
+          model:      'claude-sonnet-4-6',
           max_tokens: 1024,
           stream:     true,
           system: [
