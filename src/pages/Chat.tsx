@@ -2,7 +2,7 @@ import { useRef, useEffect, useContext, useState, useCallback } from 'react';
 import { AppContext } from '../App';
 import { T, BRAND } from '../components/UI';
 import { useChatSession } from '../hooks/useChatSession';
-import type { MealPlanItem, RecipeSuggestionAction } from '../hooks/useChatSession';
+import type { MealPlanItem, RecipeSuggestionAction, LogMealAction } from '../hooks/useChatSession';
 import { useTrainingPlan } from '../hooks/useTrainingPlan';
 import { showToast } from '../components/Toast';
 import { FOODS, type Food } from '../constants/foods';
@@ -150,6 +150,24 @@ export default function Chat() {
     }
     setActioned(prev => new Set([...prev, msgId]));
     showToast(`${meals.length} jídel přidáno do deníku`);
+  }, [addEntry, userId, today]);
+
+  const handleLogMeal = useCallback(async (msgId: string, action: LogMealAction) => {
+    const VALID_SLOTS = ['snidane','dop_svacina','obed','odp_svacina','pred_tren','behem_tren','po_tren','vecere'];
+    const slot = VALID_SLOTS.includes(action.slot) ? action.slot : 'obed';
+    for (const item of action.items) {
+      await addEntry({
+        user_id: userId, date: today,
+        meal_slot: slot,
+        food_id: `chat_log_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+        food_name: item.name, grams: item.grams,
+        kcal: item.kcal, carbs: item.carbs, protein: item.protein, fat: item.fat,
+        fiber: 0, na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
+      });
+    }
+    setActioned(prev => new Set([...prev, msgId]));
+    const totalKcal = action.items.reduce((s, i) => s + i.kcal, 0);
+    showToast(`${action.items.length} ingrediencí zapsáno · ${Math.round(totalKcal)} kcal`);
   }, [addEntry, userId, today]);
 
   const handleRecipe = useCallback(async (msgId: string, recipe: RecipeSuggestionAction) => {
@@ -524,8 +542,46 @@ export default function Chat() {
                 </div>
               )}
 
+              {/* Log meal action */}
+              {m.logMealAction && !actioned.has(m.id) && (
+                <div style={{
+                  marginTop: 8, borderRadius: 12,
+                  background: BRAND.blue + '0a', border: `1px solid ${BRAND.blue}30`,
+                  overflow: 'hidden',
+                }}>
+                  <div style={{ padding: '10px 14px 6px', fontSize: 11, fontWeight: 700, color: BRAND.blue, textTransform: 'uppercase' as const, letterSpacing: '1px' }}>
+                    📝 {SLOT_LABELS[m.logMealAction.slot] ?? m.logMealAction.slot} · {Math.round(m.logMealAction.items.reduce((s, i) => s + i.kcal, 0))} kcal
+                  </div>
+                  {m.logMealAction.items.map((item, i) => (
+                    <div key={i} style={{
+                      padding: '6px 14px',
+                      borderTop: `1px solid ${BRAND.blue}15`,
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 13, color: T.text, fontWeight: 600 }}>{item.name} <span style={{ fontWeight: 400, color: T.muted }}>{item.grams}g</span></div>
+                        <div style={{ fontSize: 11, color: T.muted }}>S: {item.carbs}g · B: {item.protein}g · T: {item.fat}g</div>
+                      </div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: BRAND.blue, flexShrink: 0 }}>{Math.round(item.kcal)} kcal</div>
+                    </div>
+                  ))}
+                  <div style={{ padding: '10px 14px 12px' }}>
+                    <button
+                      onClick={() => handleLogMeal(m.id, m.logMealAction!)}
+                      style={{
+                        width: '100%', padding: '10px', borderRadius: 10,
+                        background: BRAND.blue + '20', border: `1px solid ${BRAND.blue}50`,
+                        color: BRAND.blue, fontSize: 13, cursor: 'pointer', fontWeight: 700,
+                      }}
+                    >
+                      + Zapsat do deníku
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Done state */}
-              {(m.foodAction || m.diaryAction || m.goalsAction || m.mealPlanAction || m.recipeAction) && actioned.has(m.id) && (
+              {(m.foodAction || m.diaryAction || m.goalsAction || m.mealPlanAction || m.recipeAction || m.logMealAction) && actioned.has(m.id) && (
                 <div style={{ marginTop: 6, fontSize: 12, color: BRAND.green, fontWeight: 600 }}>
                   ✓ Hotovo
                 </div>

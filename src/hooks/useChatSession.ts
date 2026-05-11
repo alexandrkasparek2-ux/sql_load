@@ -46,6 +46,11 @@ export interface RecipeSuggestionAction {
   cycling_note?: string;
 }
 
+export interface LogMealAction {
+  slot:  string;
+  items: { name: string; grams: number; kcal: number; carbs: number; protein: number; fat: number }[];
+}
+
 export interface ChatMessage {
   id:                    string;
   role:                  'user' | 'model';
@@ -56,6 +61,7 @@ export interface ChatMessage {
   goalsAction?:          GoalsAction;
   mealPlanAction?:       MealPlanItem[];
   recipeAction?:         RecipeSuggestionAction;
+  logMealAction?:        LogMealAction;
 }
 
 function loadHistory(): ChatMessage[] {
@@ -124,6 +130,7 @@ const EDIT_RE      = /```edit-entry\s*([\s\S]*?)\s*```/;
 const GOALS_RE     = /```set-goals\s*([\s\S]*?)\s*```/;
 const MEAL_PLAN_RE = /```meal-plan\s*([\s\S]*?)\s*```/;
 const RECIPE_RE    = /```recipe-suggestion\s*([\s\S]*?)\s*```/;
+const LOG_MEAL_RE  = /```log-meal\s*([\s\S]*?)\s*```/;
 
 const SYSTEM_PROMPT = `Jsi výživový poradce specializovaný na cyklistiku. Odpovídej stručně, prakticky, česky. Nepoužívej markdown (žádné ##, **, atd.) – prostý text.
 
@@ -166,7 +173,15 @@ Akce které SMÍŠ provádět (vždy jen 1 akci na konci odpovědi):
 6. Navrhnout recept z ingrediencí (slova: "mám doma", "co uvařit z", "navrhni recept", "šéfkuchař"):
 \`\`\`recipe-suggestion
 {"name":"Kuřecí stir-fry s rýží","servings":2,"ingredients":[{"name":"Kuřecí prsa","grams":300},{"name":"Rýže","grams":200},{"name":"Brokolice","grams":150}],"macros":{"kcal":540,"carbs":62,"protein":48,"fat":8},"prep_time":"20 min","cycling_note":"Ideální regenerační jídlo po tréninku"}
-\`\`\``;
+\`\`\`
+
+7. Zapsat jídlo/ingredience přímo do deníku (uživatel nadiktuje co snědl):
+\`\`\`log-meal
+{"slot":"obed","items":[{"name":"Kuřecí prsa","grams":200,"kcal":220,"carbs":0,"protein":46,"fat":4},{"name":"Rýže vařená","grams":150,"kcal":195,"carbs":43,"protein":4,"fat":0}]}
+\`\`\`
+(slot: snidane/dop_svacina/obed/odp_svacina/pred_tren/behem_tren/po_tren/vecere — zvol podle denní doby)
+(odhadni makra z vlastní znalosti; pokud gramáž chybí, odhadni typickou porci)
+(VŽDY použij tuto akci když uživatel říká "snědl jsem", "měl jsem k obědu", "zapiš mi", "nadiktuju ti", "loguj mi" + seznam jídel/ingrediencí)`;
 
 export function useChatSession(ctx: AppCtx, tp?: TPContext) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory());
@@ -256,11 +271,12 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
       }
 
       // Parse action blocks
-      let foodAction:    ChatMessage['foodAction'];
-      let diaryAction:   ChatMessage['diaryAction'];
-      let goalsAction:   ChatMessage['goalsAction'];
+      let foodAction:     ChatMessage['foodAction'];
+      let diaryAction:    ChatMessage['diaryAction'];
+      let goalsAction:    ChatMessage['goalsAction'];
       let mealPlanAction: ChatMessage['mealPlanAction'];
-      let recipeAction:  ChatMessage['recipeAction'];
+      let recipeAction:   ChatMessage['recipeAction'];
+      let logMealAction:  ChatMessage['logMealAction'];
 
       const foodMatch = FOOD_RE.exec(fullText);
       if (foodMatch) {
@@ -320,9 +336,17 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
         } catch { /* skip */ }
       }
 
+      const logMealMatch = LOG_MEAL_RE.exec(fullText);
+      if (logMealMatch) {
+        try {
+          logMealAction = JSON.parse(logMealMatch[1]) as LogMealAction;
+          fullText = fullText.replace(LOG_MEAL_RE, '').trim();
+        } catch { /* skip */ }
+      }
+
       setMessages(prev =>
         prev.map(m => m.id === modelId
-          ? { ...m, content: fullText, foodAction, diaryAction, goalsAction, mealPlanAction, recipeAction }
+          ? { ...m, content: fullText, foodAction, diaryAction, goalsAction, mealPlanAction, recipeAction, logMealAction }
           : m)
       );
     } catch (e) {
