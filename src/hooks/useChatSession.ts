@@ -150,8 +150,18 @@ async function extractMealsViaHaiku(userText: string, apiKey: string): Promise<L
         system: `Jsi extractor jídel. Uživatel napsal co jedl nebo co přidává do deníku. Extrahuj jídla jako JSON.
 Odpověz POUZE tímto JSON objektem, žádný jiný text:
 {"slot":"vecere","items":[{"name":"Šnek","grams":55,"kcal":120,"carbs":8,"protein":6,"fat":7}]}
-Sloty: snidane / dop_svacina / obed / odp_svacina / pred_tren / behem_tren / po_tren / vecere
-Odhadni slot podle kontextu (ráno=snidane, poledne=obed, odpoledne=odp_svacina, večer=vecere).
+
+Mapování slotů (použij PŘESNĚ tato ID):
+- snídaně / ráno / k snídani → snidane
+- dopolední svačina / dopoledne → dop_svacina
+- oběd / k obědu / na oběd / v poledne → obed
+- odpolední svačina / svačina / odpoledne → odp_svacina
+- před tréninkem → pred_tren
+- během tréninku → behem_tren
+- po tréninku → po_tren
+- večeře / k večeři / na večeři / večer / do večeře → vecere
+
+Pokud uživatel explicitně říká slot (např. "na večeři"), VŽDY použij ten slot.
 Chybí-li gramáž → odhadni typickou porci. Odhadni makra z vlastní znalosti.
 Pokud text neobsahuje žádná jídla, vrať: {"slot":"obed","items":[]}`,
         messages: [{ role: 'user', content: userText }],
