@@ -54,7 +54,7 @@ export const PHASE_ICONS: Record<TrainingPhase, string> = {
   post_race:  '🌱',
 };
 
-const PHASE_TIPS: Record<TrainingPhase, string> = {
+export const PHASE_TIPS: Record<TrainingPhase, string> = {
   off_season: 'Zaměř se na složení těla a základní kondici.',
   build_1:    'Buduj aerobní základ — vysoký objem, nízká intenzita.',
   build_2:    'Zvyš intenzitu, periodizuj sacharidy dle TSS dne.',
