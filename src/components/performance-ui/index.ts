@@ -20,3 +20,14 @@ export { TrainingBanner } from './TrainingBanner';
 export { MealSection } from './MealSection';
 export type { MealSuggestion } from './MealBuilder';
 export type { FoodItem } from './MealSection';
+
+// Periodizovaná výživa — fázové komponenty
+export { PhaseIndicator } from './PhaseIndicator';
+export { DailyNutritionDashboard } from './DailyNutritionDashboard';
+export { PhaseNutritionGuide } from './PhaseNutritionGuide';
+export { WeeklyComplianceChart } from './WeeklyComplianceChart';
+export { FoodPhaseWarning } from './FoodPhaseWarning';
+export { RecoveryNutritionAlert } from './RecoveryNutritionAlert';
+export { RaceMorningProtocol } from './RaceMorningProtocol';
+export { OnBikeNutritionTimer } from './OnBikeNutritionTimer';
+export { SupplementChecklist } from './SupplementChecklist';
