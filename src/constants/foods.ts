@@ -1884,6 +1884,13 @@ export const FOODS: Food[] = [
     micros: { na: 380, k: 100, mg: 10, ca: 25, fe: 1.5, vit_c: 0, vit_d: 0.1, b12: 0.1, omega3: 40, zn: 0.4 },
   },
   {
+    id: 'piskoty',
+    cat: '🍫 Sladkosti',
+    name: 'Piškoty',
+    kcal: 385, carbs: 75.0, protein: 9.0, fat: 5.5, fiber: 0.5, per: 30,
+    micros: { na: 95, k: 110, mg: 8, ca: 30, fe: 1.2, vit_c: 0, vit_d: 0.2, b12: 0.2, omega3: 20, zn: 0.4 },
+  },
+  {
     id: 'ice_cream',
     cat: '🍫 Sladkosti',
     name: 'Zmrzlina (vanilka)',
