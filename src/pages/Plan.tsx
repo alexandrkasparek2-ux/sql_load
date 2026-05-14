@@ -1084,9 +1084,9 @@ export default function Plan() {
                 {whoopData?.recovery && nutritionTarget && (
                   <RecoveryNutritionAlert
                     recovery={{
-                      recovery_score: whoopData.recovery.recovery_score,
-                      hrv:            whoopData.recovery.hrv,
-                      rhr:            whoopData.recovery.rhr,
+                      recovery_score: whoopData.recovery.score.recovery_score,
+                      hrv:            whoopData.recovery.score.hrv_rmssd_milli,
+                      rhr:            whoopData.recovery.score.resting_heart_rate,
                     }}
                     hrvBaseline={null}
                     currentProteinG={totals.protein}
