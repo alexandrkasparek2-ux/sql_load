@@ -985,17 +985,146 @@ export default function Plan() {
           zIndex: 0,
         }} />
         <div style={{ position: 'relative', zIndex: 1 }}>
-          <SectionTitle accent={BRAND.gold}>Fueling Lab</SectionTitle>
-          <Card style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: T.text, marginBottom: 8 }}>
-              Připoj Intervals.icu
+          <div style={{ marginBottom: 16 }}>
+            <SegmentedTabs
+              tabs={[
+                { id: 'lab',      label: 'Fueling Lab' },
+                { id: 'faze',     label: '🏆 Fáze' },
+                { id: 'carbs',    label: 'Carbs/h' },
+                { id: 'plan',     label: 'Plán tréninků' },
+                { id: 'aktivity', label: 'Aktivity' },
+              ]}
+              active={activeTab}
+              onChange={(id) => setActiveTab(id as 'lab' | 'aktivity' | 'plan' | 'carbs' | 'faze')}
+            />
+          </div>
+
+          {activeTab === 'faze' ? (
+            <div style={{ animation: 'tabSlide 0.25s ease-out both' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: isDesktop ? 'minmax(0, 1.35fr) minmax(320px, 0.65fr)' : '1fr',
+                gap: 18,
+                marginBottom: 18,
+              }}>
+                {/* Levý sloupec */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {phaseInfo && <PhaseIndicator phaseInfo={phaseInfo} raceName={nextRace?.name} />}
+                  <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ fontSize: 10, color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase' as const }}>
+                        Přepnutí fáze {phaseOverride && <span style={{ color: BRAND.gold }}>· manuální</span>}
+                      </div>
+                      {phaseOverride && (
+                        <button type="button" onClick={clearPhaseOverride} style={{ fontSize: 10, color: T.muted, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}>
+                          ✕ reset na auto
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6 }}>
+                      {(Object.entries(PHASE_LABELS) as [TrainingPhase, string][]).map(([phase, label]) => {
+                        const isActive = (phaseOverride ?? detectedPhaseInfo?.phase) === phase;
+                        const isDetected = detectedPhaseInfo?.phase === phase && !phaseOverride;
+                        return (
+                          <button key={phase} type="button"
+                            onClick={() => phaseOverride === phase ? clearPhaseOverride() : setPhaseOverride(phase)}
+                            style={{ fontSize: 11, fontWeight: isActive ? 700 : 400, padding: '5px 10px', borderRadius: 20,
+                              border: `1px solid ${isActive ? PHASE_COLORS[phase] : T.border}`,
+                              background: isActive ? `${PHASE_COLORS[phase]}22` : 'transparent',
+                              color: isActive ? PHASE_COLORS[phase] : T.muted, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: 4 }}>
+                            {PHASE_ICONS[phase]} {label.split(' — ')[0]}
+                            {isDetected && <span style={{ fontSize: 8, opacity: 0.6 }}>auto</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+                {/* Pravý sloupec */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <div style={{ fontSize: 10, color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase' as const }}>Závody 🏆</div>
+                      <button type="button" onClick={() => setShowRaceForm(v => !v)}
+                        style={{ fontSize: 11, color: BRAND.gold, background: 'none', border: `1px solid ${BRAND.gold}44`, borderRadius: 8, padding: '3px 10px', cursor: 'pointer' }}>
+                        {showRaceForm ? '✕' : '+ Přidat'}
+                      </button>
+                    </div>
+                    {showRaceForm && (
+                      <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, marginBottom: 12, padding: '10px 12px', background: T.bg, borderRadius: 10 }}>
+                        <input placeholder="Název závodu" value={newRaceName} onChange={e => setNewRaceName(e.target.value)}
+                          style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, padding: '7px 10px', color: T.text, fontSize: 13, width: '100%', boxSizing: 'border-box' as const }} />
+                        <input type="date" value={newRaceDate} onChange={e => setNewRaceDate(e.target.value)}
+                          style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, padding: '7px 10px', color: T.text, fontSize: 13, width: '100%', boxSizing: 'border-box' as const, colorScheme: 'dark' }} />
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {(['A', 'B', 'C'] as const).map(t => (
+                            <button key={t} type="button" onClick={() => setNewRaceType(t)}
+                              style={{ flex: 1, padding: '6px 0', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                                border: `1px solid ${newRaceType === t ? BRAND.gold : T.border}`,
+                                background: newRaceType === t ? `${BRAND.gold}22` : 'transparent',
+                                color: newRaceType === t ? BRAND.gold : T.muted, cursor: 'pointer' }}>
+                              {t} {t === 'A' ? '⭐' : t === 'B' ? '🎯' : '🏋️'}
+                            </button>
+                          ))}
+                        </div>
+                        <button type="button" disabled={!newRaceName || !newRaceDate || savingRace}
+                          onClick={async () => {
+                            if (!newRaceName || !newRaceDate) return;
+                            setSavingRace(true);
+                            await saveRace({ name: newRaceName, race_date: newRaceDate, race_type: newRaceType, distance_km: null, elevation_m: null, estimated_duration_hours: null });
+                            setNewRaceName(''); setNewRaceDate(''); setNewRaceType('A'); setShowRaceForm(false); setSavingRace(false);
+                          }}
+                          style={{ padding: '8px 0', borderRadius: 10, background: BRAND.gold, color: '#000', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', opacity: (!newRaceName || !newRaceDate) ? 0.4 : 1 }}>
+                          {savingRace ? 'Ukládám…' : 'Uložit závod'}
+                        </button>
+                      </div>
+                    )}
+                    {allRaces.length === 0 && !showRaceForm && (
+                      <div style={{ fontSize: 12, color: T.muted, textAlign: 'center' as const, padding: '8px 0' }}>
+                        Žádné závody. Přidej závod a fáze se nastaví automaticky.
+                      </div>
+                    )}
+                    {allRaces.map(race => {
+                      const daysAway = Math.round((new Date(`${race.race_date}T00:00:00`).getTime() - new Date().setHours(0,0,0,0)) / 86400000);
+                      return (
+                        <div key={race.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderTop: `1px solid ${T.border}` }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                              {race.race_type === 'A' ? '⭐' : race.race_type === 'B' ? '🎯' : '🏋️'} {race.name}
+                            </div>
+                            <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+                              {new Date(`${race.race_date}T00:00:00`).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long' })}
+                              {daysAway >= 0 ? ` · za ${daysAway} dní` : ` · před ${Math.abs(daysAway)} dny`}
+                            </div>
+                          </div>
+                          <button type="button" onClick={() => deleteRace(race.id)}
+                            style={{ fontSize: 16, color: T.muted, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', flexShrink: 0 }}>🗑️</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {phaseInfo && (
+                    <SupplementChecklist userId={userId} phase={phaseInfo.phase} daysToRace={phaseInfo.daysToRace} />
+                  )}
+                </div>
+              </div>
             </div>
-            <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.6, marginBottom: 18 }}>
-              Nové sportovní fáze se opírají o skutečný průběh aktivit. Jakmile připojíš Intervals, dostaneš plán na trénink,
-              carbs/h, fueling score i recovery debt nad reálnými daty.
-            </div>
-            <IntervalsCard />
-          </Card>
+          ) : (
+            <>
+              <SectionTitle accent={BRAND.gold}>Fueling Lab</SectionTitle>
+              <Card style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: T.text, marginBottom: 8 }}>
+                  Připoj Intervals.icu
+                </div>
+                <div style={{ fontSize: 14, color: T.muted, lineHeight: 1.6, marginBottom: 18 }}>
+                  Nové sportovní fáze se opírají o skutečný průběh aktivit. Jakmile připojíš Intervals, dostaneš plán na trénink,
+                  carbs/h, fueling score i recovery debt nad reálnými daty.
+                </div>
+                <IntervalsCard />
+              </Card>
+            </>
+          )}
         </div>
       </div>
     );
