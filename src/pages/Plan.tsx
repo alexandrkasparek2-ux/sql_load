@@ -14,6 +14,19 @@ import { activityKcal, formatDuration, sportIcon, type IntervalsActivity } from 
 import { useTrainingPlan } from '../hooks/useTrainingPlan';
 import { sportIcon as tpSportIcon } from '../services/trainingPeaksService';
 import { CompactFuelingBadges } from '../components/WorkoutFuelPlannerCard';
+import { useTrainingPhase } from '../hooks/useTrainingPhase';
+import { useDailyNutritionTarget } from '../hooks/useDailyNutritionTarget';
+import { useNutritionCompliance } from '../hooks/useNutritionCompliance';
+import { useRaceWeek } from '../hooks/useRaceWeek';
+import { PhaseIndicator } from '../components/performance-ui/PhaseIndicator';
+import { DailyNutritionDashboard } from '../components/performance-ui/DailyNutritionDashboard';
+import { PhaseNutritionGuide } from '../components/performance-ui/PhaseNutritionGuide';
+import { WeeklyComplianceChart } from '../components/performance-ui/WeeklyComplianceChart';
+import { FoodPhaseWarning } from '../components/performance-ui/FoodPhaseWarning';
+import { RecoveryNutritionAlert } from '../components/performance-ui/RecoveryNutritionAlert';
+import { RaceMorningProtocol } from '../components/performance-ui/RaceMorningProtocol';
+import { OnBikeNutritionTimer } from '../components/performance-ui/OnBikeNutritionTimer';
+import { SupplementChecklist } from '../components/performance-ui/SupplementChecklist';
 
 type FuelPhase = 'phase1' | 'phase2' | 'phase3';
 type DayTypeKey = 'rest' | 'easy_endurance' | 'quality' | 'double_load' | 'gym_support' | 'race_prep';
@@ -407,7 +420,7 @@ export default function Plan() {
   const tp = useTrainingPlan();
 
   const [activePhase, setActivePhase] = useState<FuelPhase>('phase1');
-  const [activeTab, setActiveTab] = useState<'lab' | 'aktivity' | 'plan' | 'carbs'>('lab');
+  const [activeTab, setActiveTab] = useState<'lab' | 'aktivity' | 'plan' | 'carbs' | 'faze'>('lab');
   const [manualHours, setManualHours] = useState<number | null>(null);
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -423,6 +436,28 @@ export default function Plan() {
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
   const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
   const { data: whoopData } = useWhoopData();
+
+  // ── Fázová výživa ────────────────────────────────────────
+  const { phaseInfo, nextRace } = useTrainingPhase(userId);
+  const { entries: complianceEntries, weeklyScore } = useNutritionCompliance(userId);
+
+  // TSS dne z Intervals.icu aktivit
+  const todayTSS = useMemo(() =>
+    activities
+      .filter(a => a.start_date_local.startsWith(today))
+      .reduce((s, a) => s + (a.icu_training_load ?? 0), 0),
+    [activities, today],
+  );
+
+  const { target: nutritionTarget, bmr } = useDailyNutritionTarget({
+    profile: profile ?? null,
+    phaseInfo,
+    tss: todayTSS,
+    garminKj: null,
+    caloricDeficit: deficitKcal,
+  });
+
+  const raceWeek = useRaceWeek(userId, nextRace);
 
   const { value: productLibrary, setValue: setProductLibrary } = useUserSetting<string[]>(
     userId,
@@ -971,15 +1006,140 @@ export default function Plan() {
         <div style={{ marginBottom: 16 }}>
           <SegmentedTabs
             tabs={[
-              { id: 'lab',    label: 'Fueling Lab' },
-              { id: 'carbs',  label: 'Carbs/h' },
-              { id: 'plan',   label: 'Plán tréninků' },
+              { id: 'lab',      label: 'Fueling Lab' },
+              { id: 'faze',     label: '🏆 Fáze' },
+              { id: 'carbs',    label: 'Carbs/h' },
+              { id: 'plan',     label: 'Plán tréninků' },
               { id: 'aktivity', label: 'Aktivity' },
             ]}
             active={activeTab}
-            onChange={(id) => setActiveTab(id as 'lab' | 'aktivity' | 'plan' | 'carbs')}
+            onChange={(id) => setActiveTab(id as 'lab' | 'aktivity' | 'plan' | 'carbs' | 'faze')}
           />
         </div>
+
+        {/* ── ZÁLOŽKA: Fáze & periodizovaná výživa ───────── */}
+        {activeTab === 'faze' && (
+          <div style={{ animation: 'tabSlide 0.25s ease-out both' }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: isDesktop ? 'minmax(0, 1.35fr) minmax(320px, 0.65fr)' : '1fr',
+              gap: 18,
+              marginBottom: 18,
+            }}>
+
+              {/* ── Levý sloupec ──────────────────────────────── */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                {/* Indikátor fáze */}
+                {phaseInfo && (
+                  <PhaseIndicator phaseInfo={phaseInfo} raceName={nextRace?.name} />
+                )}
+
+                {/* Denní nutriční dashboard */}
+                {nutritionTarget && (
+                  <DailyNutritionDashboard
+                    target={nutritionTarget}
+                    actualKcal={totals.kcal}
+                    actualCarbs={totals.carbs}
+                    actualProtein={totals.protein}
+                    actualFat={totals.fat}
+                  />
+                )}
+
+                {/* Race day: závodní ráno + on-bike timer */}
+                {phaseInfo?.phase === 'race_day' && (
+                  <>
+                    <RaceMorningProtocol
+                      items={raceWeek.morningChecklist}
+                      raceStartHour={raceWeek.raceStartHour}
+                      raceStartMinute={raceWeek.raceStartMinute}
+                      onToggle={raceWeek.toggleMorningItem}
+                      onSetStartTime={raceWeek.setRaceStartTime}
+                    />
+                    <OnBikeNutritionTimer
+                      raceStartHour={raceWeek.raceStartHour}
+                      raceStartMinute={raceWeek.raceStartMinute}
+                      entries={raceWeek.onBikeEntries}
+                      totalCarbs={raceWeek.totalOnBikeCarbs}
+                      raceEventId={nextRace?.id ?? null}
+                      onAddEntry={raceWeek.addOnBikeEntry}
+                    />
+                  </>
+                )}
+
+                {/* Průvodce výživou dle fáze */}
+                {nutritionTarget && phaseInfo && (
+                  <PhaseNutritionGuide target={nutritionTarget} phaseInfo={phaseInfo} />
+                )}
+
+                {/* Varování nevhodných potravin */}
+                {phaseInfo && entries.length > 0 && (
+                  <FoodPhaseWarning
+                    entries={entries.map(e => ({ food_name: e.food_name, food_id: e.food_id, kcal: e.kcal }))}
+                    phase={phaseInfo.phase}
+                  />
+                )}
+
+                {/* Whoop recovery alert */}
+                {whoopData?.recovery && nutritionTarget && (
+                  <RecoveryNutritionAlert
+                    recovery={{
+                      recovery_score: whoopData.recovery.recovery_score,
+                      hrv:            whoopData.recovery.hrv,
+                      rhr:            whoopData.recovery.rhr,
+                    }}
+                    hrvBaseline={null}
+                    currentProteinG={totals.protein}
+                    targetProteinG={nutritionTarget.protein_g}
+                  />
+                )}
+              </div>
+
+              {/* ── Pravý sloupec ──────────────────────────────── */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                {/* Týdenní compliance */}
+                {complianceEntries.length > 0 && (
+                  <WeeklyComplianceChart entries={complianceEntries} weeklyScore={weeklyScore} />
+                )}
+
+                {/* Suplementy */}
+                {phaseInfo && (
+                  <SupplementChecklist
+                    userId={userId}
+                    phase={phaseInfo.phase}
+                    daysToRace={phaseInfo.daysToRace}
+                  />
+                )}
+
+                {/* BMR info karta */}
+                {bmr > 0 && (
+                  <div style={{
+                    background: T.card, border: `1px solid ${T.border}`,
+                    borderRadius: 16, padding: '14px 16px',
+                  }}>
+                    <div style={{ fontSize: 10, color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>
+                      Metabolický přehled
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      {[
+                        { label: 'BMR', value: `${bmr} kcal`, color: BRAND.gold },
+                        { label: 'TSS dnes', value: todayTSS > 0 ? `${Math.round(todayTSS)}` : '—', color: BRAND.blue },
+                        { label: 'Fáze', value: phaseInfo?.label ?? '—', color: phaseInfo ? phaseInfo.color : T.muted },
+                        { label: 'Dní do závodu', value: phaseInfo?.daysToRace != null ? `${phaseInfo.daysToRace}` : '—', color: T.text },
+                      ].map(item => (
+                        <div key={item.label} style={{ background: T.bg, borderRadius: 10, padding: '9px 10px' }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: item.color }}>{item.value}</div>
+                          <div style={{ fontSize: 9, color: T.muted, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{item.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {activeTab === 'lab' && (<div style={{ animation: 'tabSlide 0.25s ease-out both' }}>
         <div style={{
