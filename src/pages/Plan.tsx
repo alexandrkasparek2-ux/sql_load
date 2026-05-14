@@ -774,6 +774,189 @@ export default function Plan() {
   if (!isDesktop) {
     return (
       <div style={{ padding: '16px 16px 24px' }}>
+        <div style={{ marginBottom: 16 }}>
+          <SegmentedTabs
+            tabs={[
+              { id: 'plan', label: 'Plán tréninků' },
+              { id: 'faze', label: '🏆 Fáze' },
+            ]}
+            active={activeTab === 'faze' ? 'faze' : 'plan'}
+            onChange={(id) => setActiveTab(id as 'lab' | 'aktivity' | 'plan' | 'carbs' | 'faze')}
+          />
+        </div>
+
+        {activeTab === 'faze' ? (
+          <div style={{ animation: 'tabSlide 0.25s ease-out both', display: 'flex', flexDirection: 'column' as const, gap: 16 }}>
+            {phaseInfo && <PhaseIndicator phaseInfo={phaseInfo} raceName={nextRace?.name} />}
+            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase' as const }}>
+                  Přepnutí fáze {phaseOverride && <span style={{ color: BRAND.gold }}>· manuální</span>}
+                </div>
+                {phaseOverride && (
+                  <button type="button" onClick={clearPhaseOverride} style={{ fontSize: 10, color: T.muted, background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}>
+                    ✕ reset na auto
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6 }}>
+                {(Object.entries(PHASE_LABELS) as [TrainingPhase, string][]).map(([phase, label]) => {
+                  const isActive = (phaseOverride ?? detectedPhaseInfo?.phase) === phase;
+                  const isDetected = detectedPhaseInfo?.phase === phase && !phaseOverride;
+                  return (
+                    <button key={phase} type="button"
+                      onClick={() => phaseOverride === phase ? clearPhaseOverride() : setPhaseOverride(phase)}
+                      style={{ fontSize: 11, fontWeight: isActive ? 700 : 400, padding: '5px 10px', borderRadius: 20,
+                        border: `1px solid ${isActive ? PHASE_COLORS[phase] : T.border}`,
+                        background: isActive ? `${PHASE_COLORS[phase]}22` : 'transparent',
+                        color: isActive ? PHASE_COLORS[phase] : T.muted, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {PHASE_ICONS[phase]} {label.split(' — ')[0]}
+                      {isDetected && <span style={{ fontSize: 8, opacity: 0.6 }}>auto</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {nutritionTarget && (
+              <DailyNutritionDashboard
+                target={nutritionTarget}
+                actualKcal={totals.kcal}
+                actualCarbs={totals.carbs}
+                actualProtein={totals.protein}
+                actualFat={totals.fat}
+              />
+            )}
+            {phaseInfo?.phase === 'race_day' && (
+              <>
+                <RaceMorningProtocol
+                  items={raceWeek.morningChecklist}
+                  raceStartHour={raceWeek.raceStartHour}
+                  raceStartMinute={raceWeek.raceStartMinute}
+                  onToggle={raceWeek.toggleMorningItem}
+                  onSetStartTime={raceWeek.setRaceStartTime}
+                />
+                <OnBikeNutritionTimer
+                  raceStartHour={raceWeek.raceStartHour}
+                  raceStartMinute={raceWeek.raceStartMinute}
+                  entries={raceWeek.onBikeEntries}
+                  totalCarbs={raceWeek.totalOnBikeCarbs}
+                  raceEventId={nextRace?.id ?? null}
+                  onAddEntry={raceWeek.addOnBikeEntry}
+                />
+              </>
+            )}
+            {nutritionTarget && phaseInfo && (
+              <PhaseNutritionGuide target={nutritionTarget} phaseInfo={phaseInfo} />
+            )}
+            {phaseInfo && entries.length > 0 && (
+              <FoodPhaseWarning
+                entries={entries.map(e => ({ food_name: e.food_name, food_id: e.food_id, kcal: e.kcal }))}
+                phase={phaseInfo.phase}
+              />
+            )}
+            {whoopData?.recovery && nutritionTarget && (
+              <RecoveryNutritionAlert
+                recovery={{
+                  recovery_score: whoopData.recovery.score.recovery_score,
+                  hrv:            whoopData.recovery.score.hrv_rmssd_milli,
+                  rhr:            whoopData.recovery.score.resting_heart_rate,
+                }}
+                hrvBaseline={null}
+                currentProteinG={totals.protein}
+                targetProteinG={nutritionTarget.protein_g}
+              />
+            )}
+            <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 14, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase' as const }}>Závody 🏆</div>
+                <button type="button" onClick={() => setShowRaceForm(v => !v)}
+                  style={{ fontSize: 11, color: BRAND.gold, background: 'none', border: `1px solid ${BRAND.gold}44`, borderRadius: 8, padding: '3px 10px', cursor: 'pointer' }}>
+                  {showRaceForm ? '✕' : '+ Přidat'}
+                </button>
+              </div>
+              {showRaceForm && (
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, marginBottom: 12, padding: '10px 12px', background: T.bg, borderRadius: 10 }}>
+                  <input placeholder="Název závodu" value={newRaceName} onChange={e => setNewRaceName(e.target.value)}
+                    style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, padding: '7px 10px', color: T.text, fontSize: 13, width: '100%', boxSizing: 'border-box' as const }} />
+                  <input type="date" value={newRaceDate} onChange={e => setNewRaceDate(e.target.value)}
+                    style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 8, padding: '7px 10px', color: T.text, fontSize: 13, width: '100%', boxSizing: 'border-box' as const, colorScheme: 'dark' }} />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {(['A', 'B', 'C'] as const).map(t => (
+                      <button key={t} type="button" onClick={() => setNewRaceType(t)}
+                        style={{ flex: 1, padding: '6px 0', borderRadius: 8, fontSize: 12, fontWeight: 700,
+                          border: `1px solid ${newRaceType === t ? BRAND.gold : T.border}`,
+                          background: newRaceType === t ? `${BRAND.gold}22` : 'transparent',
+                          color: newRaceType === t ? BRAND.gold : T.muted, cursor: 'pointer' }}>
+                        {t} {t === 'A' ? '⭐' : t === 'B' ? '🎯' : '🏋️'}
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" disabled={!newRaceName || !newRaceDate || savingRace}
+                    onClick={async () => {
+                      if (!newRaceName || !newRaceDate) return;
+                      setSavingRace(true);
+                      await saveRace({ name: newRaceName, race_date: newRaceDate, race_type: newRaceType, distance_km: null, elevation_m: null, estimated_duration_hours: null });
+                      setNewRaceName(''); setNewRaceDate(''); setNewRaceType('A'); setShowRaceForm(false); setSavingRace(false);
+                    }}
+                    style={{ padding: '8px 0', borderRadius: 10, background: BRAND.gold, color: '#000', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', opacity: (!newRaceName || !newRaceDate) ? 0.4 : 1 }}>
+                    {savingRace ? 'Ukládám…' : 'Uložit závod'}
+                  </button>
+                </div>
+              )}
+              {allRaces.length === 0 && !showRaceForm && (
+                <div style={{ fontSize: 12, color: T.muted, textAlign: 'center' as const, padding: '8px 0' }}>
+                  Žádné závody. Přidej závod a fáze se nastaví automaticky.
+                </div>
+              )}
+              {allRaces.map(race => {
+                const daysAway = Math.round((new Date(`${race.race_date}T00:00:00`).getTime() - new Date().setHours(0,0,0,0)) / 86400000);
+                return (
+                  <div key={race.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderTop: `1px solid ${T.border}` }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                        {race.race_type === 'A' ? '⭐' : race.race_type === 'B' ? '🎯' : '🏋️'} {race.name}
+                      </div>
+                      <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+                        {new Date(`${race.race_date}T00:00:00`).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'long' })}
+                        {daysAway >= 0 ? ` · za ${daysAway} dní` : ` · před ${Math.abs(daysAway)} dny`}
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => deleteRace(race.id)}
+                      style={{ fontSize: 16, color: T.muted, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', flexShrink: 0 }}>🗑️</button>
+                  </div>
+                );
+              })}
+            </div>
+            {phaseInfo && (
+              <SupplementChecklist userId={userId} phase={phaseInfo.phase} daysToRace={phaseInfo.daysToRace} />
+            )}
+            {complianceEntries.length > 0 && (
+              <WeeklyComplianceChart entries={complianceEntries} weeklyScore={weeklyScore} />
+            )}
+            {bmr > 0 && (
+              <div style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 16, padding: '14px 16px' }}>
+                <div style={{ fontSize: 10, color: T.muted, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>
+                  Metabolický přehled
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {[
+                    { label: 'BMR', value: `${bmr} kcal`, color: BRAND.gold },
+                    { label: 'TSS dnes', value: todayTSS > 0 ? `${Math.round(todayTSS)}` : '—', color: BRAND.blue },
+                    { label: 'Fáze', value: phaseInfo?.label ?? '—', color: phaseInfo ? phaseInfo.color : T.muted },
+                    { label: 'Dní do závodu', value: phaseInfo?.daysToRace != null ? `${phaseInfo.daysToRace}` : '—', color: T.text },
+                  ].map(item => (
+                    <div key={item.label} style={{ background: T.bg, borderRadius: 10, padding: '9px 10px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: item.color }}>{item.value}</div>
+                      <div style={{ fontSize: 9, color: T.muted, marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 18 }}>
           <div>
@@ -966,6 +1149,8 @@ export default function Plan() {
               );
             })}
           </div>
+        )}
+          </>
         )}
       </div>
     );
