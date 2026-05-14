@@ -17,6 +17,8 @@ import { WeekChart, TrainingBanner } from '../components/PerformanceCards';
 import { PriorityCard } from '../components/performance-ui/PriorityCard';
 import { ScoreRing } from '../components/performance-ui/ScoreRing';
 import { RecoveryDebtCard } from '../components/performance-ui/RecoveryDebtCard';
+import { PhaseIndicator } from '../components/performance-ui/PhaseIndicator';
+import { useTrainingPhase } from '../hooks/useTrainingPhase';
 
 
 // ─── Stretching checklist ─────────────────────────────────────
@@ -401,6 +403,7 @@ export default function Dashboard() {
   const { takenCount: suppTaken } = useSupplements(userId, today);
   const totalSupplements = SUPPLEMENTS.length;
   useWhoopData();
+  const { phaseInfo, nextRace } = useTrainingPhase(userId);
 
   // Czech greeting date
   const DAYS_CZ = ['Neděle', 'Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota'];
@@ -953,6 +956,13 @@ export default function Dashboard() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* Fázový indikátor v pravém sloupci */}
+                {phaseInfo && (
+                  <PhaseIndicator
+                    phaseInfo={phaseInfo}
+                    raceName={nextRace?.name}
+                  />
+                )}
                 {liveModeSection}
                 {trainingBanner}
 
@@ -1038,6 +1048,16 @@ export default function Dashboard() {
                 >›</button>
               </div>
             </div>
+
+            {/* Fázový indikátor — kompaktní badge */}
+            {phaseInfo && (
+              <div style={{ marginBottom: 12 }}>
+                <PhaseIndicator
+                  phaseInfo={phaseInfo}
+                  raceName={nextRace?.name}
+                />
+              </div>
+            )}
 
             {trainingBanner}
             {liveModeSection}
