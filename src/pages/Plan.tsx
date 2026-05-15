@@ -777,7 +777,6 @@ export default function Plan() {
         <div style={{ marginBottom: 16 }}>
           <SegmentedTabs
             tabs={[
-              { id: 'lab',      label: 'Fueling Lab' },
               { id: 'faze',     label: '🏆 Fáze' },
               { id: 'carbs',    label: 'Carbs/h' },
               { id: 'plan',     label: 'Plán' },
@@ -1176,7 +1175,6 @@ export default function Plan() {
           <div style={{ marginBottom: 16 }}>
             <SegmentedTabs
               tabs={[
-                { id: 'lab',      label: 'Fueling Lab' },
                 { id: 'faze',     label: '🏆 Fáze' },
                 { id: 'carbs',    label: 'Carbs/h' },
                 { id: 'plan',     label: 'Plán tréninků' },
@@ -1335,7 +1333,6 @@ export default function Plan() {
         <div style={{ marginBottom: 16 }}>
           <SegmentedTabs
             tabs={[
-              { id: 'lab',      label: 'Fueling Lab' },
               { id: 'faze',     label: '🏆 Fáze' },
               { id: 'carbs',    label: 'Carbs/h' },
               { id: 'plan',     label: 'Plán tréninků' },
