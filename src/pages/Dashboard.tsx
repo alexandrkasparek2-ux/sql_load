@@ -448,9 +448,10 @@ export default function Dashboard() {
     return count || (entries.length > 0 ? 1 : 0);
   })();
 
-  // When user hasn't manually set training day, fall back to today's calendar workout sport type
-  const allTypes = trainingDay
-    ? [trainingDay.training_type, ...(trainingDay.extra_types ?? [])]
+  // trainingDay.id is undefined when it's an in-memory default (no DB record yet = user hasn't set it manually)
+  const isDefaultDay = !trainingDay?.id && trainingDay?.training_type === 'rest';
+  const allTypes = !isDefaultDay
+    ? [trainingDay!.training_type, ...(trainingDay!.extra_types ?? [])]
     : todayWorkout ? [todayWorkout.sportType] : ['rest'];
   const primary  = primaryType(allTypes as any);
   const training = TRAINING_TYPES.find(t => t.id === primary) ?? TRAINING_TYPES.find(t => t.id === 'rest')!;
