@@ -398,7 +398,7 @@ export default function Dashboard() {
   };
 
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
-  const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
+  const { data: historyData } = useWeeklyData(userId, 14, profile, effectiveGoals.kcal, deficitKcal);
   const { activities: intervalsActivities } = useIntervalsData(1, userId);
   const { todayWorkout } = useTrainingPlan();
   const { takenCount: suppTaken } = useSupplements(userId, today);
@@ -406,11 +406,10 @@ export default function Dashboard() {
   useWhoopData();
   const { phaseInfo, nextRace } = useTrainingPhase(userId);
 
-  // TSS for today: prefer synced Intervals.icu load, fall back to planned TSS from TrainingPeaks
+  // TSS for today derived from Intervals.icu activities
   const todayTSS = intervalsActivities
     .filter(a => a.start_date_local.startsWith(today))
-    .reduce((sum, a) => sum + (a.icu_training_load ?? 0), 0)
-    || (todayWorkout?.tss ?? 0);
+    .reduce((sum, a) => sum + (a.icu_training_load ?? 0), 0);
 
   const { target: nutritionTarget } = useDailyNutritionTarget({
     profile,
