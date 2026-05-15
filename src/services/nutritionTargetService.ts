@@ -182,7 +182,7 @@ export function calculateDailyTarget(
     // ── RACE WEEK ────────────────────────────────────────
     case 'race_week': {
       // Základní race week (7–4 dny před závodem, tapering)
-      const kcal      = Math.round(bmr * 1.5);
+      const kcal      = Math.round(bmr * 1.5 + trainingKcal);
       const protein_g = Math.round(weightKg * 1.8);
       const carbs_g   = Math.round(weightKg * 5.5); // střed 5–6
       const fat_kcal  = kcal - carbs_g * 4 - protein_g * 4;
