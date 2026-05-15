@@ -398,7 +398,7 @@ export default function Dashboard() {
   };
 
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
-  const { data: historyData } = useWeeklyData(userId, 14, profile, effectiveGoals.kcal, deficitKcal);
+  const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
   const { activities: intervalsActivities } = useIntervalsData(1, userId);
   const { todayWorkout } = useTrainingPlan();
   const { takenCount: suppTaken } = useSupplements(userId, today);
