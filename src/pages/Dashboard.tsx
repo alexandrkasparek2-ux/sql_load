@@ -19,6 +19,7 @@ import { ScoreRing } from '../components/performance-ui/ScoreRing';
 import { RecoveryDebtCard } from '../components/performance-ui/RecoveryDebtCard';
 import { PhaseIndicator } from '../components/performance-ui/PhaseIndicator';
 import { useTrainingPhase } from '../hooks/useTrainingPhase';
+import { useDailyNutritionTarget } from '../hooks/useDailyNutritionTarget';
 
 
 // ─── Stretching checklist ─────────────────────────────────────
@@ -405,6 +406,31 @@ export default function Dashboard() {
   useWhoopData();
   const { phaseInfo, nextRace } = useTrainingPhase(userId);
 
+  // TSS for today derived from Intervals.icu activities
+  const todayTSS = intervalsActivities
+    .filter(a => a.start_date_local.startsWith(today))
+    .reduce((sum, a) => sum + (a.icu_training_load ?? 0), 0);
+
+  const { target: nutritionTarget } = useDailyNutritionTarget({
+    profile,
+    phaseInfo,
+    tss: todayTSS,
+    garminKj: null,
+    caloricDeficit: deficitKcal,
+  });
+
+  // Phase-adjusted goals: use computed targets when available, fall back to AppContext goals
+  const effectiveGoals = nutritionTarget ? {
+    ...goals,
+    kcal:    nutritionTarget.kcal,
+    carbs:   nutritionTarget.carbs_g,
+    protein: nutritionTarget.protein_g,
+    fat:     nutritionTarget.fat_g,
+  } : goals;
+
+  // Phase-based accent color (falls back to user accent)
+  const phaseAccent = phaseInfo?.color ?? accent;
+
   // Czech greeting date
   const DAYS_CZ = ['Neděle', 'Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota'];
   const todayDate = new Date(today + 'T12:00:00');
@@ -471,7 +497,7 @@ export default function Dashboard() {
     ? Math.round(daysWithData.reduce((s, d) => s + d.kcal, 0) / daysWithData.length)
     : 0;
 
-  const pctGoal = goals.kcal > 0 ? Math.round((totals.kcal / goals.kcal) * 100) : 0;
+  const pctGoal = effectiveGoals.kcal > 0 ? Math.round((totals.kcal / effectiveGoals.kcal) * 100) : 0;
 
 
   const postWorkoutProtein = entries
@@ -484,7 +510,7 @@ export default function Dashboard() {
   const carbRange = getDuringCarbRange(primary as Parameters<typeof getDuringCarbRange>[0], allHoursForScore);
   const fuelingScore = calcFuelingScore({
     totals,
-    goals,
+    goals: effectiveGoals,
     waterGlasses:       trainingDay?.water_glasses ?? 0,
     totalHours:         allHoursForScore,
     duringCarbs,
@@ -559,7 +585,7 @@ export default function Dashboard() {
           },
           {
             number: 2,
-            text: `${Math.max(0, Math.round(goals.protein - totals.protein))} g proteinu zbývá do denního cíle.`,
+            text: `${Math.max(0, Math.round(effectiveGoals.protein - totals.protein))} g proteinu zbývá do denního cíle.`,
             color: 'success',
           },
           {
@@ -690,7 +716,7 @@ export default function Dashboard() {
       <Card style={{ marginBottom: daysWithData.length > 0 ? 8 : 16, padding: '14px 12px 10px', animation: 'cardReveal 0.5s ease-out 0.4s both' }}>
         {historyData.length > 0 ? (
           <>
-            <WeekChart data={historyData} accent={accent} kcalGoal={goals.kcal} />
+            <WeekChart data={historyData} accent={accent} kcalGoal={effectiveGoals.kcal} />
             {historyData.some(d => d.burned > 0) && (
               <div style={{ display: 'flex', gap: 14, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.border}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: T.muted }}>
@@ -719,7 +745,7 @@ export default function Dashboard() {
           {[
             { label: 'Průměr / den', value: `${avgKcal} kcal`, color: BRAND.gold },
             { label: 'Aktivní dny',  value: `${daysWithData.length} / 14`, color: T.muted },
-            { label: 'Cíl dnes',     value: `${Math.round(goals.kcal)} kcal`, color: T.muted },
+            { label: 'Cíl dnes',     value: `${Math.round(effectiveGoals.kcal)} kcal`, color: T.muted },
           ].map(s => (
             <div key={s.label} style={{
               flex: 1, background: T.card, border: `1px solid ${T.border}`,
@@ -830,15 +856,43 @@ export default function Dashboard() {
   return (
     <div style={{ padding: isDesktop ? '0 0 12px' : '16px 16px 0', position: 'relative' }}>
 
-      {/* Gradient overlay at top */}
+      {/* Gradient overlay at top — tinted by current phase */}
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 300,
-        background: 'radial-gradient(ellipse at top, rgba(124,92,255,0.06), transparent 70%)',
+        background: `radial-gradient(ellipse at top, ${phaseAccent}0f, transparent 70%)`,
         pointerEvents: 'none', zIndex: 0,
+        transition: 'background 0.5s ease',
       }} />
 
       {/* Content wrapper above overlay */}
       <div style={{ position: 'relative', zIndex: 1 }}>
+
+        {/* ── Phase banner ──────────────────────────────────── */}
+        {phaseInfo && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            marginBottom: 14,
+            padding: '8px 14px',
+            borderRadius: 10,
+            background: phaseAccent + '18',
+            border: `1px solid ${phaseAccent}44`,
+          }}>
+            <span style={{ fontSize: 16, lineHeight: 1 }}>{phaseInfo.icon}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: phaseAccent, letterSpacing: '0.08em', textTransform: 'uppercase' as const, fontFamily: 'JetBrains Mono, monospace' }}>
+                {phaseInfo.label}
+              </span>
+              {phaseInfo.tip && (
+                <span style={{ fontSize: 11, color: T.muted, marginLeft: 8 }}>{phaseInfo.tip}</span>
+              )}
+            </div>
+            {nutritionTarget && (
+              <span style={{ fontSize: 10, color: phaseAccent, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, flexShrink: 0 }}>
+                {Math.round(nutritionTarget.kcal)} kcal
+              </span>
+            )}
+          </div>
+        )}
 
         {isDesktop ? (
           <>
@@ -870,7 +924,7 @@ export default function Dashboard() {
                       )}
                     </div>
                     {(() => {
-                        const balance = burnedToday > 0 ? burnedToday - Math.round(totals.kcal) : Math.round(goals.kcal + deficitKcal - totals.kcal);
+                        const balance = burnedToday > 0 ? burnedToday - Math.round(totals.kcal) : Math.round(effectiveGoals.kcal + deficitKcal - totals.kcal);
                         const balanceColor = balance > 200 ? BRAND.green : balance < -200 ? BRAND.red : BRAND.orange;
                         return (
                           <>
@@ -885,15 +939,15 @@ export default function Dashboard() {
                               <span style={{ fontSize: 14, color: T.text2 }}>kcal bilance</span>
                             </div>
                             <div style={{ fontSize: 11, color: T.muted, marginBottom: 6 }}>
-                              zbývá do cíle: <span style={{ color: T.text, fontWeight: 600 }}>{Math.max(0, Math.round(goals.kcal - totals.kcal)).toLocaleString('cs')} kcal</span>
+                              zbývá do cíle: <span style={{ color: T.text, fontWeight: 600 }}>{Math.max(0, Math.round(effectiveGoals.kcal - totals.kcal)).toLocaleString('cs')} kcal</span>
                             </div>
                           </>
                         );
                       })()}
                     <div style={{ display: 'flex', gap: 28, marginTop: 22, paddingTop: 18, borderTop: `1px solid ${T.border}` }}>
                       <KV k="Přijato" v={Math.round(totals.kcal).toLocaleString('cs')} sub="kcal" vSize={24} mono={false} />
-                      <KV k="Výdej" v={(burnedToday > 0 ? burnedToday : Math.round(goals.kcal + deficitKcal)).toLocaleString('cs')} sub="kcal" vSize={24} mono={false} vColor={BRAND.orange} />
-                      <KV k="Cíl příjmu" v={Math.round(goals.kcal).toLocaleString('cs')} sub={`${pctGoal}%`} vSize={24} mono={false} />
+                      <KV k="Výdej" v={(burnedToday > 0 ? burnedToday : Math.round(effectiveGoals.kcal + deficitKcal)).toLocaleString('cs')} sub="kcal" vSize={24} mono={false} vColor={BRAND.orange} />
+                      <KV k="Cíl příjmu" v={Math.round(effectiveGoals.kcal).toLocaleString('cs')} sub={`${pctGoal}%`} vSize={24} mono={false} />
                       {goalOverride && (
                         <button onClick={() => setGoalOverride(null)} title="Obnovit výchozí cíle"
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: BRAND.orange, fontSize: 13, marginLeft: 'auto', alignSelf: 'center' }}>↺ reset</button>
@@ -920,9 +974,9 @@ export default function Dashboard() {
                       </span>
                     </SegRing>
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      <MacroLine label="Sacharidy" value={totals.carbs}   total={goals.carbs}   color={MACRO.carb} />
-                      <MacroLine label="Tuky"      value={totals.fat}     total={goals.fat}     color={MACRO.fat}  />
-                      <MacroLine label="Bílkoviny" value={totals.protein} total={goals.protein} color={MACRO.pro}  />
+                      <MacroLine label="Sacharidy" value={totals.carbs}   total={effectiveGoals.carbs}   color={MACRO.carb} />
+                      <MacroLine label="Tuky"      value={totals.fat}     total={effectiveGoals.fat}     color={MACRO.fat}  />
+                      <MacroLine label="Bílkoviny" value={totals.protein} total={effectiveGoals.protein} color={MACRO.pro}  />
                     </div>
                   </div>
                 </div>
@@ -1086,7 +1140,7 @@ export default function Dashboard() {
                   </div>
                   {(trainingDay?.ride_hours ?? 0) > 0 && (
                     <div style={{ fontSize: 11, color: T.muted, fontFamily: 'JetBrains Mono, monospace' }}>
-                      {(trainingDay!.ride_hours!).toFixed(1)} h · {Math.round(goals.carbs)} g sach.
+                      {(trainingDay!.ride_hours!).toFixed(1)} h · {Math.round(effectiveGoals.carbs)} g sach.
                     </div>
                   )}
                 </div>
@@ -1106,8 +1160,8 @@ export default function Dashboard() {
               {training.id !== 'rest' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, paddingTop: 12, borderTop: '1px solid rgba(180,200,255,0.08)', position: 'relative' }}>
                   {[
-                    { label: 'CÍL KCAL', val: Math.round(goals.kcal).toString() },
-                    { label: 'SACH',     val: `${Math.round(goals.carbs)}g` },
+                    { label: 'CÍL KCAL', val: Math.round(effectiveGoals.kcal).toString() },
+                    { label: 'SACH',     val: `${Math.round(effectiveGoals.carbs)}g` },
                     { label: 'VODA',     val: `${goals.water.toFixed(1)}L` },
                     { label: 'HODINY',   val: (trainingDay?.ride_hours ?? 0) > 0 ? `${(trainingDay!.ride_hours!).toFixed(1)}h` : '—' },
                   ].map(s => (
@@ -1125,10 +1179,10 @@ export default function Dashboard() {
               <div style={{ fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase' as const, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 10 }}>NUTRIČNÍ STAV</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                 {[
-                  { label: 'KCAL', val: totals.kcal,   max: goals.kcal,   color: BRAND.purple, disp: `${Math.round(totals.kcal)}`, maxDisp: `${Math.round(goals.kcal)}` },
-                  { label: 'SACH', val: totals.carbs,  max: goals.carbs,  color: BRAND.blue,   disp: `${Math.round(totals.carbs)}`, maxDisp: `${Math.round(goals.carbs)}g` },
-                  { label: 'BÍLK', val: totals.protein,max: goals.protein,color: BRAND.green,  disp: `${Math.round(totals.protein)}`, maxDisp: `${Math.round(goals.protein)}g` },
-                  { label: 'TUKY', val: totals.fat,    max: goals.fat,    color: BRAND.gold,   disp: `${Math.round(totals.fat)}`, maxDisp: `${Math.round(goals.fat)}g` },
+                  { label: 'KCAL', val: totals.kcal,   max: effectiveGoals.kcal,   color: BRAND.purple, disp: `${Math.round(totals.kcal)}`, maxDisp: `${Math.round(effectiveGoals.kcal)}` },
+                  { label: 'SACH', val: totals.carbs,  max: effectiveGoals.carbs,  color: BRAND.blue,   disp: `${Math.round(totals.carbs)}`, maxDisp: `${Math.round(effectiveGoals.carbs)}g` },
+                  { label: 'BÍLK', val: totals.protein,max: effectiveGoals.protein,color: BRAND.green,  disp: `${Math.round(totals.protein)}`, maxDisp: `${Math.round(effectiveGoals.protein)}g` },
+                  { label: 'TUKY', val: totals.fat,    max: effectiveGoals.fat,    color: BRAND.gold,   disp: `${Math.round(totals.fat)}`, maxDisp: `${Math.round(effectiveGoals.fat)}g` },
                   { label: 'VODA', val: (trainingDay?.water_glasses ?? 0) * 0.25, max: goals.water, color: BRAND.blue, disp: `${((trainingDay?.water_glasses ?? 0) * 0.25).toFixed(1)}`, maxDisp: `${goals.water.toFixed(1)}L` },
                   { label: 'SUPPL.', val: suppTaken,  max: totalSupplements,  color: BRAND.orange,  disp: `${suppTaken}`, maxDisp: `${totalSupplements}` },
                 ].map(r => (
@@ -1261,15 +1315,15 @@ export default function Dashboard() {
                 <div style={{ fontSize: 14, fontWeight: 700, color: T.text, marginBottom: 3, lineHeight: 1.3 }}>
                   {pctGoal >= 85
                     ? 'Výborný den! Splňuješ cíle výživy.'
-                    : totals.protein < goals.protein * 0.5 && primary !== 'rest'
+                    : totals.protein < effectiveGoals.protein * 0.5 && primary !== 'rest'
                       ? 'Sacharidy během tréninku jsou nedostatečné'
-                      : totals.kcal < goals.kcal * 0.4
+                      : totals.kcal < effectiveGoals.kcal * 0.4
                         ? 'Energetická rezerva stále otevřená — doplň ji.'
-                        : `Zbývá ${Math.max(0, Math.round(goals.kcal - totals.kcal))} kcal a ${Math.max(0, Math.round(goals.protein - totals.protein))} g proteinu.`
+                        : `Zbývá ${Math.max(0, Math.round(effectiveGoals.kcal - totals.kcal))} kcal a ${Math.max(0, Math.round(effectiveGoals.protein - totals.protein))} g proteinu.`
                   }
                 </div>
                 <div style={{ fontSize: 12, color: T.muted }}>
-                  {totals.protein < goals.protein * 0.5 && primary !== 'rest'
+                  {totals.protein < effectiveGoals.protein * 0.5 && primary !== 'rest'
                     ? 'Doplň 30g bonk-prevenci. Tap pro plán.'
                     : 'Tap pro personalizovaný plán →'
                   }
