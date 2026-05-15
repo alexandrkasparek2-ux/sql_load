@@ -14,6 +14,8 @@ import { useTrainingPhase } from '../hooks/useTrainingPhase';
 import { useDailyNutritionTarget } from '../hooks/useDailyNutritionTarget';
 import { useTrainingPlan } from '../hooks/useTrainingPlan';
 import { useIntervalsData } from '../hooks/useIntervalsData';
+import { useTrainingDay } from '../hooks/useTrainingDay';
+import { estimateKcalFromTrainingDay } from '../services/nutritionTargetService';
 
 // ─── helpers ────────────────────────────────────────────────
 function scaleNutrient(val: number, grams: number) {
@@ -995,16 +997,26 @@ export default function Foods() {
   const { phaseInfo } = useTrainingPhase(userId);
   const { todayWorkout } = useTrainingPlan();
   const { activities: intervalsActivities } = useIntervalsData(1, userId);
+  const { trainingDay } = useTrainingDay(userId, today);
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
   const todayTSS = intervalsActivities
     .filter(a => a.start_date_local.startsWith(today))
     .reduce((sum, a) => sum + (a.icu_training_load ?? 0), 0)
     || (todayWorkout?.tss ?? 0);
+  const manualTrainingKcal = todayTSS === 0 && trainingDay?.id
+    ? estimateKcalFromTrainingDay(
+        trainingDay.training_type,
+        trainingDay.ride_hours ?? 0,
+        trainingDay.activity_hours ?? {},
+        trainingDay.activity_intensity ?? {},
+        profile?.weight ?? 75,
+      )
+    : 0;
   const { target: nutritionTarget } = useDailyNutritionTarget({
     profile,
     phaseInfo,
     tss: todayTSS,
-    garminKj: null,
+    garminKj: manualTrainingKcal > 0 ? manualTrainingKcal : null,
     caloricDeficit: deficitKcal,
   });
   const effectiveGoals = nutritionTarget ? {

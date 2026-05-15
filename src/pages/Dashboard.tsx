@@ -20,6 +20,7 @@ import { RecoveryDebtCard } from '../components/performance-ui/RecoveryDebtCard'
 import { PhaseIndicator } from '../components/performance-ui/PhaseIndicator';
 import { useTrainingPhase } from '../hooks/useTrainingPhase';
 import { useDailyNutritionTarget } from '../hooks/useDailyNutritionTarget';
+import { estimateKcalFromTrainingDay } from '../services/nutritionTargetService';
 
 
 // ─── Stretching checklist ─────────────────────────────────────
@@ -412,11 +413,22 @@ export default function Dashboard() {
     .reduce((sum, a) => sum + (a.icu_training_load ?? 0), 0)
     || (todayWorkout?.tss ?? 0);
 
+  // When no external TSS data, estimate kcal from manually-entered training hours
+  const manualTrainingKcal = todayTSS === 0 && trainingDay?.id
+    ? estimateKcalFromTrainingDay(
+        trainingDay.training_type,
+        trainingDay.ride_hours ?? 0,
+        trainingDay.activity_hours ?? {},
+        trainingDay.activity_intensity ?? {},
+        profile?.weight ?? 75,
+      )
+    : 0;
+
   const { target: nutritionTarget } = useDailyNutritionTarget({
     profile,
     phaseInfo,
     tss: todayTSS,
-    garminKj: null,
+    garminKj: manualTrainingKcal > 0 ? manualTrainingKcal : null,
     caloricDeficit: deficitKcal,
   });
 
