@@ -406,10 +406,11 @@ export default function Dashboard() {
   useWhoopData();
   const { phaseInfo, nextRace } = useTrainingPhase(userId);
 
-  // TSS for today derived from Intervals.icu activities
+  // TSS for today: prefer synced Intervals.icu load, fall back to planned TSS from TrainingPeaks
   const todayTSS = intervalsActivities
     .filter(a => a.start_date_local.startsWith(today))
-    .reduce((sum, a) => sum + (a.icu_training_load ?? 0), 0);
+    .reduce((sum, a) => sum + (a.icu_training_load ?? 0), 0)
+    || (todayWorkout?.tss ?? 0);
 
   const { target: nutritionTarget } = useDailyNutritionTarget({
     profile,

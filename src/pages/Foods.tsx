@@ -12,6 +12,8 @@ import FoodScanner      from '../components/FoodScanner';
 import { MealBuilder, type MealSuggestion } from '../components/performance-ui';
 import { useTrainingPhase } from '../hooks/useTrainingPhase';
 import { useDailyNutritionTarget } from '../hooks/useDailyNutritionTarget';
+import { useTrainingPlan } from '../hooks/useTrainingPlan';
+import { useIntervalsData } from '../hooks/useIntervalsData';
 
 // ─── helpers ────────────────────────────────────────────────
 function scaleNutrient(val: number, grams: number) {
@@ -991,11 +993,17 @@ export default function Foods() {
   const { accent, entries, addEntry, removeEntry, updateEntry, updateEntryMacros, userId, today, goals, setToday, profile, deficitLevel } = ctx;
 
   const { phaseInfo } = useTrainingPhase(userId);
+  const { todayWorkout } = useTrainingPlan();
+  const { activities: intervalsActivities } = useIntervalsData(1, userId);
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
+  const todayTSS = intervalsActivities
+    .filter(a => a.start_date_local.startsWith(today))
+    .reduce((sum, a) => sum + (a.icu_training_load ?? 0), 0)
+    || (todayWorkout?.tss ?? 0);
   const { target: nutritionTarget } = useDailyNutritionTarget({
     profile,
     phaseInfo,
-    tss: 0,
+    tss: todayTSS,
     garminKj: null,
     caloricDeficit: deficitKcal,
   });
