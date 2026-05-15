@@ -778,7 +778,6 @@ export default function Plan() {
           <SegmentedTabs
             tabs={[
               { id: 'faze',     label: '🏆 Fáze' },
-              { id: 'carbs',    label: 'Carbs/h' },
               { id: 'plan',     label: 'Plán' },
               { id: 'aktivity', label: 'Aktivity' },
             ]}
@@ -1176,7 +1175,6 @@ export default function Plan() {
             <SegmentedTabs
               tabs={[
                 { id: 'faze',     label: '🏆 Fáze' },
-                { id: 'carbs',    label: 'Carbs/h' },
                 { id: 'plan',     label: 'Plán tréninků' },
                 { id: 'aktivity', label: 'Aktivity' },
               ]}
@@ -1334,7 +1332,6 @@ export default function Plan() {
           <SegmentedTabs
             tabs={[
               { id: 'faze',     label: '🏆 Fáze' },
-              { id: 'carbs',    label: 'Carbs/h' },
               { id: 'plan',     label: 'Plán tréninků' },
               { id: 'aktivity', label: 'Aktivity' },
             ]}
