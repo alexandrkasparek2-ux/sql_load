@@ -1121,7 +1121,8 @@ export default function Dashboard() {
             {liveModeSection}
             <StretchingChecklist userId={userId} today={today} accent={accent} />
 
-            {/* ── HERO: Workout card ─────────────────────────── */}
+            {/* ── HERO: Workout card — skryto ───────────────── */}
+            {false && (
             <div style={{
               background: `linear-gradient(135deg, #161622 0%, #11111A 100%)`,
               border: '1px solid rgba(180,200,255,0.18)',
@@ -1177,6 +1178,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+            )}
 
             {/* ── FUELING RINGS 3×2 ─────────────────────────── */}
             <div style={{ marginBottom: 14 }}>
