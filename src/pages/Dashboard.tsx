@@ -448,9 +448,12 @@ export default function Dashboard() {
     return count || (entries.length > 0 ? 1 : 0);
   })();
 
-  const allTypes   = trainingDay ? [trainingDay.training_type, ...(trainingDay.extra_types ?? [])] : ['rest'];
-  const primary    = primaryType(allTypes as any);
-  const training   = TRAINING_TYPES.find(t => t.id === (trainingDay?.training_type ?? 'rest'))!;
+  // When user hasn't manually set training day, fall back to today's calendar workout sport type
+  const allTypes = trainingDay
+    ? [trainingDay.training_type, ...(trainingDay.extra_types ?? [])]
+    : todayWorkout ? [todayWorkout.sportType] : ['rest'];
+  const primary  = primaryType(allTypes as any);
+  const training = TRAINING_TYPES.find(t => t.id === primary) ?? TRAINING_TYPES.find(t => t.id === 'rest')!;
 
   const handleWaterAddMl  = (ml: number) => upsertTrainingDay({ water_glasses: (trainingDay?.water_glasses ?? 0) + Math.round(ml / 250) });
   const handleWaterRemove = () => upsertTrainingDay({ water_glasses: Math.max(0, (trainingDay?.water_glasses ?? 0) - 1) });
