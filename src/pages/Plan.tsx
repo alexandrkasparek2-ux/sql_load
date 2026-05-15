@@ -771,16 +771,19 @@ export default function Plan() {
     return BRAND.green;
   };
 
-  if (!isDesktop) {
+  if (!isDesktop && (activeTab === 'plan' || activeTab === 'faze')) {
     return (
       <div style={{ padding: '16px 16px 24px' }}>
         <div style={{ marginBottom: 16 }}>
           <SegmentedTabs
             tabs={[
-              { id: 'plan', label: 'Plán tréninků' },
-              { id: 'faze', label: '🏆 Fáze' },
+              { id: 'lab',      label: 'Fueling Lab' },
+              { id: 'faze',     label: '🏆 Fáze' },
+              { id: 'carbs',    label: 'Carbs/h' },
+              { id: 'plan',     label: 'Plán' },
+              { id: 'aktivity', label: 'Aktivity' },
             ]}
-            active={activeTab === 'faze' ? 'faze' : 'plan'}
+            active={activeTab}
             onChange={(id) => setActiveTab(id as 'lab' | 'aktivity' | 'plan' | 'carbs' | 'faze')}
           />
         </div>
