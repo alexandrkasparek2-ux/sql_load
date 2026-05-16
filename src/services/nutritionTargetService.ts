@@ -125,7 +125,7 @@ export function calculateDailyTarget(
     // ── OFF SEASON ───────────────────────────────────────
     case 'off_season': {
       const deficit = Math.max(-300, Math.min(0, caloricDeficit));
-      const kcal = Math.round(bmr * 1.35 + deficit); // střed rozsahu 1.3–1.4
+      const kcal = Math.round(bmr * 1.35 + trainingKcal + deficit);
       const protein_g = Math.round(weightKg * 2.1);   // střed 2.0–2.2
       const carbs_g   = Math.round(weightKg * 3.5);   // střed 3–4
       const fat_g     = Math.round((kcal - carbs_g * 4 - protein_g * 4) / 9);
@@ -275,7 +275,7 @@ export function calculateDailyTarget(
 
     // ── POST RACE ────────────────────────────────────────
     case 'post_race': {
-      const kcal      = Math.round(bmr * 1.4);
+      const kcal      = Math.round(bmr * 1.4 + trainingKcal);
       const protein_g = Math.round(weightKg * 2.1); // střed 2.0–2.2
       const carbs_g   = Math.round(weightKg * 4.5); // střed 4–5
       const fat_kcal  = kcal - carbs_g * 4 - protein_g * 4;
