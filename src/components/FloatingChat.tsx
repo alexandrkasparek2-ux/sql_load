@@ -509,7 +509,7 @@ export default function FloatingChat() {
         style={{
           position:       'fixed',
           bottom:         90,
-          right:          16,
+          left:           16,
           width:          52,
           height:         52,
           borderRadius:   '50%',
