@@ -295,6 +295,28 @@ export function calculateDailyTarget(
       };
     }
 
+    // ── REST DAY ─────────────────────────────────────────
+    case 'rest_day': {
+      const kcal      = Math.round(bmr * 1.2); // minimální pohyb — jen základní metabolismus
+      const protein_g = Math.round(weightKg * 2.0); // vysoký protein pro udržení svalů
+      const carbs_g   = Math.round(weightKg * 2.0); // nízké sacharidy — glykogen není potřeba
+      const fat_kcal  = kcal - carbs_g * 4 - protein_g * 4;
+      const fat_g     = Math.max(Math.round(fat_kcal / 9), Math.round(weightKg * 0.8));
+      return {
+        phase, kcal, carbs_g, protein_g, fat_g,
+        water_glasses: 8,
+        notes: [
+          'Žádný trénink — kompletní regenerace',
+          'Zaměř se na protein a spánek (8+ hodin)',
+          'Nízké sacharidy — glykogen není potřeba doplňovat',
+        ],
+        forbidden_foods: ['Alkohol', 'Junk food'],
+        recommended_foods: ['Tvaroh', 'Vejce', 'Kuřecí maso', 'Losos', 'Zelenina', 'Ořechy'],
+        supplements: ['Hořčík 400 mg večer', 'Omega-3 2–3 g/den', 'Vitamín D 2000 IU/den', 'Kreatin 3–5 g/den'],
+        warnings: [],
+      };
+    }
+
     default:
       return {
         phase: 'off_season', kcal: bmr, carbs_g: 0, protein_g: 0, fat_g: 0,
