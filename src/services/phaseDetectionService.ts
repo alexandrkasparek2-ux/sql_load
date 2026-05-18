@@ -11,7 +11,8 @@ export type TrainingPhase =
   | 'pre_race'     // 4–8 týdnů před závodem (threshold + VO2)
   | 'race_week'    // 1–7 dní před závodem
   | 'race_day'     // Den závodu
-  | 'post_race';   // 0–14 dní po závodě
+  | 'post_race'    // 0–14 dní po závodě
+  | 'rest_day';    // Manuální den regenerace (bez tréninku)
 
 export interface PhaseInfo {
   phase: TrainingPhase;
@@ -32,6 +33,7 @@ export const PHASE_COLORS: Record<TrainingPhase, string> = {
   race_week:  '#F44336',
   race_day:   '#4CAF50',
   post_race:  '#009688',
+  rest_day:   '#607D8B',
 };
 
 export const PHASE_LABELS: Record<TrainingPhase, string> = {
@@ -42,6 +44,7 @@ export const PHASE_LABELS: Record<TrainingPhase, string> = {
   race_week:  'Race Week',
   race_day:   'Race Day 🏁',
   post_race:  'Post Race',
+  rest_day:   'Den regenerace',
 };
 
 export const PHASE_ICONS: Record<TrainingPhase, string> = {
@@ -52,6 +55,7 @@ export const PHASE_ICONS: Record<TrainingPhase, string> = {
   race_week:  '🔥',
   race_day:   '🏁',
   post_race:  '🌱',
+  rest_day:   '😴',
 };
 
 export const PHASE_TIPS: Record<TrainingPhase, string> = {
@@ -62,6 +66,7 @@ export const PHASE_TIPS: Record<TrainingPhase, string> = {
   race_week:  'Tapering + carb-loading — připrav glykogenové zásoby.',
   race_day:   'Den závodu — drž se protokolu, žádné improvizace.',
   post_race:  'Regenerace — protein a sacharidy pro obnovu svalů.',
+  rest_day:   'Nulový trénink — zaměř se na protein a spánek.',
 };
 
 // Počet dní mezi dvěma daty (kladné = toDate je po fromDate)
