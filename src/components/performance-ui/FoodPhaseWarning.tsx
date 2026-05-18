@@ -50,6 +50,7 @@ const FORBIDDEN_KEYWORDS: Record<TrainingPhase, { kw: string[]; level: 'error' |
     { kw: ['nové jídlo', 'neznámé'], level: 'warning', msg: 'Neznámé jídlo v závodní den — nikdy nezkoušej nic nového!' },
   ],
   post_race: [],
+  rest_day:  [],
 };
 
 // ID zakázaných potravin ze systémové databáze
