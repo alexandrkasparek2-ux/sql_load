@@ -1222,8 +1222,8 @@ export default function Dashboard() {
                     {/* Summary chips */}
                     <div style={{ display: 'grid', gridTemplateColumns: weekBalance !== null ? '1fr 1fr 1fr' : '1fr 1fr', gap: 8, marginBottom: 14, paddingBottom: 12, borderBottom: `1px solid ${T.border}` }}>
                       {[
-                        { label: 'PŘIJATO', val: weekIn > 0 ? `${Math.round(weekIn / 1000).toFixed(1).replace('.', ',')} k` : '—', color: accent },
-                        ...(weekOut > 0 ? [{ label: 'VÝDEJ', val: `${Math.round(weekOut / 1000).toFixed(1).replace('.', ',')} k`, color: BRAND.orange }] : []),
+                        { label: 'PŘIJATO', val: weekIn > 0 ? `${(weekIn / 1000).toFixed(1).replace('.', ',')} k` : '—', color: accent },
+                        ...(weekOut > 0 ? [{ label: 'VÝDEJ', val: `${(weekOut / 1000).toFixed(1).replace('.', ',')} k`, color: BRAND.orange }] : []),
                         ...(weekBalance !== null ? [{ label: 'BILANCE', val: `${weekBalance > 0 ? '+' : ''}${Math.round(weekBalance / 1000 * 10) / 10}k`.replace('.', ','), color: weekBalance <= 0 ? BRAND.green : '#ef4444' }] : []),
                       ].map(s => (
                         <div key={s.label} style={{ textAlign: 'center' }}>
