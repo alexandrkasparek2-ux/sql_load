@@ -81,49 +81,44 @@ export function useWeeklyData(
       const snap     = snapshots[date] ?? null;
 
       // ── Goal ─────────────────────────────────────────────────────────────
-      // Priority:
-      //   1) Frozen snapshot (historical day) — most stable, prevents retroactive changes
-      //   2) Intervals burn log (accurate, for today or recent days)
+      // Priority mirrors App.tsx goalsFromSnapshot:
+      //   1) burnLog (fresh Intervals.icu — always beats stale snapshot)
+      //   2) Frozen snapshot (when burnLog has expired)
       //   3) DB training type
       //   4) Rest-day baseline
       //   5) storedGoals (legacy kcal-only store)
       //   6) fallback
       let goal = fallbackGoal;
-      if (snap?.goal_kcal) {
+      if (profile && typeof burnLog[date] === 'number') {
+        goal = Math.max(1200, Math.round(calcCalories(profile, 'rest', 0) + burnLog[date]) - deficitKcal);
+      } else if (snap?.goal_kcal) {
         goal = snap.goal_kcal;
       } else if (profile) {
-        let rawKcal: number;
-        if (typeof burnLog[date] === 'number') {
-          rawKcal = calcCalories(profile, 'rest', 0) + burnLog[date];
-        } else if (trainRow) {
-          rawKcal = Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0));
-        } else {
-          rawKcal = Math.round(calcCalories(profile, 'rest', 0));
-        }
+        const rawKcal = trainRow
+          ? Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0))
+          : Math.round(calcCalories(profile, 'rest', 0));
         goal = Math.max(1200, rawKcal - deficitKcal);
       } else if (storedGoals[date]) {
         goal = storedGoals[date];
       }
 
       // ── Burned ────────────────────────────────────────────────────────────
-      // For historical days, prefer snapshot activity_kcal so the chart line
-      // doesn't shift when the Intervals.icu cache expires.
+      // Same priority as goal: burnLog wins over stale snapshot so the chart
+      // matches the ring (goalsFromSnapshot uses the same burnLog-first logic).
       let burned = 0;
-      if (snap?.goal_kcal) {
-        // Reconstruct burned from snapshot: goal = burned - planned deficit.
+      if (profile && typeof burnLog[date] === 'number') {
+        burned = Math.round(calcCalories(profile, 'rest', 0)) + burnLog[date];
+      } else if (snap?.goal_kcal) {
+        // burnLog expired — reconstruct from snapshot.
         // Older snapshots accidentally stored "remaining kcal" here, so only trust known planned deficits.
         const plannedDeficit = [0, 250, 500, 750].includes(snap.deficit_kcal)
           ? snap.deficit_kcal
           : deficitKcal;
         burned = snap.goal_kcal + plannedDeficit;
       } else if (profile) {
-        if (typeof burnLog[date] === 'number') {
-          burned = calcCalories(profile, 'rest', 0) + burnLog[date];
-        } else {
-          burned = trainRow
-            ? Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0))
-            : Math.round(calcCalories(profile, 'rest', 0));
-        }
+        burned = trainRow
+          ? Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0))
+          : Math.round(calcCalories(profile, 'rest', 0));
       }
 
       return {
