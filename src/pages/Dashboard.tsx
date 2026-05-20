@@ -1,4 +1,4 @@
-import { useContext, useState, useCallback, useEffect } from 'react';
+import React, { useContext, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppContext, DEFICIT_KCAL }  from '../App';
 import { T, BRAND, MACRO, ProgressBar, SectionTitle, Card, Btn, LiveBadge } from '../components/UI';
@@ -397,7 +397,24 @@ export default function Dashboard() {
   };
 
   const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
-  const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
+  const { data: historyDataRaw } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
+
+  // Patch today's entry with live ring data so chart stays in sync with the KCAL ring.
+  // useWeeklyData queries Supabase once — it goes stale as the user logs meals.
+  // Also fixes burned: the hook falls back to rest-day BMR when burnLog is absent;
+  // goals.kcal + deficitKcal is always the correct TDEE estimate for today.
+  const historyData = React.useMemo(() => {
+    if (!historyDataRaw.length) return historyDataRaw;
+    return historyDataRaw.map(d => {
+      if (d.date !== realToday) return d;
+      return {
+        ...d,
+        kcal:   Math.round(totals.kcal),
+        goal:   goals.kcal,
+        burned: goals.kcal + deficitKcal,
+      };
+    });
+  }, [historyDataRaw, realToday, totals.kcal, goals.kcal, deficitKcal]);
   const { activities: intervalsActivities } = useIntervalsData(1, userId);
   const { todayWorkout } = useTrainingPlan();
   const { takenCount: suppTaken } = useSupplements(userId, today);
