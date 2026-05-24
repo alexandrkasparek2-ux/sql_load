@@ -219,13 +219,6 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     void setStoredDeficitLevel(v);
   };
 
-  const { value: targetWeightSetting } = useUserSetting<number>(
-    userId,
-    'target_weight',
-    profile?.weight ?? 0,
-    { legacyKey: `cyclofuel_target_weight_${userId}` },
-  );
-
   const trainingType = trainingDay?.training_type ?? 'rest';
   const rideHours    = trainingDay?.ride_hours    ?? 0;
   const training     = TRAINING_TYPES.find(t => t.id === trainingType)!;

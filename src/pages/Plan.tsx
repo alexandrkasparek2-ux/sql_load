@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppContext, DEFICIT_KCAL } from '../App';
+import { AppContext } from '../App';
 import { Btn, Card, ProgressBar, SegmentedTabs, SectionTitle, Spinner, StatRow, T, BRAND } from '../components/UI';
 import { useIntervalsData } from '../hooks/useIntervalsData';
 import { useUserSetting } from '../hooks/useUserSetting';
@@ -416,7 +416,6 @@ export default function Plan() {
     entries,
     addEntry,
     setGoalOverride,
-    deficitLevel,
   } = ctx;
   const tp = useTrainingPlan();
 
@@ -434,8 +433,7 @@ export default function Plan() {
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
   const { activities, loading, error, stale, isConnected, cacheAge, sync } = useIntervalsData(90);
-  const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
-  const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
+  const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal);
   const { data: whoopData } = useWhoopData();
 
   // ── Fázová výživa ────────────────────────────────────────
@@ -466,7 +464,7 @@ export default function Plan() {
     phaseInfo,
     tss: todayTSS,
     garminKj: null,
-    caloricDeficit: deficitKcal,
+    caloricDeficit: 0,
   });
 
   const raceWeek = useRaceWeek(userId, nextRace);
