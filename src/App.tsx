@@ -22,7 +22,7 @@ import type { FoodEntry, MacroTotals } from './hooks/useFoodEntries';
 
 import {
   TRAINING_TYPES,
-  calcCaloriesMulti, calcCalories, calcMacros, calcWater, calcMicroGoals, primaryType,
+  calcCalories, calcMacros, calcWater, calcMicroGoals, primaryType,
   type TrainingType,
 } from './constants/training';
 import { APP_NAV_ITEMS, getActiveNavItem } from './constants/navigation';
@@ -219,42 +219,26 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     void setStoredDeficitLevel(v);
   };
 
-  const { value: targetWeightSetting } = useUserSetting<number>(
-    userId,
-    'target_weight',
-    profile?.weight ?? 0,
-    { legacyKey: `cyclofuel_target_weight_${userId}` },
-  );
-
   const trainingType = trainingDay?.training_type ?? 'rest';
   const rideHours    = trainingDay?.ride_hours    ?? 0;
   const training     = TRAINING_TYPES.find(t => t.id === trainingType)!;
 
-  const deficitKcal = useMemo(() => {
-    if (!profile) return 0;
-    const targetW = targetWeightSetting > 0 ? targetWeightSetting : profile.weight;
-    return deficitLevel !== 'off' && targetW < profile.weight ? DEFICIT_KCAL[deficitLevel] : 0;
-  }, [profile, deficitLevel, targetWeightSetting]);;
+  // Caloric goal = expenditure (BMR + activity). No deficit reduction.
+  const deficitKcal = 0;
 
   const goals = useMemo<Goals>(() => {
     if (!profile) return DEFAULT_GOALS;
-    const types  = Array.from(new Set([
+    // Fallback when Intervals.icu data is absent: BMR-only base.
+    // Macro ratios still reflect the planned training type for guidance.
+    const types     = Array.from(new Set([
       trainingType,
       ...((trainingDay?.extra_types ?? []) as TrainingType[]),
     ]));
     const macroType = primaryType(types);
-    const m      = calcMacros(profile, macroType);
-    const hoursMap = { ...(trainingDay?.activity_hours ?? {}) };
-    if (trainingType !== 'rest' && (hoursMap[trainingType] ?? 0) === 0 && rideHours > 0) {
-      hoursMap[trainingType] = rideHours;
-    }
-    const kcalGoal = calcCaloriesMulti(
-      profile, types,
-      hoursMap,
-      trainingDay?.activity_intensity ?? {},
-    );
+    const m         = calcMacros(profile, macroType);
+    const kcalGoal  = calcCalories(profile, 'rest', 0); // BMR only until Intervals.icu loads
 
-    const kcalFinal = Math.max(1200, kcalGoal - deficitKcal);
+    const kcalFinal = Math.max(1200, kcalGoal);
 
     // Scale macros proportionally to fit within kcalFinal
     const rawMacroKcal = m.carbs * 4 + m.protein * 4 + m.fat * 9;
@@ -277,7 +261,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       water:   calcWater(profile, rideHours),
       micros:  calcMicroGoals(training.microMul),
     };
-  }, [profile, trainingType, rideHours, training.microMul, trainingDay, deficitKcal]);
+  }, [profile, trainingType, rideHours, training.microMul, trainingDay]);
 
   // ── Intervals.icu: přepočet kalorií + maker podle skutečné aktivity ──
   const [intervalsData, setIntervalsData] = useState(
@@ -293,14 +277,12 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   const goalsWithIntervals = useMemo<Goals>(() => {
     if (!intervalsData.kcal || !profile) return goals;
     const { kcal: actKcal, type: actType, hours: actHours } = intervalsData;
-    // Total: BMR (rest) + actual activity kcal from Intervals, then apply deficit
+    // Goal = BMR + actual activity kcal from Intervals.icu (expenditure-based, no deficit)
     const baseBMR    = calcCalories(profile, 'rest', 0);
-    const kcalRaw    = Math.round(baseBMR + actKcal);
-    const kcalNew    = Math.max(1200, kcalRaw - deficitKcal);
+    const kcalNew    = Math.max(1200, Math.round(baseBMR + actKcal));
     const fiberNew   = Math.min(45, Math.max(25, Math.round(kcalNew * 0.014)));
     const m          = calcMacros(profile, actType);
     const waterNew   = calcWater(profile, actHours);
-    // Scale macros to fit kcalNew
     const rawMacroKcal = m.carbs * 4 + m.protein * 4 + m.fat * 9;
     let { carbs, protein, fat } = m;
     if (rawMacroKcal > kcalNew && rawMacroKcal > 0) {
@@ -310,29 +292,14 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       fat     = Math.round(m.fat     * scale);
     }
     return { ...goals, kcal: kcalNew, fiber: fiberNew, carbs, protein, fat, water: waterNew };
-  }, [goals, intervalsData, profile, deficitKcal]);
+  }, [goals, intervalsData, profile]);
 
-  // Total energy expenditure (BMR + activity), before deficit reduction.
-  // Used by UI to display true energy balance = burnedToday - consumed.
+  // Total energy expenditure = BMR + activity from Intervals.icu.
+  // Without Intervals.icu data, falls back to BMR only (phases don't estimate burned).
   const liveBurnedToday = useMemo(() => {
     if (!profile) return 0;
-    if (intervalsData.kcal > 0) {
-      return Math.round(calcCalories(profile, 'rest', 0) + intervalsData.kcal);
-    }
-    const types = Array.from(new Set([
-      trainingType,
-      ...((trainingDay?.extra_types ?? []) as TrainingType[]),
-    ]));
-    const hoursMap = { ...(trainingDay?.activity_hours ?? {}) };
-    if (trainingType !== 'rest' && (hoursMap[trainingType] ?? 0) === 0 && rideHours > 0) {
-      hoursMap[trainingType] = rideHours;
-    }
-    return Math.round(calcCaloriesMulti(
-      profile, types,
-      hoursMap,
-      trainingDay?.activity_intensity ?? {},
-    ));
-  }, [profile, intervalsData.kcal, trainingType, trainingDay, rideHours]);
+    return Math.round(calcCalories(profile, 'rest', 0) + (intervalsData.kcal > 0 ? intervalsData.kcal : 0));
+  }, [profile, intervalsData.kcal]);
 
   // ── Daily nutrition snapshot ──────────────────────────────────────────────
   const realToday = useMemo(() => todayLocalISO(), []);
@@ -346,7 +313,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   } = useDailyNutritionSnapshot(userId, today);
 
   // Backfill snapshots for the last 7 days that don't have one yet
-  useBackfillSnapshots(userId, profile, deficitKcal);
+  useBackfillSnapshots(userId, profile);
 
   // For historical days that have a frozen snapshot, override computed goals
   // so the UI shows the exact values from that day rather than a recalculation.
@@ -358,11 +325,10 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     if (typeof actKcal === 'number' && profile) {
       // Use the same BMR×1.2 + activity formula as effectiveBurnedToday so
       // CÍL PŘÍJMU and VÝDEJ are always derived from the same number.
-      const freshBurned  = Math.round(calcCalories(profile, 'rest', 0) + actKcal);
-      const freshGoalKcal = Math.max(1200, freshBurned - deficitKcal);
+      const freshBurned = Math.max(1200, Math.round(calcCalories(profile, 'rest', 0) + actKcal));
       return {
         ...goalsWithIntervals,
-        kcal:    freshGoalKcal,
+        kcal:    freshBurned, // goal = expenditure (no deficit)
         ...(snapshot ? {
           carbs:   snapshot.goal_carbs,
           protein: snapshot.goal_protein,
@@ -382,7 +348,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       water:   snapshot.goal_water,
       fiber:   snapshot.goal_fiber,
     };
-  }, [isViewingToday, today, profile, deficitKcal, snapshot, goalsWithIntervals]);
+  }, [isViewingToday, today, profile, snapshot, goalsWithIntervals]);
 
   const baseGoals = goalsFromSnapshot ?? goalsWithIntervals;
 
@@ -408,15 +374,13 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     ? { ...baseGoals, ...goalOverride }
     : baseGoals;
 
+  // Burned = goal = expenditure. For historical days the frozen goal IS the burned figure.
   const effectiveBurnedToday = useMemo(() => {
     if (!isViewingToday && snapshot?.goal_kcal) {
-      const plannedDeficit = [0, 250, 500, 750].includes(snapshot.deficit_kcal)
-        ? snapshot.deficit_kcal
-        : deficitKcal;
-      return Math.round(snapshot.goal_kcal + plannedDeficit);
+      return snapshot.goal_kcal;
     }
     return liveBurnedToday;
-  }, [isViewingToday, snapshot, deficitKcal, liveBurnedToday]);
+  }, [isViewingToday, snapshot, liveBurnedToday]);
 
   // ── Auto-save snapshot for today on data changes (debounced 3 s) ──────────
   const { saveGoalForDate } = useDailyGoals(userId);

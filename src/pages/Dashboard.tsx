@@ -1,6 +1,6 @@
 import { useContext, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppContext, DEFICIT_KCAL }  from '../App';
+import { AppContext } from '../App';
 import { T, BRAND, MACRO, ProgressBar, SectionTitle, Card, Btn, LiveBadge } from '../components/UI';
 import { Ring, SegRing, MacroLine, KV } from '../components/primitives';
 import { MICRO_META, TRAINING_TYPES, MEAL_RECS, primaryType } from '../constants/training';
@@ -383,7 +383,7 @@ export default function Dashboard() {
     accent, totals, goals, goalOverride, setGoalOverride,
     trainingDay, upsertTrainingDay,
     entries, userId, today, setToday, addEntry, profile,
-    deficitLevel, burnedToday,
+    burnedToday,
   } = ctx;
 
   const realToday = (() => {
@@ -397,8 +397,7 @@ export default function Dashboard() {
     setToday(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
   };
 
-  const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
-  const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal, deficitKcal);
+  const { data: historyData } = useWeeklyData(userId, 14, profile, goals.kcal);
   const { activities: intervalsActivities } = useIntervalsData(1, userId);
   const { todayWorkout } = useTrainingPlan();
   const { takenCount: suppTaken } = useSupplements(userId, today);
@@ -417,17 +416,11 @@ export default function Dashboard() {
     phaseInfo,
     tss: todayTSS,
     garminKj: null,
-    caloricDeficit: deficitKcal,
+    caloricDeficit: 0,
   });
 
-  // Phase-adjusted goals: use computed targets when available, fall back to AppContext goals
-  const effectiveGoals = nutritionTarget ? {
-    ...goals,
-    kcal:    nutritionTarget.kcal,
-    carbs:   nutritionTarget.carbs_g,
-    protein: nutritionTarget.protein_g,
-    fat:     nutritionTarget.fat_g,
-  } : goals;
+  // Goals come from AppContext (expenditure-based). Phases are informational only.
+  const effectiveGoals = goals;
 
   // Phase-based accent color (falls back to user accent)
   const phaseAccent = phaseInfo?.color ?? accent;
@@ -928,7 +921,7 @@ export default function Dashboard() {
                       )}
                     </div>
                     {(() => {
-                        const balance = burnedToday > 0 ? burnedToday - Math.round(totals.kcal) : Math.round(effectiveGoals.kcal + deficitKcal - totals.kcal);
+                        const balance = Math.round(burnedToday - totals.kcal);
                         const balanceColor = balance > 200 ? BRAND.green : balance < -200 ? BRAND.red : BRAND.orange;
                         return (
                           <>
@@ -950,7 +943,7 @@ export default function Dashboard() {
                       })()}
                     <div style={{ display: 'flex', gap: 28, marginTop: 22, paddingTop: 18, borderTop: `1px solid ${T.border}` }}>
                       <KV k="Přijato" v={Math.round(totals.kcal).toLocaleString('cs')} sub="kcal" vSize={24} mono={false} />
-                      <KV k="Výdej" v={(burnedToday > 0 ? burnedToday : Math.round(effectiveGoals.kcal + deficitKcal)).toLocaleString('cs')} sub="kcal" vSize={24} mono={false} vColor={BRAND.orange} />
+                      <KV k="Výdej" v={burnedToday.toLocaleString('cs')} sub="kcal" vSize={24} mono={false} vColor={BRAND.orange} />
                       <KV k="Cíl příjmu" v={Math.round(effectiveGoals.kcal).toLocaleString('cs')} sub={`${pctGoal}%`} vSize={24} mono={false} />
                       {goalOverride && (
                         <button onClick={() => setGoalOverride(null)} title="Obnovit výchozí cíle"
