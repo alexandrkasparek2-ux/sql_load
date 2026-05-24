@@ -13,7 +13,7 @@ export interface DayKcal {
   protein: number;
   fat:     number;
   goal:    number; // kcal cíl pro daný den
-  burned:  number; // celkový výdej: BMR + aktivita (calcCalories)
+  burned:  number; // celkový výdej: BMR + aktivita z Intervals.icu
   label:   string; // 'Po', 'Út', …
   dateNum: number; // day of month (e.g. 10)
 }
@@ -42,7 +42,6 @@ export function useWeeklyData(
   days        = 14,
   profile?:    CalcProfile | null,
   fallbackGoal = 0,
-  deficitKcal  = 0,
 ) {
   const [data,    setData]    = useState<DayKcal[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,19 +52,13 @@ export function useWeeklyData(
 
     const dates = getLastNDates(days);
 
-    // Fetch food entries, training days, and snapshots in parallel
     const today = todayLocalISO();
     const historicalDates = dates.filter(d => d < today);
 
-    const [{ data: rows }, { data: trainRows }, storedGoals, burnLog, snapshots] = await Promise.all([
+    const [{ data: rows }, storedGoals, burnLog, snapshots] = await Promise.all([
       supabase
         .from('food_entries')
         .select('date, kcal, carbs, protein, fat')
-        .eq('user_id', userId)
-        .in('date', dates),
-      supabase
-        .from('training_days')
-        .select('date, training_type, ride_hours')
         .eq('user_id', userId)
         .in('date', dates),
       loadDailyGoals(userId),
@@ -76,49 +69,36 @@ export function useWeeklyData(
     ]);
 
     const grouped: DayKcal[] = dates.map(date => {
-      const dayRows  = (rows      ?? []).filter(r => r.date === date);
-      const trainRow = (trainRows ?? []).find(r  => r.date === date);
-      const snap     = snapshots[date] ?? null;
+      const dayRows = (rows ?? []).filter(r => r.date === date);
+      const snap    = snapshots[date] ?? null;
 
-      // ── Goal ─────────────────────────────────────────────────────────────
-      // Priority mirrors App.tsx goalsFromSnapshot:
-      //   1) burnLog (fresh Intervals.icu — always beats stale snapshot)
-      //   2) Frozen snapshot (when burnLog has expired)
-      //   3) DB training type
-      //   4) Rest-day baseline
-      //   5) storedGoals (legacy kcal-only store)
-      //   6) fallback
+      // ── Goal = expenditure (BMR + Intervals.icu activity, no deficit) ──────
+      // Priority:
+      //   1) burnLog (fresh Intervals.icu data)
+      //   2) Frozen snapshot (burnLog expired)
+      //   3) BMR-only baseline (no Intervals.icu, no snapshot)
+      //   4) storedGoals (legacy fallback)
+      //   5) fallbackGoal prop
       let goal = fallbackGoal;
       if (profile && typeof burnLog[date] === 'number') {
-        goal = Math.max(1200, Math.round(calcCalories(profile, 'rest', 0) + burnLog[date]) - deficitKcal);
+        goal = Math.max(1200, Math.round(calcCalories(profile, 'rest', 0) + burnLog[date]));
       } else if (snap?.goal_kcal) {
         goal = snap.goal_kcal;
       } else if (profile) {
-        const rawKcal = trainRow
-          ? Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0))
-          : Math.round(calcCalories(profile, 'rest', 0));
-        goal = Math.max(1200, rawKcal - deficitKcal);
+        goal = Math.max(1200, Math.round(calcCalories(profile, 'rest', 0)));
       } else if (storedGoals[date]) {
         goal = storedGoals[date];
       }
 
-      // ── Burned ────────────────────────────────────────────────────────────
-      // Same priority as goal: burnLog wins over stale snapshot so the chart
-      // matches the ring (goalsFromSnapshot uses the same burnLog-first logic).
+      // ── Burned = goal (expenditure-based, goal IS burned) ─────────────────
       let burned = 0;
       if (profile && typeof burnLog[date] === 'number') {
         burned = Math.round(calcCalories(profile, 'rest', 0)) + burnLog[date];
       } else if (snap?.goal_kcal) {
-        // burnLog expired — reconstruct from snapshot.
-        // Older snapshots accidentally stored "remaining kcal" here, so only trust known planned deficits.
-        const plannedDeficit = [0, 250, 500, 750].includes(snap.deficit_kcal)
-          ? snap.deficit_kcal
-          : deficitKcal;
-        burned = snap.goal_kcal + plannedDeficit;
+        // goal was already stored as expenditure — burned = goal
+        burned = snap.goal_kcal;
       } else if (profile) {
-        burned = trainRow
-          ? Math.round(calcCalories(profile, trainRow.training_type, trainRow.ride_hours ?? 0))
-          : Math.round(calcCalories(profile, 'rest', 0));
+        burned = Math.round(calcCalories(profile, 'rest', 0));
       }
 
       return {
@@ -136,7 +116,7 @@ export function useWeeklyData(
 
     setData(grouped);
     setLoading(false);
-  }, [userId, days, profile, fallbackGoal, deficitKcal]);
+  }, [userId, days, profile, fallbackGoal]);
 
   useEffect(() => { load(); }, [load]);
 

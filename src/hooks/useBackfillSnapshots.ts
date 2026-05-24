@@ -23,10 +23,9 @@ function getHistoricalDates(n: number): string[] {
  * training_days, and the burnLog cache.
  */
 export function useBackfillSnapshots(
-  userId:      string | undefined,
-  profile:     CalcProfile | null | undefined,
-  deficitKcal: number,
-  days        = 7,
+  userId:  string | undefined,
+  profile: CalcProfile | null | undefined,
+  days     = 7,
 ) {
   const ran = useRef(false);
 
@@ -68,18 +67,11 @@ export function useBackfillSnapshots(
         const consumed_kcal = dayFood.reduce((s, r) => s + (r.kcal as number), 0);
         if (consumed_kcal === 0 && actKcal === 0 && !trainRow) continue;
 
-        // ── goal_kcal ──────────────────────────────────────────────────────
-        let rawKcal: number;
-        if (actKcal > 0) {
-          rawKcal = Math.round(calcCalories(profile, 'rest', 0) + actKcal);
-        } else if (trainRow) {
-          rawKcal = Math.round(
-            calcCalories(profile, trainRow.training_type as TrainingType, trainRow.ride_hours ?? 0),
-          );
-        } else {
-          rawKcal = Math.round(calcCalories(profile, 'rest', 0));
-        }
-        const goal_kcal = Math.max(1200, rawKcal - deficitKcal);
+        // Goal = expenditure (BMR + Intervals.icu activity). No deficit, no phase estimate.
+        const rawKcal   = actKcal > 0
+          ? Math.round(calcCalories(profile, 'rest', 0) + actKcal)
+          : Math.round(calcCalories(profile, 'rest', 0));
+        const goal_kcal = Math.max(1200, rawKcal);
 
         // ── macro + water goals ────────────────────────────────────────────
         const trainingType = (trainRow?.training_type ?? 'rest') as TrainingType;
@@ -103,9 +95,9 @@ export function useBackfillSnapshots(
           goal_fiber:       Math.min(45, Math.max(25, Math.round(goal_kcal * 0.014))),
           activity_kcal:    actKcal,
           activity_source:  actKcal > 0 ? 'intervals' : trainRow ? 'manual' : 'none',
-          deficit_kcal:     deficitKcal,
+          deficit_kcal:     0,
         });
       }
     })();
-  }, [userId, profile, deficitKcal, days]);
+  }, [userId, profile, days]);
 }
