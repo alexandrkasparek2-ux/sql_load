@@ -1,5 +1,5 @@
 import { useState, useContext, useMemo, useEffect } from 'react';
-import { AppContext, DEFICIT_KCAL } from '../App';
+import { AppContext } from '../App';
 import { T, BRAND, MACRO, Card, SectionTitle, ProgressBar, Btn, SegmentedTabs, MetricBox } from '../components/UI';
 import { showToast }    from '../components/Toast';
 import { FOODS, FOOD_CATEGORIES, type Food } from '../constants/foods';
@@ -10,10 +10,6 @@ import { useUserSetting } from '../hooks/useUserSetting';
 import BarcodeScanner    from '../components/BarcodeScanner';
 import FoodScanner      from '../components/FoodScanner';
 import { MealBuilder, type MealSuggestion } from '../components/performance-ui';
-import { useTrainingPhase } from '../hooks/useTrainingPhase';
-import { useDailyNutritionTarget } from '../hooks/useDailyNutritionTarget';
-import { useTrainingPlan } from '../hooks/useTrainingPlan';
-import { useIntervalsData } from '../hooks/useIntervalsData';
 
 // ─── helpers ────────────────────────────────────────────────
 function scaleNutrient(val: number, grams: number) {
@@ -990,30 +986,9 @@ function MacroLine({ label, value, color, unit }: { label: string; value: number
 // ─── Main Foods page ─────────────────────────────────────────
 export default function Foods() {
   const ctx = useContext(AppContext);
-  const { accent, entries, addEntry, removeEntry, updateEntry, updateEntryMacros, userId, today, goals, setToday, profile, deficitLevel } = ctx;
+  const { accent, entries, addEntry, removeEntry, updateEntry, updateEntryMacros, userId, today, goals, setToday } = ctx;
 
-  const { phaseInfo } = useTrainingPhase(userId);
-  const { todayWorkout } = useTrainingPlan();
-  const { activities: intervalsActivities } = useIntervalsData(1, userId);
-  const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
-  const todayTSS = intervalsActivities
-    .filter(a => a.start_date_local.startsWith(today))
-    .reduce((sum, a) => sum + (a.icu_training_load ?? 0), 0)
-    || (todayWorkout?.tss ?? 0);
-  const { target: nutritionTarget } = useDailyNutritionTarget({
-    profile,
-    phaseInfo,
-    tss: todayTSS,
-    garminKj: null,
-    caloricDeficit: deficitKcal,
-  });
-  const effectiveGoals = nutritionTarget ? {
-    ...goals,
-    kcal:    nutritionTarget.kcal,
-    carbs:   nutritionTarget.carbs_g,
-    protein: nutritionTarget.protein_g,
-    fat:     nutritionTarget.fat_g,
-  } : goals;
+  const effectiveGoals = goals;
 
   const realToday = (() => {
     const d = new Date();
