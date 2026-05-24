@@ -1,5 +1,5 @@
 import { useState, useContext, useMemo, useEffect } from 'react';
-import { AppContext } from '../App';
+import { AppContext, DEFICIT_KCAL } from '../App';
 import { T, BRAND, MACRO, Card, SectionTitle, ProgressBar, Btn, SegmentedTabs, MetricBox } from '../components/UI';
 import { showToast }    from '../components/Toast';
 import { FOODS, FOOD_CATEGORIES, type Food } from '../constants/foods';
@@ -10,6 +10,10 @@ import { useUserSetting } from '../hooks/useUserSetting';
 import BarcodeScanner    from '../components/BarcodeScanner';
 import FoodScanner      from '../components/FoodScanner';
 import { MealBuilder, type MealSuggestion } from '../components/performance-ui';
+import { useTrainingPhase } from '../hooks/useTrainingPhase';
+import { useDailyNutritionTarget } from '../hooks/useDailyNutritionTarget';
+import { useTrainingPlan } from '../hooks/useTrainingPlan';
+import { useIntervalsData } from '../hooks/useIntervalsData';
 
 // ─── helpers ────────────────────────────────────────────────
 function scaleNutrient(val: number, grams: number) {
@@ -986,7 +990,30 @@ function MacroLine({ label, value, color, unit }: { label: string; value: number
 // ─── Main Foods page ─────────────────────────────────────────
 export default function Foods() {
   const ctx = useContext(AppContext);
-  const { accent, entries, addEntry, removeEntry, updateEntry, updateEntryMacros, userId, today, goals, setToday } = ctx;
+  const { accent, entries, addEntry, removeEntry, updateEntry, updateEntryMacros, userId, today, goals, setToday, profile, deficitLevel } = ctx;
+
+  const { phaseInfo } = useTrainingPhase(userId);
+  const { todayWorkout } = useTrainingPlan();
+  const { activities: intervalsActivities } = useIntervalsData(1, userId);
+  const deficitKcal = DEFICIT_KCAL[deficitLevel] ?? 0;
+  const todayTSS = intervalsActivities
+    .filter(a => a.start_date_local.startsWith(today))
+    .reduce((sum, a) => sum + (a.icu_training_load ?? 0), 0)
+    || (todayWorkout?.tss ?? 0);
+  const { target: nutritionTarget } = useDailyNutritionTarget({
+    profile,
+    phaseInfo,
+    tss: todayTSS,
+    garminKj: null,
+    caloricDeficit: deficitKcal,
+  });
+  const effectiveGoals = nutritionTarget ? {
+    ...goals,
+    kcal:    nutritionTarget.kcal,
+    carbs:   nutritionTarget.carbs_g,
+    protein: nutritionTarget.protein_g,
+    fat:     nutritionTarget.fat_g,
+  } : goals;
 
   const realToday = (() => {
     const d = new Date();
@@ -1061,10 +1088,10 @@ export default function Foods() {
   }, [customFoods]);
 
   const remaining = {
-    kcal: Math.max(0, goals.kcal - ctx.totals.kcal),
-    carbs: Math.max(0, goals.carbs - ctx.totals.carbs),
-    protein: Math.max(0, goals.protein - ctx.totals.protein),
-    fat: Math.max(0, goals.fat - ctx.totals.fat),
+    kcal: Math.max(0, effectiveGoals.kcal - ctx.totals.kcal),
+    carbs: Math.max(0, effectiveGoals.carbs - ctx.totals.carbs),
+    protein: Math.max(0, effectiveGoals.protein - ctx.totals.protein),
+    fat: Math.max(0, effectiveGoals.fat - ctx.totals.fat),
   };
 
   const mealBuilderSuggestions = useMemo<MealSuggestion[]>(() => {
@@ -1188,10 +1215,10 @@ export default function Foods() {
             </Btn>
           </Card>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
-            <MetricBox label="Cíl kcal" value={Math.round(goals.kcal)} unit="kcal" color={BRAND.gold} />
-            <MetricBox label="Zbývá" value={Math.max(0, Math.round(goals.kcal - ctx.totals.kcal))} unit="kcal" color={BRAND.orange} />
-            <MetricBox label="Sacharidy" value={`${ctx.totals.carbs.toFixed(0)}/${goals.carbs}`} unit="g" color={BRAND.gold} />
-            <MetricBox label="Bílkoviny" value={`${ctx.totals.protein.toFixed(0)}/${goals.protein}`} unit="g" color={BRAND.green} />
+            <MetricBox label="Cíl kcal" value={Math.round(effectiveGoals.kcal)} unit="kcal" color={BRAND.gold} />
+            <MetricBox label="Zbývá" value={Math.max(0, Math.round(effectiveGoals.kcal - ctx.totals.kcal))} unit="kcal" color={BRAND.orange} />
+            <MetricBox label="Sacharidy" value={`${ctx.totals.carbs.toFixed(0)}/${effectiveGoals.carbs}`} unit="g" color={BRAND.gold} />
+            <MetricBox label="Bílkoviny" value={`${ctx.totals.protein.toFixed(0)}/${effectiveGoals.protein}`} unit="g" color={BRAND.green} />
           </div>
         </div>
       )}
@@ -1204,14 +1231,14 @@ export default function Foods() {
               accent={BRAND.gold}
               right={
                 <div style={{ fontSize: 12, color: BRAND.gold, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
-                  {Math.round(ctx.totals.kcal)} / {Math.round(goals.kcal)} kcal
+                  {Math.round(ctx.totals.kcal)} / {Math.round(effectiveGoals.kcal)} kcal
                 </div>
               }
             >
               Jídelní deník
             </SectionTitle>
             <div style={{ marginBottom: 16 }}>
-              <ProgressBar value={ctx.totals.kcal} max={goals.kcal} color={BRAND.gold} height={6} showLabel />
+              <ProgressBar value={ctx.totals.kcal} max={effectiveGoals.kcal} color={BRAND.gold} height={6} showLabel />
             </div>
             <div style={{ fontSize: 13, color: T.muted, lineHeight: 1.6 }}>
               Notebooková verze ti dává rychlejší přehled nad celým dnem. Jednotlivé sloty jsou rozložené do pracovního gridu, aby šlo snadněji zapisovat a upravovat více jídel najednou.
@@ -1298,24 +1325,24 @@ export default function Foods() {
                   {Math.round(ctx.totals.kcal)}
                 </div>
                 <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: T.muted, marginTop: 3 }}>
-                  / {Math.round(goals.kcal)} kcal
+                  / {Math.round(effectiveGoals.kcal)} kcal
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 10, color: T.muted, fontFamily: 'JetBrains Mono, monospace', marginBottom: 2 }}>ZBÝVÁ</div>
                 <div style={{ fontSize: 24, fontWeight: 800, color: BRAND.purple, fontFamily: "'Space Grotesk', sans-serif", fontVariantNumeric: 'tabular-nums' }}>
-                  {Math.max(0, Math.round(goals.kcal - ctx.totals.kcal))}
+                  {Math.max(0, Math.round(effectiveGoals.kcal - ctx.totals.kcal))}
                 </div>
               </div>
             </div>
             <div style={{ height: 3, background: T.border, borderRadius: 2, marginBottom: 14, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${Math.min(100, goals.kcal > 0 ? (ctx.totals.kcal / goals.kcal) * 100 : 0)}%`, background: BRAND.purple, borderRadius: 2, transition: 'width 0.5s ease' }} />
+              <div style={{ height: '100%', width: `${Math.min(100, effectiveGoals.kcal > 0 ? (ctx.totals.kcal / effectiveGoals.kcal) * 100 : 0)}%`, background: BRAND.purple, borderRadius: 2, transition: 'width 0.5s ease' }} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {[
-                { label: 'SACH', val: ctx.totals.carbs,   goal: goals.carbs,   color: MACRO.carb },
-                { label: 'BÍLK', val: ctx.totals.protein, goal: goals.protein, color: MACRO.pro  },
-                { label: 'TUKY', val: ctx.totals.fat,     goal: goals.fat,     color: MACRO.fat  },
+                { label: 'SACH', val: ctx.totals.carbs,   goal: effectiveGoals.carbs,   color: MACRO.carb },
+                { label: 'BÍLK', val: ctx.totals.protein, goal: effectiveGoals.protein, color: MACRO.pro  },
+                { label: 'TUKY', val: ctx.totals.fat,     goal: effectiveGoals.fat,     color: MACRO.fat  },
               ].map(m => (
                 <div key={m.label}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
