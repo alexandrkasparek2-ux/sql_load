@@ -32,6 +32,54 @@ export function estimateTrainingKcal(
   return 0;
 }
 
+// MET values per training type and intensity (kcal/hr ≈ MET × kg × 1.05)
+const MET_TABLE: Record<string, { low: number; medium: number; high: number }> = {
+  hard:           { low: 8,  medium: 12, high: 16 },
+  race:           { low: 10, medium: 14, high: 18 },
+  medium:         { low: 6,  medium: 9,  high: 12 },
+  light:          { low: 4,  medium: 7,  high: 9  },
+  cycling_indoor: { low: 5,  medium: 8,  high: 11 },
+  running:        { low: 7,  medium: 9,  high: 12 },
+  swimming:       { low: 5,  medium: 7,  high: 10 },
+  strength:       { low: 3,  medium: 5,  high: 7  },
+  walking:        { low: 2,  medium: 3,  high: 5  },
+  hiking:         { low: 4,  medium: 6,  high: 8  },
+  yoga:           { low: 2,  medium: 3,  high: 4  },
+  skiing:         { low: 5,  medium: 7,  high: 10 },
+  team_sport:     { low: 4,  medium: 6,  high: 9  },
+  dancing:        { low: 3,  medium: 5,  high: 7  },
+  boxing:         { low: 6,  medium: 9,  high: 12 },
+};
+
+// ── Odhad výdeje z ručně zadaných tréninkových hodin ─────
+// Použije se jako fallback, když nejsou dostupná data z Intervals.icu/Garminu.
+export function estimateKcalFromTrainingDay(
+  trainingType: string,
+  rideHours: number,
+  activityHours: Record<string, number>,
+  activityIntensity: Record<string, 'low' | 'medium' | 'high'>,
+  weightKg: number,
+): number {
+  if (weightKg <= 0) return 0;
+  let total = 0;
+
+  // Primární cyklistický výkon (ride_hours) — intensity defaultně 'medium'
+  if (rideHours > 0 && trainingType !== 'rest') {
+    const mets = MET_TABLE[trainingType] ?? MET_TABLE['medium'];
+    total += mets.medium * weightKg * 1.05 * rideHours;
+  }
+
+  // Doplňkové aktivity s jejich intenzitou
+  for (const [type, hours] of Object.entries(activityHours)) {
+    if (!hours || hours <= 0) continue;
+    const intensity = activityIntensity[type] ?? 'medium';
+    const mets = MET_TABLE[type] ?? { low: 4, medium: 7, high: 10 };
+    total += mets[intensity] * weightKg * 1.05 * hours;
+  }
+
+  return Math.round(total);
+}
+
 // ── Periodizace sacharidů dle TSS (BUILD fáze) ─────────────
 export function carbsPerKgByTSS(tss: number): { min: number; max: number } {
   if (tss < 50)  return { min: 4, max: 5 };
@@ -77,7 +125,7 @@ export function calculateDailyTarget(
     // ── OFF SEASON ───────────────────────────────────────
     case 'off_season': {
       const deficit = Math.max(-300, Math.min(0, caloricDeficit));
-      const kcal = Math.round(bmr * 1.35 + deficit); // střed rozsahu 1.3–1.4
+      const kcal = Math.round(bmr * 1.35 + trainingKcal + deficit);
       const protein_g = Math.round(weightKg * 2.1);   // střed 2.0–2.2
       const carbs_g   = Math.round(weightKg * 3.5);   // střed 3–4
       const fat_g     = Math.round((kcal - carbs_g * 4 - protein_g * 4) / 9);
@@ -227,7 +275,7 @@ export function calculateDailyTarget(
 
     // ── POST RACE ────────────────────────────────────────
     case 'post_race': {
-      const kcal      = Math.round(bmr * 1.4);
+      const kcal      = Math.round(bmr * 1.4 + trainingKcal);
       const protein_g = Math.round(weightKg * 2.1); // střed 2.0–2.2
       const carbs_g   = Math.round(weightKg * 4.5); // střed 4–5
       const fat_kcal  = kcal - carbs_g * 4 - protein_g * 4;
@@ -243,6 +291,28 @@ export function calculateDailyTarget(
         forbidden_foods: [],
         recommended_foods: ['Tvaroh', 'Vejce', 'Kuřecí maso', 'Rýže', 'Těstoviny', 'Banány', 'Ovoce'],
         supplements: ['Hořčík 400 mg večer', 'Omega-3 2–3 g/den', 'Vitamín D 2000 IU/den'],
+        warnings: [],
+      };
+    }
+
+    // ── REST DAY ─────────────────────────────────────────
+    case 'rest_day': {
+      const kcal      = Math.round(bmr * 1.2); // minimální pohyb — jen základní metabolismus
+      const protein_g = Math.round(weightKg * 2.0); // vysoký protein pro udržení svalů
+      const carbs_g   = Math.round(weightKg * 2.0); // nízké sacharidy — glykogen není potřeba
+      const fat_kcal  = kcal - carbs_g * 4 - protein_g * 4;
+      const fat_g     = Math.max(Math.round(fat_kcal / 9), Math.round(weightKg * 0.8));
+      return {
+        phase, kcal, carbs_g, protein_g, fat_g,
+        water_glasses: 8,
+        notes: [
+          'Žádný trénink — kompletní regenerace',
+          'Zaměř se na protein a spánek (8+ hodin)',
+          'Nízké sacharidy — glykogen není potřeba doplňovat',
+        ],
+        forbidden_foods: ['Alkohol', 'Junk food'],
+        recommended_foods: ['Tvaroh', 'Vejce', 'Kuřecí maso', 'Losos', 'Zelenina', 'Ořechy'],
+        supplements: ['Hořčík 400 mg večer', 'Omega-3 2–3 g/den', 'Vitamín D 2000 IU/den', 'Kreatin 3–5 g/den'],
         warnings: [],
       };
     }
