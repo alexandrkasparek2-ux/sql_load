@@ -2616,6 +2616,14 @@ export const FOODS: Food[] = [
     micros: { na: 540, k: 260, mg: 18, ca: 40, fe: 1.2, vit_c: 10, vit_d: 0.1, b12: 0.5, omega3: 60, zn: 2.0 },
   },
   {
+    id: 'pork_mushroom_sauce',
+    cat: '🍛 Hlavní jídla',
+    name: 'Vepřové maso na houbách',
+    // vepřová plec/krkovice + smetanová houbová omáčka, bez přílohy
+    kcal: 128, carbs: 4.5, protein: 13.0, fat: 6.5, per: 350,
+    micros: { na: 340, k: 340, mg: 18, ca: 28, fe: 1.0, vit_c: 2, vit_d: 0.5, b12: 0.8, omega3: 60, zn: 2.0 },
+  },
+  {
     id: 'schnitzel_potato_salad',
     cat: '🍛 Hlavní jídla',
     name: 'Řízek s bramborovým salátem',
