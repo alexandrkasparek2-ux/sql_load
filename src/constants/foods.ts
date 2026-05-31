@@ -2781,6 +2781,14 @@ export const FOODS: Food[] = [
     micros: { na: 720, k: 260, mg: 20, ca: 50, fe: 1.8, vit_c: 3, vit_d: 0, b12: 0.7, omega3: 60, zn: 2.2 },
   },
   {
+    id: 'raznici',
+    cat: '🍛 Hlavní jídla',
+    name: 'Ražničí (grilované)',
+    // vepřová krkovice/plec marinovaná (olej, cibule, česnek, paprika), bez přílohy
+    kcal: 210, carbs: 1.5, protein: 23.0, fat: 13.0, per: 250,
+    micros: { na: 380, k: 320, mg: 25, ca: 15, fe: 1.2, vit_c: 2, vit_d: 0.2, b12: 0.8, omega3: 80, zn: 3.0 },
+  },
+  {
     id: 'tacos_chicken',
     cat: '🍛 Hlavní jídla',
     name: 'Tacos (kuřecí)',
