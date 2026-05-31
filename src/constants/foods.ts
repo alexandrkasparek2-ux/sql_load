@@ -653,6 +653,16 @@ export const FOODS: Food[] = [
     micros: { na: 80, k: 200, mg: 30, ca: 120, fe: 0.8, vit_c: 0, vit_d: 0.5, b12: 0.5, omega3: 60, zn: 1.2 },
   },
 
+  {
+    id: 'sufan_jahodova_kase_bila_cokolada',
+    cat: '🥣 Kaše',
+    name: 'Šufan jahodová kaše s bílou čokoládou (suché)',
+    // bezlepkové ovesné vločky, slunečnicová pasta, kešu, bílá čokoláda 10%, lyofilizované jahody 5%, chia, sezam, med
+    // 456 kcal/100g, 1 porce = 50g (250g balení = 5 porcí)
+    kcal: 456, carbs: 52.0, protein: 13.0, fat: 20.0, fiber: 7.0, per: 50,
+    micros: { na: 40, k: 370, mg: 85, ca: 120, fe: 3.5, vit_c: 15, vit_d: 0, b12: 0.1, omega3: 1800, zn: 2.5 },
+  },
+
   // ──────────────────────────────────────────
   // 🍟 Přílohy
   // ──────────────────────────────────────────
