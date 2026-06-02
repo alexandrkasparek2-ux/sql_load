@@ -1182,6 +1182,14 @@ export const FOODS: Food[] = [
     micros: { na: 380, k: 310, mg: 24, ca: 30, fe: 1.2, vit_c: 0, vit_d: 0.2, b12: 0.7, omega3: 80, zn: 2.5 },
   },
   {
+    id: 'chicken_schnitzel_fried',
+    cat: '🥩 Bílkoviny',
+    name: 'Kuřecí řízek (smažený)',
+    // kuřecí prso obalené v trojobalu, smažené na oleji
+    kcal: 230, carbs: 12.0, protein: 24.0, fat: 10.0, per: 180,
+    micros: { na: 350, k: 320, mg: 28, ca: 25, fe: 0.9, vit_c: 0, vit_d: 0.1, b12: 0.4, omega3: 70, zn: 1.5 },
+  },
+  {
     id: 'lamb',
     cat: '🥩 Bílkoviny',
     name: 'Jehněčí (plec, syrová)',
