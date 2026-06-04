@@ -871,7 +871,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
 // Router-aware inner component
 // ──────────────────────────────────────────────────────────
 function AppRoutes() {
-  const { session, loading, signIn, signUp, signOut } = useAuth();
+  const { session, loading, signIn, signOut } = useAuth();
   const navigate = useNavigate();
 
   if (loading) {
@@ -897,8 +897,7 @@ function AppRoutes() {
         <Route path="/strava/callback" element={<StravaCallback />} />
         <Route path="*" element={
           <Login
-            onSignIn={async (e, p) => { await signIn(e, p); navigate('/', { replace: true }); }}
-            onSignUp={async (e, p) => { await signUp(e, p); navigate('/', { replace: true }); }}
+            onSignIn={async p => { await signIn(p); navigate('/', { replace: true }); }}
           />
         } />
       </Routes>

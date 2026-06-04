@@ -1,4 +1,5 @@
 import { createClient } from '@libsql/client';
+import { requireSession } from './_auth.js';
 
 const JSON_COLUMNS = new Set([
   'extra_types',
@@ -122,23 +123,48 @@ function json(res, status, body) {
   res.status(status).json(body);
 }
 
+function scopeRequest(table, body, userId) {
+  if (table === 'profiles') {
+    return {
+      ...body,
+      where: { ...body.where, id: userId },
+      row: body.row ? { ...body.row, id: userId } : body.row,
+    };
+  }
+
+  if (TABLES[table].includes('user_id')) {
+    return {
+      ...body,
+      where: { ...body.where, user_id: userId },
+      row: body.row ? { ...body.row, user_id: userId } : body.row,
+    };
+  }
+
+  return body;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     json(res, 405, { error: 'Method not allowed' });
     return;
   }
 
+  const session = requireSession(req, res);
+  if (!session) return;
+
   try {
-    const { action, table } = req.body ?? {};
+    const table = req.body?.table;
     assertTable(table);
+    const body = scopeRequest(table, req.body, session.userId);
+    const { action } = body;
 
     const db = getClient();
 
     if (action === 'select') {
-      const where = buildWhere(table, req.body.where);
-      const order = req.body.order;
-      const limit = Number(req.body.limit || 0);
-      let sql = `select ${selectColumns(table, req.body.columns)} from "${table}"${where.sql}`;
+      const where = buildWhere(table, body.where);
+      const order = body.order;
+      const limit = Number(body.limit || 0);
+      let sql = `select ${selectColumns(table, body.columns)} from "${table}"${where.sql}`;
       if (order?.column) {
         assertColumn(table, order.column);
         sql += ` order by ${ident(table, order.column)} ${order.ascending === false ? 'desc' : 'asc'}`;
@@ -150,13 +176,13 @@ export default async function handler(req, res) {
     }
 
     if (action === 'insert' || action === 'upsert') {
-      const row = normalizeRow(table, req.body.row ?? {});
+      const row = normalizeRow(table, body.row ?? {});
       const columns = Object.keys(row);
       const args = columns.map(column => row[column]);
       const placeholders = columns.map(() => '?').join(', ');
       let sql = `insert into "${table}" (${columns.map(column => ident(table, column)).join(', ')}) values (${placeholders})`;
       if (action === 'upsert') {
-        const conflict = req.body.conflict ?? CONFLICTS[table];
+        const conflict = body.conflict ?? CONFLICTS[table];
         const updates = columns.filter(column => !conflict.includes(column));
         sql += ` on conflict (${conflict.map(column => ident(table, column)).join(', ')}) do update set ${updates.map(column => `${ident(table, column)} = excluded.${ident(table, column)}`).join(', ')}`;
       }
@@ -167,11 +193,11 @@ export default async function handler(req, res) {
     }
 
     if (action === 'update') {
-      const values = normalizeRow(table, req.body.values ?? {});
+      const values = normalizeRow(table, body.values ?? {});
       delete values.id;
       const columns = Object.keys(values);
       const args = columns.map(column => values[column]);
-      const where = buildWhere(table, req.body.where);
+      const where = buildWhere(table, body.where);
       const sql = `update "${table}" set ${columns.map(column => `${ident(table, column)} = ?`).join(', ')}${where.sql} returning *`;
       const result = await db.execute({ sql, args: [...args, ...where.args] });
       json(res, 200, { data: result.rows.map(row => parseRow(table, row)) });
@@ -179,7 +205,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'delete') {
-      const where = buildWhere(table, req.body.where);
+      const where = buildWhere(table, body.where);
       await db.execute({ sql: `delete from "${table}"${where.sql}`, args: where.args });
       json(res, 200, { data: null });
       return;

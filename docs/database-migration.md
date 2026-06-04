@@ -37,10 +37,14 @@ Production environment variables for Vercel:
 ```bash
 TURSO_DATABASE_URL="libsql://cyclofuel-alexandrkasparek2-ux.aws-eu-west-1.turso.io"
 TURSO_AUTH_TOKEN="<create with: turso db tokens create cyclofuel>"
-VITE_CYCLOFUEL_USER_ID="cyclofuel-main-user"
+CYCLOFUEL_USER_ID="cyclofuel-main-user"
+CYCLOFUEL_APP_PASSWORD="<strong private password>"
+CYCLOFUEL_SESSION_SECRET="<random 64-character secret>"
 ```
 
-Do not commit `TURSO_AUTH_TOKEN` to the repository.
+Do not commit passwords, `TURSO_AUTH_TOKEN`, or `CYCLOFUEL_SESSION_SECRET` to
+the repository. The app uses a signed 30-day HttpOnly cookie, and
+`/api/cyclofuel-db` rejects requests without a valid session.
 
 Optional overrides:
 

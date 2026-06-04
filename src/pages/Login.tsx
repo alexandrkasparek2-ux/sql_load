@@ -2,13 +2,10 @@ import React, { useState } from 'react';
 import { T, Spinner } from '../components/UI';
 
 interface LoginProps {
-  onSignIn:  (email: string, password: string) => Promise<void>;
-  onSignUp:  (email: string, password: string) => Promise<void>;
+  onSignIn: (password: string) => Promise<void>;
 }
 
-export default function Login({ onSignIn, onSignUp }: LoginProps) {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email,    setEmail]    = useState('');
+export default function Login({ onSignIn }: LoginProps) {
   const [password, setPassword] = useState('');
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -20,11 +17,7 @@ export default function Login({ onSignIn, onSignUp }: LoginProps) {
     setError('');
     setLoading(true);
     try {
-      if (isSignUp) {
-        await onSignUp(email, password);
-      } else {
-        await onSignIn(email, password);
-      }
+      await onSignIn(password);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Nastala chyba. Zkus to znovu.';
       setError(msg);
@@ -88,25 +81,10 @@ export default function Login({ onSignIn, onSignUp }: LoginProps) {
           color:      T.text,
           marginBottom: 20,
         }}>
-          {isSignUp ? 'Vytvořit účet' : 'Přihlásit se'}
+          Přístup do CycloFuel
         </h2>
 
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: T.muted, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              E-mail
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="vas@email.cz"
-              required
-              style={inputStyle}
-              autoComplete="email"
-            />
-          </div>
-
           <div style={{ marginBottom: 20 }}>
             <label style={{ fontSize: 12, color: T.muted, display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Heslo
@@ -115,11 +93,11 @@ export default function Login({ onSignIn, onSignUp }: LoginProps) {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder={isSignUp ? 'Min. 6 znaků' : '••••••••'}
+              placeholder="Zadej přístupové heslo"
               required
-              minLength={6}
               style={inputStyle}
-              autoComplete={isSignUp ? 'new-password' : 'current-password'}
+              autoComplete="current-password"
+              autoFocus
             />
           </div>
 
@@ -161,28 +139,9 @@ export default function Login({ onSignIn, onSignUp }: LoginProps) {
             }}
           >
             {loading && <Spinner color="#fff" size={18} />}
-            {loading ? 'Zpracovávám…' : isSignUp ? 'Vytvořit účet' : 'Přihlásit se'}
+            {loading ? 'Ověřuji…' : 'Odemknout aplikaci'}
           </button>
         </form>
-
-        <div style={{ textAlign: 'center', marginTop: 20 }}>
-          <button
-            onClick={() => { setIsSignUp(v => !v); setError(''); }}
-            style={{
-              background: 'none',
-              border:     'none',
-              color:      accent,
-              fontSize:   14,
-              cursor:     'pointer',
-              textDecoration: 'underline',
-              fontFamily: 'DM Sans, sans-serif',
-            }}
-          >
-            {isSignUp
-              ? 'Máš účet? Přihlásit se'
-              : 'Nemáš účet? Registrovat se'}
-          </button>
-        </div>
       </div>
 
       <p style={{ color: T.muted, fontSize: 12, marginTop: 32, textAlign: 'center' }}>

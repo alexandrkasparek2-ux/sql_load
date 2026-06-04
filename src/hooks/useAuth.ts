@@ -9,11 +9,6 @@ export interface Session {
   user: User;
 }
 
-const SINGLE_USER: User = {
-  id:    import.meta.env.VITE_CYCLOFUEL_USER_ID || 'cyclofuel-main-user',
-  email: import.meta.env.VITE_CYCLOFUEL_USER_EMAIL || 'alexandrkasparek2-ux@cyclofuel.local',
-};
-
 export interface AuthState {
   session: Session | null;
   user:    User    | null;
@@ -28,22 +23,31 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    setState({ session: { user: SINGLE_USER }, user: SINGLE_USER, loading: false });
+    fetch('/api/auth-session')
+      .then(async response => response.ok ? response.json() : { user: null })
+      .then(({ user }) => setState({
+        session: user ? { user } : null,
+        user,
+        loading: false,
+      }))
+      .catch(() => setState({ session: null, user: null, loading: false }));
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<void> => {
-    void email;
-    void password;
-    setState({ session: { user: SINGLE_USER }, user: SINGLE_USER, loading: false });
-  };
-
-  const signUp = async (email: string, password: string): Promise<void> => {
-    await signIn(email, password);
+  const signIn = async (password: string): Promise<void> => {
+    const response = await fetch('/api/auth-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'Přihlášení se nezdařilo.');
+    setState({ session: { user: payload.user }, user: payload.user, loading: false });
   };
 
   const signOut = async (): Promise<void> => {
-    setState({ session: { user: SINGLE_USER }, user: SINGLE_USER, loading: false });
+    await fetch('/api/auth-logout', { method: 'POST' });
+    setState({ session: null, user: null, loading: false });
   };
 
-  return { ...state, signIn, signUp, signOut };
+  return { ...state, signIn, signOut };
 }
