@@ -62,6 +62,7 @@ export interface ChatMessage {
   mealPlanAction?:       MealPlanItem[];
   recipeAction?:         RecipeSuggestionAction;
   logMealAction?:        LogMealAction;
+  actionApplied?:        boolean;
 }
 
 function loadHistory(): ChatMessage[] {
@@ -132,7 +133,7 @@ const MEAL_PLAN_RE = /```meal-plan\s*([\s\S]*?)\s*```/;
 const RECIPE_RE    = /```recipe-suggestion\s*([\s\S]*?)\s*```/;
 const LOG_MEAL_RE  = /```log-meal\s*([\s\S]*?)\s*```/;
 
-const MEAL_RE = /snědl|měl\s+jsem|jsem\s+měl|dám\s+si|zapiš|loguj|jedl|k\s+obědu|k\s+snídani|k\s+večeři|svačin|nadiktuj|zapsat|obědvám|večeřím|snídám|přidávám|přidat\s+na|chci\s+přidat|chci\s+zalogovat|mám\s+k|mám\s+na/i;
+const MEAL_RE = /snědl|snědla|jedl|jedla|měl\s+jsem|měla\s+jsem|jsem\s+měl|jsem\s+měla|dal\s+jsem\s+si|dala\s+jsem\s+si|dám\s+si|zapiš|zaloguj|loguj|k\s+obědu|k\s+snídani|k\s+večeři|svačin|nadiktuj|zapsat|obědvám|večeřím|snídám|přidávám|přidat\s+na|chci\s+přidat|chci\s+zalogovat|mám\s+k|mám\s+na/i;
 
 async function extractMealsViaHaiku(userText: string, apiKey: string): Promise<LogMealAction | undefined> {
   try {
@@ -241,6 +242,12 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
   const clearHistory = useCallback(() => {
     setMessages([]);
     localStorage.removeItem(HISTORY_KEY);
+  }, []);
+
+  const markActionApplied = useCallback((messageId: string) => {
+    setMessages(prev => prev.map(message =>
+      message.id === messageId ? { ...message, actionApplied: true } : message
+    ));
   }, []);
 
   const send = useCallback(async (text: string) => {
@@ -408,5 +415,5 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
     }
   }, [messages, loading, ctx]);
 
-  return { messages, input, setInput, loading, error, send, clearHistory };
+  return { messages, input, setInput, loading, error, send, clearHistory, markActionApplied };
 }

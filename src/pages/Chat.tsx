@@ -9,6 +9,7 @@ import { FOODS, type Food } from '../constants/foods';
 import type { FoodEntry } from '../hooks/useFoodEntries';
 import { MetricBox } from '../components/performance-ui';
 import { formatLocalISODate } from '../utils/date';
+import { buildDiaryEntries } from '../utils/diaryAgent';
 
 const SLOT_LABELS: Record<string, string> = {
   snidane: 'Snídaně', dop_svacina: 'Dop. svačina', obed: 'Oběd',
@@ -87,7 +88,7 @@ export default function Chat() {
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = formatLocalISODate(tomorrow);
   const tomorrowWorkout = upcoming.find(w => w.date === tomorrowStr) ?? null;
-  const { messages, input, setInput, loading, error, send, clearHistory } = useChatSession(ctx, {
+  const { messages, input, setInput, loading, error, send, clearHistory, markActionApplied } = useChatSession(ctx, {
     today: todayWorkout,
     tomorrow: tomorrowWorkout,
   });
@@ -107,7 +108,7 @@ export default function Chat() {
   useEffect(() => {
     if (loading) return;
     const last = messages[messages.length - 1];
-    if (last?.role === 'model' && last.logMealAction && !actioned.has(last.id)) {
+    if (last?.role === 'model' && last.logMealAction && !last.actionApplied && !actioned.has(last.id)) {
       handleLogMeal(last.id, last.logMealAction);
     }
   }, [messages, loading]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -161,24 +162,15 @@ export default function Chat() {
   }, [addEntry, userId, today]);
 
   const handleLogMeal = useCallback(async (msgId: string, action: LogMealAction) => {
-    const VALID_SLOTS = ['snidane','dop_svacina','obed','odp_svacina','pred_tren','behem_tren','po_tren','vecere'];
-    const normalized = action.slot?.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '') ?? '';
-    const slot = VALID_SLOTS.includes(normalized) ? normalized : 'obed';
-    for (const item of action.items) {
-      await addEntry({
-        user_id: userId, date: today,
-        meal_slot: slot,
-        food_id: `chat_log_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        food_name: item.name, grams: item.grams,
-        kcal: item.kcal, carbs: item.carbs, protein: item.protein, fat: item.fat,
-        fiber: 0, na: 0, k: 0, mg: 0, ca: 0, fe: 0, vit_c: 0, vit_d: 0, b12: 0, omega3: 0, zn: 0,
-      });
-    }
+    const { entries, slot, catalogMatches } = buildDiaryEntries(action, userId, today);
+    for (const entry of entries) await addEntry(entry);
     await reloadEntries();
     setActioned(prev => new Set([...prev, msgId]));
-    const totalKcal = action.items.reduce((s, i) => s + i.kcal, 0);
-    showToast(`${action.items.length} ${action.items.length === 1 ? 'položka zapsána' : 'položky zapsány'} do ${SLOT_LABELS[slot] ?? slot} · ${Math.round(totalKcal)} kcal`);
-  }, [addEntry, reloadEntries, userId, today]);
+    markActionApplied(msgId);
+    const estimated = entries.length - catalogMatches;
+    const detail = estimated > 0 ? ` · ${estimated} AI odhad` : ' · přesně z katalogu';
+    showToast(`${entries.length} ${entries.length === 1 ? 'položka zapsána' : 'položky zapsány'} do ${SLOT_LABELS[slot] ?? slot}${detail}`);
+  }, [addEntry, reloadEntries, userId, today, markActionApplied]);
 
   const handleRecipe = useCallback(async (msgId: string, recipe: RecipeSuggestionAction) => {
     const totalGrams = recipe.ingredients.reduce((s, i) => s + i.grams, 0) || 300;
@@ -553,7 +545,7 @@ export default function Chat() {
               )}
 
               {/* Log meal action */}
-              {m.logMealAction && !actioned.has(m.id) && (
+              {m.logMealAction && !m.actionApplied && !actioned.has(m.id) && (
                 <div style={{
                   marginTop: 8, borderRadius: 12,
                   background: BRAND.blue + '0a', border: `1px solid ${BRAND.blue}30`,
@@ -591,7 +583,7 @@ export default function Chat() {
               )}
 
               {/* Done state */}
-              {(m.foodAction || m.diaryAction || m.goalsAction || m.mealPlanAction || m.recipeAction || m.logMealAction) && actioned.has(m.id) && (
+              {(m.foodAction || m.diaryAction || m.goalsAction || m.mealPlanAction || m.recipeAction || m.logMealAction) && (m.actionApplied || actioned.has(m.id)) && (
                 <div style={{ marginTop: 6, fontSize: 12, color: BRAND.green, fontWeight: 600 }}>
                   ✓ Hotovo
                 </div>

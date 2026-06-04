@@ -8,6 +8,8 @@ import { showToast } from './Toast';
 import { FOODS, type Food } from '../constants/foods';
 import type { FoodEntry } from '../hooks/useFoodEntries';
 import { formatLocalISODate } from '../utils/date';
+import type { LogMealAction } from '../hooks/useChatSession';
+import { buildDiaryEntries } from '../utils/diaryAgent';
 
 const SUGGESTIONS = [
   'Co mám dát k večeři?',
@@ -75,12 +77,12 @@ function renderMarkdown(text: string | undefined, accent: string) {
 export default function FloatingChat() {
   const location = useLocation();
   const ctx = useContext(AppContext);
-  const { accent, addEntry, removeEntry, updateEntry, setGoalOverride, userId, today } = ctx;
+  const { accent, addEntry, reloadEntries, removeEntry, updateEntry, setGoalOverride, userId, today } = ctx;
   const { todayWorkout, upcoming } = useTrainingPlan();
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = formatLocalISODate(tomorrow);
   const tomorrowWorkout = upcoming.find(w => w.date === tomorrowStr) ?? null;
-  const { messages, input, setInput, loading, error, send, clearHistory } = useChatSession(ctx, {
+  const { messages, input, setInput, loading, error, send, clearHistory, markActionApplied } = useChatSession(ctx, {
     today: todayWorkout,
     tomorrow: tomorrowWorkout,
   });
@@ -105,6 +107,14 @@ export default function FloatingChat() {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  useEffect(() => {
+    if (loading) return;
+    const last = messages[messages.length - 1];
+    if (last?.role === 'model' && last.logMealAction && !last.actionApplied && !actioned.has(last.id)) {
+      void handleLogMeal(last.id, last.logMealAction);
+    }
+  }, [messages, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleLog = useCallback(async (msgId: string, query: string, grams: number) => {
     const food = matchFood(query);
     if (!food) { showToast('Potravina nenalezena v databázi', 'error'); return; }
@@ -128,6 +138,16 @@ export default function FloatingChat() {
     }
     setActioned(prev => new Set([...prev, msgId]));
   }, [removeEntry, updateEntry]);
+
+  const handleLogMeal = useCallback(async (msgId: string, action: LogMealAction) => {
+    const { entries, catalogMatches } = buildDiaryEntries(action, userId, today);
+    for (const entry of entries) await addEntry(entry);
+    await reloadEntries();
+    setActioned(prev => new Set([...prev, msgId]));
+    markActionApplied(msgId);
+    const estimated = entries.length - catalogMatches;
+    showToast(`${entries.length} ${entries.length === 1 ? 'položka zapsána' : 'položky zapsány'}${estimated > 0 ? ` · ${estimated} AI odhad` : ' · přesně z katalogu'}`);
+  }, [addEntry, reloadEntries, userId, today, markActionApplied]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); }
@@ -402,7 +422,22 @@ export default function FloatingChat() {
                 )}
 
                 {/* Done */}
-                {(m.foodAction || m.diaryAction || m.goalsAction || m.mealPlanAction || m.recipeAction) && actioned.has(m.id) && (
+                {m.logMealAction && !m.actionApplied && !actioned.has(m.id) && (
+                  <button
+                    onClick={() => handleLogMeal(m.id, m.logMealAction!)}
+                    style={{
+                      marginTop: 5, padding: '6px 12px', borderRadius: 8, width: '100%',
+                      background: BRAND.green + '15', border: `1px solid ${BRAND.green}40`,
+                      color: BRAND.green, fontSize: 12, cursor: 'pointer', fontWeight: 600,
+                      textAlign: 'left',
+                    }}
+                  >
+                    📝 Zapsat {m.logMealAction.items.length} {m.logMealAction.items.length === 1 ? 'položku' : 'položky'} do deníku
+                  </button>
+                )}
+
+                {/* Done */}
+                {(m.foodAction || m.diaryAction || m.goalsAction || m.mealPlanAction || m.recipeAction || m.logMealAction) && (m.actionApplied || actioned.has(m.id)) && (
                   <div style={{ marginTop: 5, fontSize: 11, color: BRAND.green, fontWeight: 600, paddingLeft: 2 }}>
                     ✓ Hotovo
                   </div>
