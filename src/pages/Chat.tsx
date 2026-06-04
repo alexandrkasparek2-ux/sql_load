@@ -18,6 +18,7 @@ const SLOT_LABELS: Record<string, string> = {
 };
 
 const SUGGESTIONS = [
+  { text: 'Zapiš mi 120 g banánu do svačiny', icon: '✍️', color: BRAND.green },
   { text: 'Co mám dát k večeři?',           icon: '🍽️', color: BRAND.orange },
   { text: 'Mám dost bílkovin?',              icon: '💪', color: BRAND.purple },
   { text: 'Co jíst před tréninkem?',         icon: '⚡', color: BRAND.gold   },

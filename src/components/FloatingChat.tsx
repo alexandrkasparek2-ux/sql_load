@@ -12,6 +12,7 @@ import type { LogMealAction } from '../hooks/useChatSession';
 import { buildDiaryEntries } from '../utils/diaryAgent';
 
 const SUGGESTIONS = [
+  'Zapiš mi 120 g banánu do svačiny',
   'Co mám dát k večeři?',
   'Mám dost bílkovin na dnes?',
   'Co jíst před tréninkem?',

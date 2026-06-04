@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import type { AppCtx } from '../App';
 import type { PlannedWorkout } from '../services/trainingPeaksService';
 import { classifyWorkout, calculateFuelingTargets, FUEL_TYPE_META } from '../services/fuelingPlanner';
+import { getSetting } from './useUserSettings';
 
 const HISTORY_KEY = 'cyclofuel_chat_v1';
 const MAX_STORED  = 80;
@@ -265,8 +266,11 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
     setMessages(prev => [...prev, { id: modelId, role: 'model', ts: Date.now(), content: '' }]);
 
     try {
-      const key = localStorage.getItem('anthropic_api_key') || (import.meta.env.VITE_ANTHROPIC_API_KEY as string);
+      const localKey = localStorage.getItem('anthropic_api_key');
+      const remoteKey = localKey ? null : await getSetting<string>(ctx.userId, 'anthropic_api_key');
+      const key = localKey || remoteKey || (import.meta.env.VITE_ANTHROPIC_API_KEY as string);
       if (!key) throw new Error('Vlož Anthropic API klíč v Nastavení → AI Poradce');
+      if (!localKey && remoteKey) localStorage.setItem('anthropic_api_key', remoteKey);
 
       const haikuPromise = MEAL_RE.test(t) ? extractMealsViaHaiku(t, key) : Promise.resolve(undefined);
 
