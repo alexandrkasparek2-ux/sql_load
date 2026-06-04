@@ -201,10 +201,12 @@ Akce které SMÍŠ provádět (vždy jen 1 akci na konci odpovědi):
 {"id":"uuid záznamu","food_name":"název pro potvrzení"}
 \`\`\`
 
-3. Upravit gramáž záznamu (slova: "uprav", "změň", "bylo to", "oprav"):
+3. Upravit gramáž existujícího záznamu (slova: "uprav", "změň", "bylo to", "oprav", "nakonec", "místo 100 g jsem měl 130 g"):
 \`\`\`edit-entry
 {"id":"uuid záznamu","food_name":"název pro potvrzení","grams":nová gramáž}
 \`\`\`
+(Při formulaci "nakonec jsem místo X g jídla měl Y g jídla" VŽDY uprav existující záznam, NIKDY nepřidávej nový.)
+(Najdi záznam podle názvu jídla, slotu jako "na oběd" a původní gramáže X. Pokud existuje více možných záznamů, zeptej se a neprováděj žádnou akci.)
 
 4. Nastavit denní cíle (slova: "nastav cíle", "změň cíle", "uprav cíle", "chci jíst", "snižme kalorie", "zvyšme bílkoviny"):
 \`\`\`set-goals

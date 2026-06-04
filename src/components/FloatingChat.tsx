@@ -113,6 +113,8 @@ export default function FloatingChat() {
     const last = messages[messages.length - 1];
     if (last?.role === 'model' && last.logMealAction && !last.actionApplied && !actioned.has(last.id)) {
       void handleLogMeal(last.id, last.logMealAction);
+    } else if (last?.role === 'model' && last.diaryAction?.type === 'edit' && !last.actionApplied && !actioned.has(last.id)) {
+      void handleDiaryAction(last.id, 'edit', last.diaryAction.entryId, last.diaryAction.foodName, last.diaryAction.grams);
     }
   }, [messages, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -138,7 +140,8 @@ export default function FloatingChat() {
       showToast(`${foodName} upraveno na ${grams}g`);
     }
     setActioned(prev => new Set([...prev, msgId]));
-  }, [removeEntry, updateEntry]);
+    markActionApplied(msgId);
+  }, [removeEntry, updateEntry, markActionApplied]);
 
   const handleLogMeal = useCallback(async (msgId: string, action: LogMealAction) => {
     const { entries, catalogMatches } = buildDiaryEntries(action, userId, today);
@@ -321,7 +324,7 @@ export default function FloatingChat() {
                 )}
 
                 {/* Diary delete/edit action */}
-                {m.diaryAction && !actioned.has(m.id) && (
+                {m.diaryAction && !m.actionApplied && !actioned.has(m.id) && (
                   <button
                     onClick={() => handleDiaryAction(
                       m.id,
