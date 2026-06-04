@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { supabase } from '../lib/supabase';
+import { dbSelect } from '../lib/dbClient';
 import {
   calcCalories, calcMacros, calcWater,
   type CalcProfile, type TrainingType,
@@ -43,24 +43,22 @@ export function useBackfillSnapshots(
       if (missing.length === 0) return;
 
       // Batch-load food entries + training days for missing dates
-      const [{ data: foodRows }, { data: trainRows }] = await Promise.all([
-        supabase
-          .from('food_entries')
-          .select('date, kcal, carbs, protein, fat, fiber')
-          .eq('user_id', userId)
-          .in('date', missing),
-        supabase
-          .from('training_days')
-          .select('date, training_type, ride_hours')
-          .eq('user_id', userId)
-          .in('date', missing),
+      const [foodRows, trainRows] = await Promise.all([
+        dbSelect<{ date: string; kcal: number; carbs: number; protein: number; fat: number; fiber?: number }>('food_entries', {
+          columns: ['date', 'kcal', 'carbs', 'protein', 'fat', 'fiber'],
+          where: { user_id: userId, date: { in: missing } },
+        }),
+        dbSelect<{ date: string; training_type: TrainingType; ride_hours: number }>('training_days', {
+          columns: ['date', 'training_type', 'ride_hours'],
+          where: { user_id: userId, date: { in: missing } },
+        }),
       ]);
 
       const burnLog = loadBurnLog();
 
       for (const date of missing) {
-        const dayFood  = (foodRows  ?? []).filter(r => r.date === date);
-        const trainRow = (trainRows ?? []).find(r  => r.date === date);
+        const dayFood  = foodRows.filter(r => r.date === date);
+        const trainRow = trainRows.find(r  => r.date === date);
         const actKcal  = burnLog[date] ?? 0;
 
         // Skip days with absolutely no data

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { dbSelect } from '../lib/dbClient';
 import { loadDailyGoals } from './useDailyGoals';
 import { calcCalories, type CalcProfile } from '../constants/training';
 import { loadBurnLog } from '../services/intervalsService';
@@ -55,12 +55,11 @@ export function useWeeklyData(
     const today = todayLocalISO();
     const historicalDates = dates.filter(d => d < today);
 
-    const [{ data: rows }, storedGoals, burnLog, snapshots] = await Promise.all([
-      supabase
-        .from('food_entries')
-        .select('date, kcal, carbs, protein, fat')
-        .eq('user_id', userId)
-        .in('date', dates),
+    const [rows, storedGoals, burnLog, snapshots] = await Promise.all([
+      dbSelect<{ date: string; kcal: number; carbs: number; protein: number; fat: number }>('food_entries', {
+        columns: ['date', 'kcal', 'carbs', 'protein', 'fat'],
+        where: { user_id: userId, date: { in: dates } },
+      }),
       loadDailyGoals(userId),
       Promise.resolve(loadBurnLog()),
       historicalDates.length > 0
@@ -69,7 +68,7 @@ export function useWeeklyData(
     ]);
 
     const grouped: DayKcal[] = dates.map(date => {
-      const dayRows = (rows ?? []).filter(r => r.date === date);
+      const dayRows = rows.filter(r => r.date === date);
       const snap    = snapshots[date] ?? null;
 
       // ── Goal = expenditure (BMR + Intervals.icu activity, no deficit) ──────

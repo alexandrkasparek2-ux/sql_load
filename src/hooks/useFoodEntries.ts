@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { dbDelete, dbInsert, dbSelect, dbUpdate } from '../lib/dbClient';
 
 export interface FoodEntry {
   id?:       string;
@@ -77,33 +77,24 @@ export function useFoodEntries(userId: string | undefined, date: string) {
   const load = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('food_entries')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('date', date)
-      .order('created_at', { ascending: true });
-    setEntries((data as FoodEntry[]) ?? []);
+    const data = await dbSelect<FoodEntry>('food_entries', {
+      where: { user_id: userId, date },
+      order: { column: 'created_at', ascending: true },
+    });
+    setEntries(data);
     setLoading(false);
   }, [userId, date]);
 
   useEffect(() => { load(); }, [load]);
 
   const addEntry = async (entry: Omit<FoodEntry, 'id'>): Promise<FoodEntry | null> => {
-    const { data, error } = await supabase
-      .from('food_entries')
-      .insert(entry)
-      .select('*')
-      .single();
-    if (!error && data) {
-      setEntries(prev => [...prev, data as FoodEntry]);
-      return data as FoodEntry;
-    }
-    return null;
+    const data = await dbInsert<FoodEntry>('food_entries', entry);
+    setEntries(prev => [...prev, data]);
+    return data;
   };
 
   const removeEntry = async (id: string): Promise<void> => {
-    await supabase.from('food_entries').delete().eq('id', id);
+    await dbDelete('food_entries', { id });
     setEntries(prev => prev.filter(e => e.id !== id));
   };
 
@@ -121,7 +112,7 @@ export function useFoodEntries(userId: string | undefined, date: string) {
       fat:     parseFloat(macros.fat.toFixed(1)),
       ...(newMealSlot ? { meal_slot: newMealSlot } : {}),
     };
-    await supabase.from('food_entries').update(updated).eq('id', id);
+    await dbUpdate<FoodEntry>('food_entries', updated, { id });
     setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e));
   };
 
@@ -148,7 +139,7 @@ export function useFoodEntries(userId: string | undefined, date: string) {
       zn:      parseFloat((entry.zn      * ratio).toFixed(2)),
       ...(newMealSlot ? { meal_slot: newMealSlot } : {}),
     };
-    await supabase.from('food_entries').update(updated).eq('id', id);
+    await dbUpdate<FoodEntry>('food_entries', updated, { id });
     setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updated } : e));
   };
 

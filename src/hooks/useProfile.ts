@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { dbMaybeSingle, dbUpdate } from '../lib/dbClient';
 
 export interface Profile {
   id:     string;
@@ -16,12 +16,11 @@ export function useProfile(userId: string | undefined) {
   const load = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, weight, height, age, gender')
-      .eq('id', userId)
-      .single();
-    if (data) setProfile(data as Profile);
+    const data = await dbMaybeSingle<Profile>('profiles', {
+      columns: ['id', 'weight', 'height', 'age', 'gender'],
+      where: { id: userId },
+    });
+    if (data) setProfile(data);
     setLoading(false);
   }, [userId]);
 
@@ -29,13 +28,8 @@ export function useProfile(userId: string | undefined) {
 
   const save = async (updates: Partial<Omit<Profile, 'id'>>): Promise<void> => {
     if (!userId) return;
-    const { data, error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', userId)
-      .select('id, weight, height, age, gender')
-      .single();
-    if (!error && data) setProfile(data as Profile);
+    const [data] = await dbUpdate<Profile>('profiles', updates, { id: userId });
+    if (data) setProfile(data);
   };
 
   return { profile, loading, save, reload: load };

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { dbMaybeSingle, dbUpsert } from '../lib/dbClient';
 
 const USER_SETTING_EVENT = 'cyclofuel-user-setting-updated';
 
@@ -40,16 +40,37 @@ function writeLegacyValue<T>(legacyKey: string | undefined, value: T) {
   }
 }
 
-export async function fetchUserSetting<T>(userId: string, key: string, fallback: T): Promise<T> {
-  const { data, error } = await supabase
-    .from('user_settings')
-    .select('value')
-    .eq('user_id', userId)
-    .eq('key', key)
-    .maybeSingle();
+const settingCache = new Map<string, unknown>();
+const settingInflight = new Map<string, Promise<unknown>>();
 
-  if (error || !data) return fallback;
-  return (data.value as T) ?? fallback;
+function settingCacheKey(userId: string, key: string) {
+  return `${userId}:${key}`;
+}
+
+export async function fetchUserSetting<T>(userId: string, key: string, fallback: T): Promise<T> {
+  const cacheKey = settingCacheKey(userId, key);
+  if (settingCache.has(cacheKey)) return (settingCache.get(cacheKey) as T) ?? fallback;
+
+  const existing = settingInflight.get(cacheKey);
+  if (existing) return ((await existing) as T) ?? fallback;
+
+  const request = Promise.resolve(
+    dbMaybeSingle<{ value: T }>('user_settings', {
+      columns: ['value'],
+      where: { user_id: userId, key },
+    }),
+  )
+    .then(data => {
+      const value = !data ? fallback : ((data.value as T) ?? fallback);
+      settingCache.set(cacheKey, value);
+      return value;
+    })
+    .finally(() => {
+      settingInflight.delete(cacheKey);
+    });
+
+  settingInflight.set(cacheKey, request);
+  return request;
 }
 
 export function useUserSetting<T>(
@@ -62,10 +83,18 @@ export function useUserSetting<T>(
   const legacyValue = readLegacyValue(legacyKey, fallback);
   const [value, setValue] = useState<T>(legacyValue);
   const [loading, setLoading] = useState(false);
+  const fallbackRef = useRef(fallback);
+  const isEmptyRef = useRef(isEmpty);
+
+  fallbackRef.current = fallback;
+  isEmptyRef.current = isEmpty;
 
   useEffect(() => {
+    const currentFallback = fallbackRef.current;
+    const currentLegacyValue = readLegacyValue(legacyKey, currentFallback);
+
     if (!userId) {
-      setValue(legacyValue);
+      setValue(currentLegacyValue);
       return;
     }
 
@@ -73,18 +102,19 @@ export function useUserSetting<T>(
 
     const load = async () => {
       setLoading(true);
-      const remoteValue = await fetchUserSetting(userId, key, fallback);
+      const remoteValue = await fetchUserSetting(userId, key, currentFallback);
       if (cancelled) return;
 
-      const remoteIsEmpty = isEmpty ? isEmpty(remoteValue) : false;
-      const legacyIsMeaningful = isEmpty ? !isEmpty(legacyValue) : legacyValue !== fallback;
+      const emptyCheck = isEmptyRef.current;
+      const remoteIsEmpty = emptyCheck ? emptyCheck(remoteValue) : false;
+      const legacyIsMeaningful = emptyCheck
+        ? !emptyCheck(currentLegacyValue)
+        : currentLegacyValue !== currentFallback;
 
       if (remoteIsEmpty && legacyIsMeaningful) {
-        setValue(legacyValue);
-        await supabase.from('user_settings').upsert(
-          { user_id: userId, key, value: legacyValue },
-          { onConflict: 'user_id,key' },
-        );
+        setValue(currentLegacyValue);
+        settingCache.set(settingCacheKey(userId, key), currentLegacyValue);
+        await dbUpsert('user_settings', { user_id: userId, key, value: currentLegacyValue }, ['user_id', 'key']);
       } else {
         setValue(remoteValue);
         if (persistLegacy) writeLegacyValue(legacyKey, remoteValue);
@@ -107,17 +137,15 @@ export function useUserSetting<T>(
       cancelled = true;
       window.removeEventListener(USER_SETTING_EVENT, onUpdated as EventListener);
     };
-  }, [userId, key, fallback, legacyKey, persistLegacy, isEmpty, legacyValue]);
+  }, [userId, key, legacyKey, persistLegacy]);
 
   const saveValue = useCallback(async (next: T) => {
     setValue(next);
     if (persistLegacy) writeLegacyValue(legacyKey, next);
     if (!userId) return;
 
-    await supabase.from('user_settings').upsert(
-      { user_id: userId, key, value: next },
-      { onConflict: 'user_id,key' },
-    );
+    settingCache.set(settingCacheKey(userId, key), next);
+    await dbUpsert('user_settings', { user_id: userId, key, value: next }, ['user_id', 'key']);
 
     window.dispatchEvent(new CustomEvent(USER_SETTING_EVENT, {
       detail: { userId, key, value: next },

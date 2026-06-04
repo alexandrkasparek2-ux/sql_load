@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { dbMaybeSingle, dbUpsert } from '../lib/dbClient';
 import type { TrainingType } from '../constants/training';
 
 export type ActivityIntensity = 'low' | 'medium' | 'high';
@@ -36,12 +36,9 @@ export function useTrainingDay(userId: string | undefined, date: string) {
   const load = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('training_days')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('date', date)
-      .maybeSingle();
+    const data = await dbMaybeSingle<TrainingDay>('training_days', {
+      where: { user_id: userId, date },
+    });
     setTrainingDay(data ?? defaultDay(userId, date));
     setLoading(false);
   }, [userId, date]);
@@ -63,13 +60,12 @@ export function useTrainingDay(userId: string | undefined, date: string) {
       coffee_cups:         current.coffee_cups,
       ...updates,
     };
-    const { data, error } = await supabase
-      .from('training_days')
-      .upsert(payload, { onConflict: 'user_id,date' })
-      .select('*')
-      .single();
-    if (!error && data) setTrainingDay(data as TrainingDay);
-    else setTrainingDay(prev => prev ? { ...prev, ...updates } : payload as TrainingDay);
+    try {
+      const data = await dbUpsert<TrainingDay>('training_days', payload, ['user_id', 'date']);
+      setTrainingDay(data);
+    } catch {
+      setTrainingDay(prev => prev ? { ...prev, ...updates } : payload as TrainingDay);
+    }
   };
 
   return { trainingDay, loading, upsert };

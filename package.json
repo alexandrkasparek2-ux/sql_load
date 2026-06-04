@@ -7,9 +7,15 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "db:export:supabase": "node scripts/export-supabase-data.mjs",
+    "db:build-import": "node scripts/build-postgres-import-sql.mjs",
+    "db:build-turso-import": "node scripts/build-turso-import-sql.mjs",
+    "db:create-turso-db": "node scripts/create-turso-sqlite-db.mjs",
+    "db:seed:turso": "node scripts/seed-turso-baseline.mjs"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.3",
     "@supabase/supabase-js": "^2.39.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

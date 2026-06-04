@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { dbSelect, dbUpdate, dbUpsert } from '../lib/dbClient';
 
 export interface SupplementEntry {
   id?:              string;
@@ -19,12 +19,10 @@ export function useSupplements(userId: string | undefined, date: string) {
   const load = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
-    const { data } = await supabase
-      .from('supplement_log')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('date', date);
-    setEntries((data as SupplementEntry[]) ?? []);
+    const data = await dbSelect<SupplementEntry>('supplement_log', {
+      where: { user_id: userId, date },
+    });
+    setEntries(data);
     setLoading(false);
   }, [userId, date]);
 
@@ -43,10 +41,7 @@ export function useSupplements(userId: string | undefined, date: string) {
     if (existing?.id) {
       // Toggle taken flag
       const newTaken = !existing.taken;
-      await supabase
-        .from('supplement_log')
-        .update({ taken: newTaken })
-        .eq('id', existing.id);
+      await dbUpdate<SupplementEntry>('supplement_log', { taken: newTaken }, { id: existing.id });
       setEntries(prev => prev.map(e =>
         e.id === existing.id ? { ...e, taken: newTaken } : e,
       ));
@@ -59,15 +54,11 @@ export function useSupplements(userId: string | undefined, date: string) {
         dose, unit,
         taken: true,
       };
-      const { data, error } = await supabase
-        .from('supplement_log')
-        .upsert(payload, { onConflict: 'user_id,date,supplement_id' })
-        .select('*')
-        .single();
-      if (!error && data) {
+      const data = await dbUpsert<SupplementEntry>('supplement_log', payload, ['user_id', 'date', 'supplement_id']);
+      if (data) {
         setEntries(prev => {
           const filtered = prev.filter(e => e.supplement_id !== supplementId);
-          return [...filtered, data as SupplementEntry];
+          return [...filtered, data];
         });
       }
     }
@@ -83,7 +74,7 @@ export function useSupplements(userId: string | undefined, date: string) {
     if (!userId) return;
     const existing = entries.find(e => e.supplement_id === supplementId);
     if (existing?.id) {
-      await supabase.from('supplement_log').update({ dose }).eq('id', existing.id);
+      await dbUpdate<SupplementEntry>('supplement_log', { dose }, { id: existing.id });
       setEntries(prev => prev.map(e =>
         e.id === existing.id ? { ...e, dose } : e,
       ));
@@ -94,15 +85,11 @@ export function useSupplements(userId: string | undefined, date: string) {
         supplement_name: supplementName,
         dose, unit, taken: false,
       };
-      const { data, error } = await supabase
-        .from('supplement_log')
-        .upsert(payload, { onConflict: 'user_id,date,supplement_id' })
-        .select('*')
-        .single();
-      if (!error && data) {
+      const data = await dbUpsert<SupplementEntry>('supplement_log', payload, ['user_id', 'date', 'supplement_id']);
+      if (data) {
         setEntries(prev => {
           const filtered = prev.filter(e => e.supplement_id !== supplementId);
-          return [...filtered, data as SupplementEntry];
+          return [...filtered, data];
         });
       }
     }

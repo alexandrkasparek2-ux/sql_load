@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+
+export interface User {
+  id:    string;
+  email?: string;
+}
+
+export interface Session {
+  user: User;
+}
+
+const SINGLE_USER: User = {
+  id:    import.meta.env.VITE_CYCLOFUEL_USER_ID || 'cyclofuel-main-user',
+  email: import.meta.env.VITE_CYCLOFUEL_USER_EMAIL || 'alexandrkasparek2-ux@cyclofuel.local',
+};
 
 export interface AuthState {
   session: Session | null;
@@ -16,34 +28,21 @@ export function useAuth() {
   });
 
   useEffect(() => {
-    // Initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setState({ session, user: session?.user ?? null, loading: false });
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setState(prev => ({ ...prev, session, user: session?.user ?? null }));
-      },
-    );
-
-    return () => subscription.unsubscribe();
+    setState({ session: { user: SINGLE_USER }, user: SINGLE_USER, loading: false });
   }, []);
 
   const signIn = async (email: string, password: string): Promise<void> => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    void email;
+    void password;
+    setState({ session: { user: SINGLE_USER }, user: SINGLE_USER, loading: false });
   };
 
   const signUp = async (email: string, password: string): Promise<void> => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
+    await signIn(email, password);
   };
 
   const signOut = async (): Promise<void> => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    setState({ session: { user: SINGLE_USER }, user: SINGLE_USER, loading: false });
   };
 
   return { ...state, signIn, signUp, signOut };

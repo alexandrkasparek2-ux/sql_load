@@ -1,42 +1,38 @@
 import { useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { dbDelete, dbMaybeSingle, dbSelect, dbUpsert } from '../lib/dbClient';
 
 // Generic key-value settings synced to Supabase user_settings table.
 // Falls back gracefully if table doesn't exist or user is offline.
 
 export async function getSetting<T>(userId: string, key: string): Promise<T | null> {
   try {
-    const { data } = await supabase
-      .from('user_settings')
-      .select('value')
-      .eq('user_id', userId)
-      .eq('key', key)
-      .single();
+    const data = await dbMaybeSingle<{ value: T }>('user_settings', {
+      columns: ['value'],
+      where: { user_id: userId, key },
+    });
     return data ? (data.value as T) : null;
   } catch { return null; }
 }
 
 export async function setSetting(userId: string, key: string, value: unknown): Promise<void> {
   try {
-    await supabase
-      .from('user_settings')
-      .upsert({ user_id: userId, key, value, updated_at: new Date().toISOString() });
+    await dbUpsert('user_settings', { user_id: userId, key, value, updated_at: new Date().toISOString() }, ['user_id', 'key']);
   } catch { /* offline — ignore */ }
 }
 
 export async function deleteSetting(userId: string, key: string): Promise<void> {
   try {
-    await supabase.from('user_settings').delete().eq('user_id', userId).eq('key', key);
+    await dbDelete('user_settings', { user_id: userId, key });
   } catch { /* ignore */ }
 }
 
 // Loads all settings for a user as a record
 export async function getAllSettings(userId: string): Promise<Record<string, unknown>> {
   try {
-    const { data } = await supabase
-      .from('user_settings')
-      .select('key, value')
-      .eq('user_id', userId);
+    const data = await dbSelect<{ key: string; value: unknown }>('user_settings', {
+      columns: ['key', 'value'],
+      where: { user_id: userId },
+    });
     if (!data) return {};
     return Object.fromEntries(data.map(r => [r.key, r.value]));
   } catch { return {}; }

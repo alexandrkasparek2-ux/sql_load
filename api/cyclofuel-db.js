@@ -1,0 +1,192 @@
+import { createClient } from '@libsql/client';
+
+const JSON_COLUMNS = new Set([
+  'extra_types',
+  'activity_hours',
+  'activity_intensity',
+  'value',
+]);
+
+const BOOLEAN_COLUMNS = new Set(['taken']);
+
+const TABLES = {
+  profiles: ['id', 'weight', 'height', 'age', 'gender', 'ftp_watts', 'caloric_deficit_offseason', 'target_weight_kg', 'created_at', 'updated_at'],
+  food_entries: ['id', 'user_id', 'date', 'meal_slot', 'food_id', 'food_name', 'grams', 'kcal', 'carbs', 'protein', 'fat', 'na', 'k', 'mg', 'ca', 'fe', 'vit_c', 'vit_d', 'b12', 'omega3', 'zn', 'fiber', 'created_at'],
+  training_days: ['id', 'user_id', 'date', 'training_type', 'ride_hours', 'water_glasses', 'coffee_cups', 'extra_types', 'activity_hours', 'activity_intensity', 'created_at', 'updated_at'],
+  weight_log: ['id', 'user_id', 'date', 'weight_kg', 'created_at', 'updated_at'],
+  user_settings: ['id', 'user_id', 'key', 'value', 'created_at', 'updated_at'],
+  supplement_log: ['id', 'user_id', 'date', 'supplement_id', 'supplement_name', 'dose', 'unit', 'taken', 'created_at', 'taken_at'],
+  daily_nutrition_snapshots: ['id', 'user_id', 'date', 'consumed_kcal', 'consumed_carbs', 'consumed_protein', 'consumed_fat', 'consumed_fiber', 'goal_kcal', 'goal_carbs', 'goal_protein', 'goal_fat', 'goal_water', 'goal_fiber', 'activity_kcal', 'activity_source', 'deficit_kcal', 'updated_at', 'created_at'],
+  race_events: ['id', 'user_id', 'name', 'race_date', 'distance_km', 'elevation_m', 'estimated_duration_hours', 'race_type', 'created_at', 'updated_at'],
+  nutrition_targets: ['id', 'user_id', 'date', 'phase', 'target_kcal', 'target_carbs_g', 'target_protein_g', 'target_fat_g', 'actual_kcal', 'actual_carbs_g', 'actual_protein_g', 'actual_fat_g', 'compliance_score', 'created_at', 'updated_at'],
+  training_load_daily: ['id', 'user_id', 'date', 'tss', 'ctl', 'atl', 'tsb', 'training_kj', 'source', 'created_at', 'updated_at'],
+  on_bike_nutrition_log: ['id', 'user_id', 'race_event_id', 'timestamp', 'item_name', 'carbs_g', 'kcal', 'notes', 'created_at'],
+};
+
+const CONFLICTS = {
+  profiles: ['id'],
+  food_entries: ['id'],
+  training_days: ['user_id', 'date'],
+  weight_log: ['user_id', 'date'],
+  user_settings: ['user_id', 'key'],
+  supplement_log: ['user_id', 'date', 'supplement_id'],
+  daily_nutrition_snapshots: ['user_id', 'date'],
+  race_events: ['id'],
+  nutrition_targets: ['user_id', 'date'],
+  training_load_daily: ['user_id', 'date'],
+  on_bike_nutrition_log: ['id'],
+};
+
+let client;
+
+function getClient() {
+  if (!client) {
+    if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
+      throw new Error('Missing TURSO_DATABASE_URL or TURSO_AUTH_TOKEN.');
+    }
+    client = createClient({
+      url: process.env.TURSO_DATABASE_URL,
+      authToken: process.env.TURSO_AUTH_TOKEN,
+    });
+  }
+  return client;
+}
+
+function assertTable(table) {
+  if (!TABLES[table]) throw new Error(`Table is not allowed: ${table}`);
+}
+
+function assertColumn(table, column) {
+  if (!TABLES[table].includes(column)) throw new Error(`Column is not allowed: ${table}.${column}`);
+}
+
+function ident(table, column) {
+  assertColumn(table, column);
+  return `"${column}"`;
+}
+
+function normalizeValue(column, value) {
+  if (value === undefined) return undefined;
+  if (JSON_COLUMNS.has(column)) return typeof value === 'string' ? value : JSON.stringify(value ?? null);
+  if (BOOLEAN_COLUMNS.has(column)) return value ? 1 : 0;
+  return value;
+}
+
+function normalizeRow(table, row) {
+  const next = {};
+  for (const [column, value] of Object.entries(row)) {
+    if (!TABLES[table].includes(column)) continue;
+    if (value === undefined) continue;
+    next[column] = normalizeValue(column, value);
+  }
+  if (!next.id && TABLES[table].includes('id')) next.id = crypto.randomUUID();
+  return next;
+}
+
+function parseRow(table, row) {
+  const next = { ...row };
+  for (const column of JSON_COLUMNS) {
+    if (column in next && typeof next[column] === 'string') {
+      try { next[column] = JSON.parse(next[column]); } catch { /* keep as string */ }
+    }
+  }
+  if (table === 'supplement_log' && 'taken' in next) next.taken = Boolean(next.taken);
+  return next;
+}
+
+function buildWhere(table, where = {}) {
+  const clauses = [];
+  const args = [];
+  for (const [column, raw] of Object.entries(where)) {
+    assertColumn(table, column);
+    if (raw && typeof raw === 'object' && Array.isArray(raw.in)) {
+      if (raw.in.length === 0) clauses.push('1 = 0');
+      else {
+        clauses.push(`${ident(table, column)} in (${raw.in.map(() => '?').join(', ')})`);
+        args.push(...raw.in.map(value => normalizeValue(column, value)));
+      }
+    } else {
+      clauses.push(`${ident(table, column)} = ?`);
+      args.push(normalizeValue(column, raw));
+    }
+  }
+  return { sql: clauses.length ? ` where ${clauses.join(' and ')}` : '', args };
+}
+
+function selectColumns(table, columns) {
+  if (!columns || columns === '*') return '*';
+  return columns.map(column => ident(table, column)).join(', ');
+}
+
+function json(res, status, body) {
+  res.status(status).json(body);
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    json(res, 405, { error: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    const { action, table } = req.body ?? {};
+    assertTable(table);
+
+    const db = getClient();
+
+    if (action === 'select') {
+      const where = buildWhere(table, req.body.where);
+      const order = req.body.order;
+      const limit = Number(req.body.limit || 0);
+      let sql = `select ${selectColumns(table, req.body.columns)} from "${table}"${where.sql}`;
+      if (order?.column) {
+        assertColumn(table, order.column);
+        sql += ` order by ${ident(table, order.column)} ${order.ascending === false ? 'desc' : 'asc'}`;
+      }
+      if (limit > 0) sql += ` limit ${Math.min(limit, 5000)}`;
+      const result = await db.execute({ sql, args: where.args });
+      json(res, 200, { data: result.rows.map(row => parseRow(table, row)) });
+      return;
+    }
+
+    if (action === 'insert' || action === 'upsert') {
+      const row = normalizeRow(table, req.body.row ?? {});
+      const columns = Object.keys(row);
+      const args = columns.map(column => row[column]);
+      const placeholders = columns.map(() => '?').join(', ');
+      let sql = `insert into "${table}" (${columns.map(column => ident(table, column)).join(', ')}) values (${placeholders})`;
+      if (action === 'upsert') {
+        const conflict = req.body.conflict ?? CONFLICTS[table];
+        const updates = columns.filter(column => !conflict.includes(column));
+        sql += ` on conflict (${conflict.map(column => ident(table, column)).join(', ')}) do update set ${updates.map(column => `${ident(table, column)} = excluded.${ident(table, column)}`).join(', ')}`;
+      }
+      sql += ' returning *';
+      const result = await db.execute({ sql, args });
+      json(res, 200, { data: parseRow(table, result.rows[0]) });
+      return;
+    }
+
+    if (action === 'update') {
+      const values = normalizeRow(table, req.body.values ?? {});
+      delete values.id;
+      const columns = Object.keys(values);
+      const args = columns.map(column => values[column]);
+      const where = buildWhere(table, req.body.where);
+      const sql = `update "${table}" set ${columns.map(column => `${ident(table, column)} = ?`).join(', ')}${where.sql} returning *`;
+      const result = await db.execute({ sql, args: [...args, ...where.args] });
+      json(res, 200, { data: result.rows.map(row => parseRow(table, row)) });
+      return;
+    }
+
+    if (action === 'delete') {
+      const where = buildWhere(table, req.body.where);
+      await db.execute({ sql: `delete from "${table}"${where.sql}`, args: where.args });
+      json(res, 200, { data: null });
+      return;
+    }
+
+    json(res, 400, { error: `Unsupported action: ${action}` });
+  } catch (error) {
+    json(res, 500, { error: error instanceof Error ? error.message : 'Unknown database error' });
+  }
+}

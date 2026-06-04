@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { dbDelete, dbSelect, dbUpsert } from '../lib/dbClient';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,20 +58,15 @@ function lsDelete(userId: string, date: string) {
 
 async function sbUpsert(snap: DailySnapshot): Promise<void> {
   try {
-    await supabase
-      .from('daily_nutrition_snapshots')
-      .upsert(snap, { onConflict: 'user_id,date' });
+    await dbUpsert('daily_nutrition_snapshots', { ...snap }, ['user_id', 'date']);
   } catch {}
 }
 
 async function sbLoadBatch(userId: string, dates: string[]): Promise<DailySnapshot[]> {
   try {
-    const { data } = await supabase
-      .from('daily_nutrition_snapshots')
-      .select('*')
-      .eq('user_id', userId)
-      .in('date', dates);
-    return (data ?? []) as DailySnapshot[];
+    return await dbSelect<DailySnapshot>('daily_nutrition_snapshots', {
+      where: { user_id: userId, date: { in: dates } },
+    });
   } catch { return []; }
 }
 
@@ -133,10 +128,6 @@ export async function loadSnapshotBatch(
 export async function deleteSnapshot(userId: string, date: string): Promise<void> {
   lsDelete(userId, date);
   try {
-    await supabase
-      .from('daily_nutrition_snapshots')
-      .delete()
-      .eq('user_id', userId)
-      .eq('date', date);
+    await dbDelete('daily_nutrition_snapshots', { user_id: userId, date });
   } catch {}
 }

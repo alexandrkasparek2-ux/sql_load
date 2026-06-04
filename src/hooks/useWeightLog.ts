@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import { dbDelete, dbSelect, dbUpsert } from '../lib/dbClient';
 
 export interface WeightEntry {
   id:        string;
@@ -26,24 +26,23 @@ export function useWeightLog(userId: string | undefined) {
     if (!userId) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('weight_log')
-        .select('id, date, weight_kg')
-        .eq('user_id', userId)
-        .order('date', { ascending: true })
-        .limit(90);
+      const data = await dbSelect<WeightEntry>('weight_log', {
+        columns: ['id', 'date', 'weight_kg'],
+        where: { user_id: userId },
+        order: { column: 'date', ascending: true },
+        limit: 90,
+      });
 
-      if (error) throw error;
       if (data && data.length > 0) {
-        setEntries(data as WeightEntry[]);
+        setEntries(data);
       } else {
         // Migrate from localStorage if Supabase is empty
         const local = loadLocal(userId);
         if (local.length > 0) {
           setEntries(local);
-          // Upload local data to Supabase
+          // Upload local data to the remote database
           const rows = local.map(e => ({ user_id: userId, date: e.date, weight_kg: e.weight_kg }));
-          await supabase.from('weight_log').upsert(rows, { onConflict: 'user_id,date' });
+          await Promise.all(rows.map(row => dbUpsert('weight_log', row, ['user_id', 'date'])));
         }
       }
     } catch {
@@ -64,13 +63,9 @@ export function useWeightLog(userId: string | undefined) {
       return [...filtered, optimistic].sort((a, b) => a.date.localeCompare(b.date));
     });
     try {
-      const { data } = await supabase
-        .from('weight_log')
-        .upsert({ user_id: userId, date, weight_kg }, { onConflict: 'user_id,date' })
-        .select('id, date, weight_kg')
-        .single();
+      const data = await dbUpsert<WeightEntry>('weight_log', { user_id: userId, date, weight_kg }, ['user_id', 'date']);
       if (data) {
-        setEntries(prev => prev.map(e => e.id === optimistic.id ? (data as WeightEntry) : e));
+        setEntries(prev => prev.map(e => e.id === optimistic.id ? data : e));
       }
     } catch {
       // Keep optimistic update; also persist locally as fallback
@@ -84,7 +79,7 @@ export function useWeightLog(userId: string | undefined) {
   const deleteEntry = useCallback(async (id: string) => {
     setEntries(prev => prev.filter(e => e.id !== id));
     try {
-      await supabase.from('weight_log').delete().eq('id', id);
+      await dbDelete('weight_log', { id });
     } catch { /* ignore */ }
   }, []);
 
