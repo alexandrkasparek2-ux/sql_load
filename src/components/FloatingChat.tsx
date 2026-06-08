@@ -8,7 +8,7 @@ import { showToast } from './Toast';
 import { FOODS, type Food } from '../constants/foods';
 import type { FoodEntry } from '../hooks/useFoodEntries';
 import { formatLocalISODate } from '../utils/date';
-import type { LogMealAction } from '../hooks/useChatSession';
+import type { LogMealAction, ActivityAction } from '../hooks/useChatSession';
 import { buildDiaryEntries } from '../utils/diaryAgent';
 
 const SUGGESTIONS = [
@@ -78,7 +78,10 @@ function renderMarkdown(text: string | undefined, accent: string) {
 export default function FloatingChat() {
   const location = useLocation();
   const ctx = useContext(AppContext);
-  const { accent, addEntry, reloadEntries, removeEntry, updateEntry, setGoalOverride, userId, today } = ctx;
+  const {
+    accent, addEntry, reloadEntries, removeEntry, updateEntry, setGoalOverride,
+    userId, today, addManualActivity, updateManualActivity, removeManualActivity,
+  } = ctx;
   const { todayWorkout, upcoming } = useTrainingPlan();
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = formatLocalISODate(tomorrow);
@@ -115,6 +118,8 @@ export default function FloatingChat() {
       void handleLogMeal(last.id, last.logMealAction);
     } else if (last?.role === 'model' && last.diaryAction?.type === 'edit' && !last.actionApplied && !actioned.has(last.id)) {
       void handleDiaryAction(last.id, 'edit', last.diaryAction.entryId, last.diaryAction.foodName, last.diaryAction.grams);
+    } else if (last?.role === 'model' && last.activityAction && last.activityAction.type !== 'delete' && !last.actionApplied && !actioned.has(last.id)) {
+      void handleActivityAction(last.id, last.activityAction);
     }
   }, [messages, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -152,6 +157,42 @@ export default function FloatingChat() {
     const estimated = entries.length - catalogMatches;
     showToast(`${entries.length} ${entries.length === 1 ? 'položka zapsána' : 'položky zapsány'}${estimated > 0 ? ` · ${estimated} AI odhad` : ' · přesně z katalogu'}`);
   }, [addEntry, reloadEntries, userId, today, markActionApplied]);
+
+  const handleActivityAction = useCallback(async (msgId: string, action: ActivityAction) => {
+    if (action.type === 'add') {
+      if (!action.kcal || action.kcal <= 0) {
+        showToast('Aktivita nemá platné kcal', 'error');
+        return;
+      }
+      await addManualActivity({
+        name: action.name,
+        kcal: action.kcal,
+        durationMin: action.durationMin,
+        source: 'ai',
+      });
+      showToast(`${action.name} přidána · ${Math.round(action.kcal)} kcal výdej`);
+    } else if (action.type === 'edit') {
+      if (!action.id || !action.kcal || action.kcal <= 0) {
+        showToast('Chybí ID nebo kcal pro úpravu aktivity', 'error');
+        return;
+      }
+      await updateManualActivity(action.id, {
+        name: action.name,
+        kcal: action.kcal,
+        durationMin: action.durationMin,
+      });
+      showToast(`${action.name} upravena na ${Math.round(action.kcal)} kcal`);
+    } else if (action.type === 'delete') {
+      if (!action.id) {
+        showToast('Chybí ID aktivity ke smazání', 'error');
+        return;
+      }
+      await removeManualActivity(action.id);
+      showToast(`${action.name} smazána`);
+    }
+    setActioned(prev => new Set([...prev, msgId]));
+    markActionApplied(msgId);
+  }, [addManualActivity, updateManualActivity, removeManualActivity, markActionApplied]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); }
@@ -369,6 +410,26 @@ export default function FloatingChat() {
                   </button>
                 )}
 
+                {/* Activity action */}
+                {m.activityAction && !m.actionApplied && !actioned.has(m.id) && (
+                  <button
+                    onClick={() => handleActivityAction(m.id, m.activityAction!)}
+                    style={{
+                      marginTop: 5, padding: '6px 12px', borderRadius: 8, width: '100%',
+                      background: BRAND.orange + '15', border: `1px solid ${BRAND.orange}40`,
+                      color: BRAND.orange, fontSize: 12, cursor: 'pointer', fontWeight: 600,
+                      textAlign: 'left',
+                    }}
+                  >
+                    {m.activityAction.type === 'add'
+                      ? `🔥 Přidat ${m.activityAction.name} · ${m.activityAction.kcal} kcal`
+                      : m.activityAction.type === 'edit'
+                        ? `🔥 Upravit ${m.activityAction.name} na ${m.activityAction.kcal} kcal`
+                        : `🗑 Smazat ${m.activityAction.name}`
+                    }
+                  </button>
+                )}
+
                 {/* Meal plan action */}
                 {m.mealPlanAction && !actioned.has(m.id) && (
                   <button
@@ -441,7 +502,7 @@ export default function FloatingChat() {
                 )}
 
                 {/* Done */}
-                {(m.foodAction || m.diaryAction || m.goalsAction || m.mealPlanAction || m.recipeAction || m.logMealAction) && (m.actionApplied || actioned.has(m.id)) && (
+                {(m.foodAction || m.diaryAction || m.goalsAction || m.mealPlanAction || m.recipeAction || m.logMealAction || m.activityAction) && (m.actionApplied || actioned.has(m.id)) && (
                   <div style={{ marginTop: 5, fontSize: 11, color: BRAND.green, fontWeight: 600, paddingLeft: 2 }}>
                     ✓ Hotovo
                   </div>

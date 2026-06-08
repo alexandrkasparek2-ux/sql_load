@@ -61,6 +61,17 @@ export const DEFICIT_KCAL: Record<DeficitLevel, number> = {
   off: 0, slow: 250, medium: 500, fast: 750,
 };
 
+export interface ManualActivity {
+  id:          string;
+  date:        string;
+  name:        string;
+  kcal:        number;
+  durationMin?: number;
+  source:      'ai' | 'manual';
+}
+
+export type ManualActivitiesByDate = Record<string, ManualActivity[]>;
+
 export interface AppCtx {
   userId:            string;
   today:             string;
@@ -90,6 +101,11 @@ export interface AppCtx {
   recalculateDay:    () => Promise<void>;
   /** Total energy expenditure for today (BMR + activity), before deficit reduction. */
   burnedToday:       number;
+  manualActivities:  ManualActivity[];
+  manualActivityKcal: number;
+  addManualActivity: (activity: Omit<ManualActivity, 'id' | 'date' | 'source'> & { date?: string; source?: ManualActivity['source'] }) => Promise<ManualActivity>;
+  updateManualActivity: (id: string, update: Partial<Pick<ManualActivity, 'name' | 'kcal' | 'durationMin'>>) => Promise<void>;
+  removeManualActivity: (id: string) => Promise<void>;
 }
 
 const DEFAULT_GOALS: Goals = {
@@ -207,6 +223,65 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   const { profile,     save: saveProfile    } = useProfile(userId);
   const { trainingDay, upsert              } = useTrainingDay(userId, today);
   const { entries, totals, addEntry, removeEntry, updateEntry, updateEntryMacros, reload: reloadEntries } = useFoodEntries(userId, today);
+  const { value: manualActivitiesByDate, setValue: setManualActivitiesByDate } = useUserSetting<ManualActivitiesByDate>(
+    userId,
+    'manual_activities_by_date',
+    {},
+    { legacyKey: `cyclofuel_manual_activities_${userId}` },
+  );
+
+  const manualActivities = manualActivitiesByDate[today] ?? [];
+  const manualActivityKcal = manualActivities.reduce((sum, activity) => sum + Math.max(0, Math.round(activity.kcal)), 0);
+
+  const addManualActivity: AppCtx['addManualActivity'] = useCallback(async activity => {
+    const date = activity.date ?? today;
+    const nextActivity: ManualActivity = {
+      id: `manual_activity_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      date,
+      name: activity.name.trim() || 'Ruční aktivita',
+      kcal: Math.max(0, Math.round(activity.kcal)),
+      durationMin: activity.durationMin ? Math.max(0, Math.round(activity.durationMin)) : undefined,
+      source: activity.source ?? 'ai',
+    };
+    const next = {
+      ...manualActivitiesByDate,
+      [date]: [...(manualActivitiesByDate[date] ?? []), nextActivity],
+    };
+    await setManualActivitiesByDate(next);
+    window.dispatchEvent(new CustomEvent('intervals-cache-updated'));
+    return nextActivity;
+  }, [manualActivitiesByDate, setManualActivitiesByDate, today]);
+
+  const updateManualActivity: AppCtx['updateManualActivity'] = useCallback(async (id, update) => {
+    const next = Object.fromEntries(
+      Object.entries(manualActivitiesByDate).map(([date, activities]) => [
+        date,
+        activities.map(activity =>
+          activity.id === id
+            ? {
+                ...activity,
+                ...(update.name !== undefined ? { name: update.name.trim() || activity.name } : {}),
+                ...(update.kcal !== undefined ? { kcal: Math.max(0, Math.round(update.kcal)) } : {}),
+                ...(update.durationMin !== undefined ? { durationMin: Math.max(0, Math.round(update.durationMin)) } : {}),
+              }
+            : activity
+        ),
+      ])
+    ) as ManualActivitiesByDate;
+    await setManualActivitiesByDate(next);
+    window.dispatchEvent(new CustomEvent('intervals-cache-updated'));
+  }, [manualActivitiesByDate, setManualActivitiesByDate]);
+
+  const removeManualActivity: AppCtx['removeManualActivity'] = useCallback(async id => {
+    const next = Object.fromEntries(
+      Object.entries(manualActivitiesByDate).map(([date, activities]) => [
+        date,
+        activities.filter(activity => activity.id !== id),
+      ])
+    ) as ManualActivitiesByDate;
+    await setManualActivitiesByDate(next);
+    window.dispatchEvent(new CustomEvent('intervals-cache-updated'));
+  }, [manualActivitiesByDate, setManualActivitiesByDate]);
 
   const { value: deficitLevel, setValue: setStoredDeficitLevel } = useUserSetting<DeficitLevel>(
     userId,
@@ -275,11 +350,11 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
   }, [today]);
 
   const goalsWithIntervals = useMemo<Goals>(() => {
-    if (!intervalsData.kcal || !profile) return goals;
+    if ((!intervalsData.kcal && !manualActivityKcal) || !profile) return goals;
     const { kcal: actKcal, type: actType, hours: actHours } = intervalsData;
     // Goal = BMR + actual activity kcal from Intervals.icu (expenditure-based, no deficit)
     const baseBMR    = calcCalories(profile, 'rest', 0);
-    const kcalNew    = Math.max(1200, Math.round(baseBMR + actKcal));
+    const kcalNew    = Math.max(1200, Math.round(baseBMR + actKcal + manualActivityKcal));
     const fiberNew   = Math.min(45, Math.max(25, Math.round(kcalNew * 0.014)));
     const m          = calcMacros(profile, actType);
     const waterNew   = calcWater(profile, actHours);
@@ -292,14 +367,14 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       fat     = Math.round(m.fat     * scale);
     }
     return { ...goals, kcal: kcalNew, fiber: fiberNew, carbs, protein, fat, water: waterNew };
-  }, [goals, intervalsData, profile]);
+  }, [goals, intervalsData, profile, manualActivityKcal]);
 
   // Total energy expenditure = BMR + activity from Intervals.icu.
   // Without Intervals.icu data, falls back to BMR only (phases don't estimate burned).
   const liveBurnedToday = useMemo(() => {
     if (!profile) return 0;
-    return Math.round(calcCalories(profile, 'rest', 0) + (intervalsData.kcal > 0 ? intervalsData.kcal : 0));
-  }, [profile, intervalsData.kcal]);
+    return Math.round(calcCalories(profile, 'rest', 0) + (intervalsData.kcal > 0 ? intervalsData.kcal : 0) + manualActivityKcal);
+  }, [profile, intervalsData.kcal, manualActivityKcal]);
 
   // ── Daily nutrition snapshot ──────────────────────────────────────────────
   const realToday = useMemo(() => todayLocalISO(), []);
@@ -322,10 +397,11 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     if (isViewingToday) return null;
     const burnLog = loadBurnLog();
     const actKcal = burnLog[today];
-    if (typeof actKcal === 'number' && profile) {
+    const manualKcalForDate = (manualActivitiesByDate[today] ?? []).reduce((sum, activity) => sum + Math.max(0, Math.round(activity.kcal)), 0);
+    if ((typeof actKcal === 'number' || manualKcalForDate > 0) && profile) {
       // Use the same BMR×1.2 + activity formula as effectiveBurnedToday so
       // CÍL PŘÍJMU and VÝDEJ are always derived from the same number.
-      const freshBurned = Math.max(1200, Math.round(calcCalories(profile, 'rest', 0) + actKcal));
+      const freshBurned = Math.max(1200, Math.round(calcCalories(profile, 'rest', 0) + (actKcal ?? 0) + manualKcalForDate));
       return {
         ...goalsWithIntervals,
         kcal:    freshBurned, // goal = expenditure (no deficit)
@@ -348,7 +424,7 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
       water:   snapshot.goal_water,
       fiber:   snapshot.goal_fiber,
     };
-  }, [isViewingToday, today, profile, snapshot, goalsWithIntervals]);
+  }, [isViewingToday, today, profile, snapshot, goalsWithIntervals, manualActivitiesByDate]);
 
   const baseGoals = goalsFromSnapshot ?? goalsWithIntervals;
 
@@ -405,13 +481,13 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
         goal_fat:         effectiveGoals.fat,
         goal_water:       effectiveGoals.water,
         goal_fiber:       effectiveGoals.fiber,
-        activity_kcal:    intervalsData.kcal,
-        activity_source:  intervalsData.kcal > 0 ? 'intervals' : trainingType !== 'rest' ? 'manual' : 'none',
+        activity_kcal:    intervalsData.kcal + manualActivityKcal,
+        activity_source:  intervalsData.kcal > 0 ? (manualActivityKcal > 0 ? 'intervals+manual' : 'intervals') : manualActivityKcal > 0 || trainingType !== 'rest' ? 'manual' : 'none',
         deficit_kcal:     deficitKcal,
       });
     }, 3000);
     return () => clearTimeout(timer);
-  }, [isViewingToday, effectiveGoals, totals, intervalsData.kcal, trainingType, deficitKcal, saveSnapshot]);
+  }, [isViewingToday, effectiveGoals, totals, intervalsData.kcal, manualActivityKcal, trainingType, deficitKcal, saveSnapshot]);
 
   // ── Recalculate historical day ─────────────────────────────────────────────
   const recalculateDay = useCallback(async () => {
@@ -446,6 +522,11 @@ function AuthShell({ userId, onSignOut }: AuthShellProps) {
     isHistoricalDay:   isHistoricalSnapshot,
     recalculateDay,
     burnedToday:       effectiveBurnedToday,
+    manualActivities,
+    manualActivityKcal,
+    addManualActivity,
+    updateManualActivity,
+    removeManualActivity,
   };
 
   // Push notifications (runs checks every 5 min when permission granted)

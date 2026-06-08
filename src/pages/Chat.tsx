@@ -2,7 +2,7 @@ import { useRef, useEffect, useContext, useState, useCallback } from 'react';
 import { AppContext } from '../App';
 import { T, BRAND } from '../components/UI';
 import { useChatSession } from '../hooks/useChatSession';
-import type { MealPlanItem, RecipeSuggestionAction, LogMealAction } from '../hooks/useChatSession';
+import type { MealPlanItem, RecipeSuggestionAction, LogMealAction, ActivityAction } from '../hooks/useChatSession';
 import { useTrainingPlan } from '../hooks/useTrainingPlan';
 import { showToast } from '../components/Toast';
 import { FOODS, type Food } from '../constants/foods';
@@ -84,7 +84,11 @@ function renderMarkdown(text: string | undefined, color: string) {
 
 export default function Chat() {
   const ctx = useContext(AppContext);
-  const { accent, addEntry, reloadEntries, removeEntry, updateEntry, setGoalOverride, userId, today, totals, goals, trainingDay } = ctx;
+  const {
+    accent, addEntry, reloadEntries, removeEntry, updateEntry, setGoalOverride,
+    userId, today, totals, goals, trainingDay,
+    addManualActivity, updateManualActivity, removeManualActivity,
+  } = ctx;
   const { todayWorkout, upcoming } = useTrainingPlan();
   const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = formatLocalISODate(tomorrow);
@@ -113,6 +117,8 @@ export default function Chat() {
       void handleLogMeal(last.id, last.logMealAction);
     } else if (last?.role === 'model' && last.diaryAction?.type === 'edit' && !last.actionApplied && !actioned.has(last.id)) {
       void handleDiaryAction(last.id, 'edit', last.diaryAction.entryId, last.diaryAction.foodName, last.diaryAction.grams);
+    } else if (last?.role === 'model' && last.activityAction && last.activityAction.type !== 'delete' && !last.actionApplied && !actioned.has(last.id)) {
+      void handleActivityAction(last.id, last.activityAction);
     }
   }, [messages, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -175,6 +181,42 @@ export default function Chat() {
     const detail = estimated > 0 ? ` · ${estimated} AI odhad` : ' · přesně z katalogu';
     showToast(`${entries.length} ${entries.length === 1 ? 'položka zapsána' : 'položky zapsány'} do ${SLOT_LABELS[slot] ?? slot}${detail}`);
   }, [addEntry, reloadEntries, userId, today, markActionApplied]);
+
+  const handleActivityAction = useCallback(async (msgId: string, action: ActivityAction) => {
+    if (action.type === 'add') {
+      if (!action.kcal || action.kcal <= 0) {
+        showToast('Aktivita nemá platné kcal', 'error');
+        return;
+      }
+      await addManualActivity({
+        name: action.name,
+        kcal: action.kcal,
+        durationMin: action.durationMin,
+        source: 'ai',
+      });
+      showToast(`${action.name} přidána · ${Math.round(action.kcal)} kcal výdej`);
+    } else if (action.type === 'edit') {
+      if (!action.id || !action.kcal || action.kcal <= 0) {
+        showToast('Chybí ID nebo kcal pro úpravu aktivity', 'error');
+        return;
+      }
+      await updateManualActivity(action.id, {
+        name: action.name,
+        kcal: action.kcal,
+        durationMin: action.durationMin,
+      });
+      showToast(`${action.name} upravena na ${Math.round(action.kcal)} kcal`);
+    } else if (action.type === 'delete') {
+      if (!action.id) {
+        showToast('Chybí ID aktivity ke smazání', 'error');
+        return;
+      }
+      await removeManualActivity(action.id);
+      showToast(`${action.name} smazána`);
+    }
+    setActioned(prev => new Set([...prev, msgId]));
+    markActionApplied(msgId);
+  }, [addManualActivity, updateManualActivity, removeManualActivity, markActionApplied]);
 
   const handleRecipe = useCallback(async (msgId: string, recipe: RecipeSuggestionAction) => {
     const totalGrams = recipe.ingredients.reduce((s, i) => s + i.grams, 0) || 300;
@@ -451,6 +493,26 @@ export default function Chat() {
                 </button>
               )}
 
+              {/* Activity action */}
+              {m.activityAction && !m.actionApplied && !actioned.has(m.id) && (
+                <button
+                  onClick={() => handleActivityAction(m.id, m.activityAction!)}
+                  style={{
+                    marginTop: 6, padding: '8px 14px', borderRadius: 10, width: '100%',
+                    background: BRAND.orange + '15', border: `1px solid ${BRAND.orange}45`,
+                    color: BRAND.orange, fontSize: 13, cursor: 'pointer', fontWeight: 600,
+                    textAlign: 'left',
+                  }}
+                >
+                  {m.activityAction.type === 'add'
+                    ? `🔥 Přidat aktivitu: ${m.activityAction.name} · ${m.activityAction.kcal} kcal`
+                    : m.activityAction.type === 'edit'
+                      ? `🔥 Upravit aktivitu: ${m.activityAction.name} na ${m.activityAction.kcal} kcal`
+                      : `🗑 Smazat aktivitu: ${m.activityAction.name}`
+                  }
+                </button>
+              )}
+
               {/* Meal plan action */}
               {m.mealPlanAction && !actioned.has(m.id) && (
                 <div style={{
@@ -587,7 +649,7 @@ export default function Chat() {
               )}
 
               {/* Done state */}
-              {(m.foodAction || m.diaryAction || m.goalsAction || m.mealPlanAction || m.recipeAction || m.logMealAction) && (m.actionApplied || actioned.has(m.id)) && (
+              {(m.foodAction || m.diaryAction || m.goalsAction || m.mealPlanAction || m.recipeAction || m.logMealAction || m.activityAction) && (m.actionApplied || actioned.has(m.id)) && (
                 <div style={{ marginTop: 6, fontSize: 12, color: BRAND.green, fontWeight: 600 }}>
                   ✓ Hotovo
                 </div>

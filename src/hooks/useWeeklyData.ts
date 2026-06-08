@@ -5,6 +5,8 @@ import { calcCalories, type CalcProfile } from '../constants/training';
 import { loadBurnLog } from '../services/intervalsService';
 import { loadSnapshotBatch } from '../services/dailySnapshotService';
 import { formatLocalISODate, todayLocalISO } from '../utils/date';
+import { useUserSetting } from './useUserSetting';
+import type { ManualActivitiesByDate } from '../App';
 
 export interface DayKcal {
   date:    string; // YYYY-MM-DD
@@ -45,6 +47,12 @@ export function useWeeklyData(
 ) {
   const [data,    setData]    = useState<DayKcal[]>([]);
   const [loading, setLoading] = useState(false);
+  const { value: manualActivitiesByDate } = useUserSetting<ManualActivitiesByDate>(
+    userId,
+    'manual_activities_by_date',
+    {},
+    { legacyKey: userId ? `cyclofuel_manual_activities_${userId}` : undefined },
+  );
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -70,6 +78,8 @@ export function useWeeklyData(
     const grouped: DayKcal[] = dates.map(date => {
       const dayRows = rows.filter(r => r.date === date);
       const snap    = snapshots[date] ?? null;
+      const manualKcal = (manualActivitiesByDate[date] ?? [])
+        .reduce((sum, activity) => sum + Math.max(0, Math.round(activity.kcal)), 0);
 
       // ── Goal = expenditure (BMR + Intervals.icu activity, no deficit) ──────
       // Priority:
@@ -79,8 +89,8 @@ export function useWeeklyData(
       //   4) storedGoals (legacy fallback)
       //   5) fallbackGoal prop
       let goal = fallbackGoal;
-      if (profile && typeof burnLog[date] === 'number') {
-        goal = Math.max(1200, Math.round(calcCalories(profile, 'rest', 0) + burnLog[date]));
+      if (profile && (typeof burnLog[date] === 'number' || manualKcal > 0)) {
+        goal = Math.max(1200, Math.round(calcCalories(profile, 'rest', 0) + (burnLog[date] ?? 0) + manualKcal));
       } else if (snap?.goal_kcal) {
         goal = snap.goal_kcal;
       } else if (profile) {
@@ -91,8 +101,8 @@ export function useWeeklyData(
 
       // ── Burned = goal (expenditure-based, goal IS burned) ─────────────────
       let burned = 0;
-      if (profile && typeof burnLog[date] === 'number') {
-        burned = Math.round(calcCalories(profile, 'rest', 0)) + burnLog[date];
+      if (profile && (typeof burnLog[date] === 'number' || manualKcal > 0)) {
+        burned = Math.round(calcCalories(profile, 'rest', 0)) + (burnLog[date] ?? 0) + manualKcal;
       } else if (snap?.goal_kcal) {
         // goal was already stored as expenditure — burned = goal
         burned = snap.goal_kcal;
@@ -115,7 +125,7 @@ export function useWeeklyData(
 
     setData(grouped);
     setLoading(false);
-  }, [userId, days, profile, fallbackGoal]);
+  }, [userId, days, profile, fallbackGoal, manualActivitiesByDate]);
 
   useEffect(() => { load(); }, [load]);
 

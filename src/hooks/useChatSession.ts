@@ -52,6 +52,14 @@ export interface LogMealAction {
   items: { name: string; grams: number; kcal: number; carbs: number; protein: number; fat: number }[];
 }
 
+export interface ActivityAction {
+  type:        'add' | 'edit' | 'delete';
+  id?:         string;
+  name:        string;
+  kcal?:       number;
+  durationMin?: number;
+}
+
 export interface ChatMessage {
   id:                    string;
   role:                  'user' | 'model';
@@ -63,6 +71,7 @@ export interface ChatMessage {
   mealPlanAction?:       MealPlanItem[];
   recipeAction?:         RecipeSuggestionAction;
   logMealAction?:        LogMealAction;
+  activityAction?:       ActivityAction;
   actionApplied?:        boolean;
 }
 
@@ -81,7 +90,7 @@ interface TPContext {
 }
 
 function buildContext(ctx: AppCtx, tp?: TPContext): string {
-  const { profile, goals, totals, trainingDay, entries } = ctx;
+  const { profile, goals, totals, trainingDay, entries, burnedToday, manualActivities, manualActivityKcal } = ctx;
   if (!profile) return 'Profil není vyplněn.';
   const trainLabel: Record<string, string> = {
     rest: 'Odpočinkový den', easy: 'Lehký výjezd',
@@ -95,6 +104,12 @@ function buildContext(ctx: AppCtx, tp?: TPContext): string {
     ? 'Deník dnes prázdný.'
     : entries.map(e =>
         `  [${e.id}] ${MEAL_SLOT_LABELS[e.meal_slot] ?? e.meal_slot}: ${e.food_name} ${e.grams}g = ${Math.round(e.kcal)} kcal (S:${e.carbs}g B:${e.protein}g T:${e.fat}g)`
+      ).join('\n');
+
+  const manualActivityLines = manualActivities.length === 0
+    ? 'Žádné ruční/AI aktivity.'
+    : manualActivities.map(a =>
+        `  [${a.id}] ${a.name}: ${Math.round(a.kcal)} kcal${a.durationMin ? `, ${a.durationMin} min` : ''}`
       ).join('\n');
 
   const tpLines: string[] = [];
@@ -120,6 +135,8 @@ function buildContext(ctx: AppCtx, tp?: TPContext): string {
     `Cyklista: ${profile.weight}kg, ${profile.height}cm, ${profile.age}let, ${profile.gender === 'male' ? 'muž' : 'žena'}`,
     `Trénink (Intervals.icu): ${trainLabel[type] ?? type}${h > 0 ? ` ${h}h` : ''}`,
     ...(tpLines.length > 0 ? tpLines : ['TrainingPeaks: nepropojeno nebo žádný plán']),
+    `Výdej dnes: ${Math.round(burnedToday)} kcal (z toho ručně/AI aktivity ${Math.round(manualActivityKcal)} kcal)`,
+    `Ruční/AI aktivity dnes:\n${manualActivityLines}`,
     `Příjem dnes: ${Math.round(totals.kcal)}/${Math.round(goals.kcal)} kcal (zbývá ${rem})`,
     `Makra: S: ${totals.carbs.toFixed(0)}/${goals.carbs}g  B: ${totals.protein.toFixed(0)}/${goals.protein}g  T: ${totals.fat.toFixed(0)}/${goals.fat}g`,
     `Záznamy v deníku dnes:\n${diaryLines}`,
@@ -133,6 +150,7 @@ const GOALS_RE     = /```set-goals\s*([\s\S]*?)\s*```/;
 const MEAL_PLAN_RE = /```meal-plan\s*([\s\S]*?)\s*```/;
 const RECIPE_RE    = /```recipe-suggestion\s*([\s\S]*?)\s*```/;
 const LOG_MEAL_RE  = /```log-meal\s*([\s\S]*?)\s*```/;
+const ACTIVITY_RE  = /```activity-action\s*([\s\S]*?)\s*```/;
 
 const MEAL_RE = /snědl|snědla|jedl|jedla|měl\s+jsem|měla\s+jsem|jsem\s+měl|jsem\s+měla|dal\s+jsem\s+si|dala\s+jsem\s+si|dám\s+si|zapiš|zaloguj|loguj|k\s+obědu|k\s+snídani|k\s+večeři|svačin|nadiktuj|zapsat|obědvám|večeřím|snídám|přidávám|přidat\s+na|chci\s+přidat|chci\s+zalogovat|mám\s+k|mám\s+na/i;
 
@@ -234,6 +252,27 @@ Akce které SMÍŠ provádět (vždy jen 1 akci na konci odpovědi):
 (odhadni makra z vlastní znalosti; pokud gramáž chybí, odhadni typickou porci)
 (VŽDY použij tuto akci když uživatel říká "snědl jsem", "měl jsem k obědu", "zapiš mi", "nadiktuju ti", "loguj mi" + seznam jídel/ingrediencí)`;
 
+const ACTIVITY_PROMPT = `
+
+8. Přidat nebo upravit ruční výdej aktivity (slova: "přidej aktivitu", "spálil jsem", "posilovna měla", "uprav kalorie aktivity", "změň výdej"):
+\`\`\`activity-action
+{"type":"add","name":"Posilovna","kcal":350,"durationMin":60}
+\`\`\`
+nebo:
+\`\`\`activity-action
+{"type":"edit","id":"id existující ruční aktivity","name":"Posilovna","kcal":500}
+\`\`\`
+nebo:
+\`\`\`activity-action
+{"type":"delete","id":"id existující ruční aktivity","name":"Posilovna"}
+\`\`\`
+Pravidla pro aktivity:
+- Přidávej pouze skutečný výdej aktivity, ne jídlo.
+- Upravovat umíš jen ruční/AI aktivity uvedené v kontextu s ID. Originální Intervals.icu aktivitu nepřepisuj.
+- Pokud uživatel chce změnit kalorie aktivity z Intervals.icu, přidej korekční ruční aktivitu s rozdílem a jasným názvem, např. "Korekce Intervals.icu".
+- Pokud nevíš, kterou ruční aktivitu upravit, zeptej se a neprováděj akci.
+- Kcal musí být kladné číslo.`;
+
 export function useChatSession(ctx: AppCtx, tp?: TPContext) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadHistory());
   const [input,    setInput]    = useState('');
@@ -295,7 +334,7 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
           model:      'claude-sonnet-4-6',
           max_tokens: 1024,
           stream:     true,
-          system: SYSTEM_PROMPT + `\n\nAktuální data uživatele:\n${buildContext(ctx, tp)}`,
+          system: SYSTEM_PROMPT + ACTIVITY_PROMPT + `\n\nAktuální data uživatele:\n${buildContext(ctx, tp)}`,
           messages: history,
         }),
       });
@@ -336,6 +375,7 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
       let mealPlanAction: ChatMessage['mealPlanAction'];
       let recipeAction:   ChatMessage['recipeAction'];
       let logMealAction:  ChatMessage['logMealAction'];
+      let activityAction: ChatMessage['activityAction'];
 
       const foodMatch = FOOD_RE.exec(fullText);
       if (foodMatch) {
@@ -403,6 +443,23 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
         } catch { /* skip */ }
       }
 
+      const activityMatch = ACTIVITY_RE.exec(fullText);
+      if (activityMatch) {
+        try {
+          const p = JSON.parse(activityMatch[1]) as ActivityAction;
+          if (p.type === 'add' || p.type === 'edit' || p.type === 'delete') {
+            activityAction = {
+              type: p.type,
+              id: p.id,
+              name: p.name || 'Aktivita',
+              kcal: p.kcal !== undefined ? Number(p.kcal) : undefined,
+              durationMin: p.durationMin !== undefined ? Number(p.durationMin) : undefined,
+            };
+          }
+          fullText = fullText.replace(ACTIVITY_RE, '').trim();
+        } catch { /* skip */ }
+      }
+
       if (!logMealAction && !foodAction && !mealPlanAction) {
         const haiku = await haikuPromise;
         if (haiku) logMealAction = haiku;
@@ -410,7 +467,7 @@ export function useChatSession(ctx: AppCtx, tp?: TPContext) {
 
       setMessages(prev =>
         prev.map(m => m.id === modelId
-          ? { ...m, content: fullText, foodAction, diaryAction, goalsAction, mealPlanAction, recipeAction, logMealAction }
+          ? { ...m, content: fullText, foodAction, diaryAction, goalsAction, mealPlanAction, recipeAction, logMealAction, activityAction }
           : m)
       );
     } catch (e) {
