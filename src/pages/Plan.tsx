@@ -1,6 +1,6 @@
 import { useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AppContext } from '../App';
+import { AppContext, type ManualActivity } from '../App';
 import { Btn, Card, ProgressBar, SegmentedTabs, SectionTitle, Spinner, StatRow, T, BRAND } from '../components/UI';
 import { useIntervalsData } from '../hooks/useIntervalsData';
 import { useUserSetting } from '../hooks/useUserSetting';
@@ -296,8 +296,9 @@ function LibraryChip({
   );
 }
 
-function DaySummary({ acts }: { acts: IntervalsActivity[] }) {
-  const kcal = acts.reduce((sum, act) => sum + activityKcal(act), 0);
+function DaySummary({ acts, manualActivities = [] }: { acts: IntervalsActivity[]; manualActivities?: ManualActivity[] }) {
+  const kcal = acts.reduce((sum, act) => sum + activityKcal(act), 0)
+    + manualActivities.reduce((sum, activity) => sum + Math.max(0, Math.round(activity.kcal)), 0);
   const time = acts.reduce((sum, act) => sum + act.moving_time, 0);
   const dist = acts.reduce((sum, act) => sum + act.distance, 0);
   const tss = acts.reduce((sum, act) => sum + (act.icu_training_load ?? 0), 0);
@@ -390,6 +391,91 @@ function ActivityCard({ act }: { act: IntervalsActivity }) {
   );
 }
 
+function ManualActivityCard({ activity, onDelete }: { activity: ManualActivity; onDelete: (id: string) => void }) {
+  return (
+    <div style={{
+      background: `linear-gradient(135deg, ${BRAND.orange}12, ${T.card})`,
+      border: `1px solid ${BRAND.orange}35`,
+      borderRadius: 14,
+      padding: '12px 14px',
+      display: 'flex',
+      gap: 12,
+      alignItems: 'flex-start',
+    }}>
+      <div style={{
+        width: 42,
+        height: 42,
+        borderRadius: 12,
+        background: `${BRAND.orange}18`,
+        border: `1px solid ${BRAND.orange}35`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 21,
+        flexShrink: 0,
+      }}>
+        🔥
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {activity.name}
+          </div>
+          <span style={{
+            fontSize: 9,
+            color: BRAND.orange,
+            background: `${BRAND.orange}18`,
+            border: `1px solid ${BRAND.orange}35`,
+            borderRadius: 999,
+            padding: '2px 7px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            flexShrink: 0,
+          }}>
+            AI / ruční
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+          {activity.durationMin && (
+            <span style={{ fontSize: 10, color: T.muted, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 6, padding: '3px 7px' }}>
+              ⏱ {activity.durationMin} min
+            </span>
+          )}
+          <span style={{ fontSize: 10, color: T.muted, background: T.bg, border: `1px solid ${T.border}`, borderRadius: 6, padding: '3px 7px' }}>
+            Zdroj: {activity.source === 'ai' ? 'AI coach' : 'ručně'}
+          </span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: BRAND.orange }}>{Math.round(activity.kcal).toLocaleString('cs')}</div>
+          <div style={{ fontSize: 9, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.08em' }}>kcal</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => onDelete(activity.id)}
+          title="Smazat ruční aktivitu"
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            border: `1px solid ${BRAND.red}35`,
+            background: `${BRAND.red}12`,
+            color: BRAND.red,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 13,
+          }}
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const CS_DAYS = ['Ne', 'Po', 'Út', 'St', 'Čt', 'Pá', 'So'];
 function planDateLabel(iso: string): string {
   const today = formatLocalISO(new Date());
@@ -416,6 +502,8 @@ export default function Plan() {
     entries,
     addEntry,
     setGoalOverride,
+    manualActivities,
+    removeManualActivity,
   } = ctx;
   const tp = useTrainingPlan();
 
@@ -506,8 +594,11 @@ export default function Plan() {
   }, [activities]);
 
   const activityDates = useMemo(
-    () => Object.keys(groupedActivities).sort((a, b) => b.localeCompare(a)),
-    [groupedActivities],
+    () => Array.from(new Set([
+      ...Object.keys(groupedActivities),
+      ...manualActivities.map(activity => activity.date),
+    ])).sort((a, b) => b.localeCompare(a)),
+    [groupedActivities, manualActivities],
   );
 
   const icuTypes = getAllTrainingTypes(trainingDay);
@@ -2275,13 +2366,27 @@ export default function Plan() {
                           {dateLabel(date)}
                         </div>
                       </div>
-                      <div style={{ fontSize: 12, color: T.muted }}>{groupedActivities[date].length} záznamů</div>
+                      <div style={{ fontSize: 12, color: T.muted }}>
+                        {((groupedActivities[date] ?? []).length + manualActivities.filter(activity => activity.date === date).length)} záznamů
+                      </div>
                     </div>
-                    <DaySummary acts={groupedActivities[date]} />
+                    <DaySummary
+                      acts={groupedActivities[date] ?? []}
+                      manualActivities={manualActivities.filter(activity => activity.date === date)}
+                    />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {groupedActivities[date].map(activity => (
+                      {(groupedActivities[date] ?? []).map(activity => (
                         <ActivityCard key={`${date}-${activity.id}`} act={activity} />
                       ))}
+                      {manualActivities
+                        .filter(activity => activity.date === date)
+                        .map(activity => (
+                          <ManualActivityCard
+                            key={activity.id}
+                            activity={activity}
+                            onDelete={(id) => void removeManualActivity(id)}
+                          />
+                        ))}
                     </div>
                   </Card>
                 ))}
