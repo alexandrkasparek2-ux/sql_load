@@ -3943,11 +3943,11 @@ export const FOODS: Food[] = [
     micros: { na: 220, k: 230, mg: 16, ca: 12, fe: 0.8, vit_c: 4, vit_d: 0.0, b12: 0.0, omega3: 10, zn: 0.3 },
   },
   {
-    id: 'peceny_gulas',
+    id: 'pulled_pork_cider',
     cat: '🍛 Hlavní jídla',
-    name: 'Pečený guláš',
-    // hovězí plec/kližka dušená s cibulí, paprikou a kořením — bez přílohy
-    kcal: 158, carbs: 6.5, protein: 15.0, fat: 7.5, fiber: 0.8, per: 300,
-    micros: { na: 480, k: 340, mg: 22, ca: 18, fe: 2.8, vit_c: 6, vit_d: 0.1, b12: 1.8, omega3: 50, zn: 4.2 },
+    name: 'Trhané vepřové na cideru (kýta)',
+    // vepřová kýta 70 %, cider 15 %, cibule, česnek, worcester, uzená paprika
+    kcal: 172, carbs: 4.5, protein: 22.0, fat: 6.5, fiber: 0.2, per: 200,
+    micros: { na: 420, k: 380, mg: 28, ca: 20, fe: 1.8, vit_c: 2, vit_d: 0, b12: 0.9, omega3: 60, zn: 3.5 },
   },
 ];
