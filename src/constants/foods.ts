@@ -3950,4 +3950,12 @@ export const FOODS: Food[] = [
     kcal: 172, carbs: 4.5, protein: 22.0, fat: 6.5, fiber: 0.2, per: 200,
     micros: { na: 420, k: 380, mg: 28, ca: 20, fe: 1.8, vit_c: 2, vit_d: 0, b12: 0.9, omega3: 60, zn: 3.5 },
   },
+  {
+    id: 'vietnamese_shrimp_coconut_soup',
+    cat: '🍛 Hlavní jídla',
+    name: 'Vietnamská krevetová polévka s kokosovým mlékem',
+    // krevety, kokosové mléko, vývar, citronová tráva, galangal, limetové listy, rybí omáčka, houby, zelenina
+    kcal: 72, carbs: 4.0, protein: 5.5, fat: 3.8, fiber: 0.5, per: 400,
+    micros: { na: 620, k: 280, mg: 32, ca: 28, fe: 1.2, vit_c: 8, vit_d: 0.2, b12: 1.1, omega3: 180, zn: 1.4 },
+  },
 ];
