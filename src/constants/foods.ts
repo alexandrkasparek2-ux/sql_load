@@ -3958,4 +3958,12 @@ export const FOODS: Food[] = [
     kcal: 72, carbs: 4.0, protein: 5.5, fat: 3.8, fiber: 0.5, per: 400,
     micros: { na: 620, k: 280, mg: 32, ca: 28, fe: 1.2, vit_c: 8, vit_d: 0.2, b12: 1.1, omega3: 180, zn: 1.4 },
   },
+  {
+    id: 'billa_protein_bread',
+    cat: '🥖 Pečivo & cereálie',
+    name: 'Billa proteinové pečivo',
+    // Billa vlastní značka — proteinový rohlík/chléb; hodnoty dle etikety (na 100 g)
+    kcal: 228, carbs: 19.0, protein: 22.0, fat: 7.0, fiber: 6.0, per: 60,
+    micros: { na: 380, k: 180, mg: 38, ca: 55, fe: 2.1, vit_c: 0, vit_d: 0, b12: 0.1, omega3: 40, zn: 1.2 },
+  },
 ];
