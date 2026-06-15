@@ -42,8 +42,11 @@ const ROASTS = ['světlá', 'střední', 'tmavá'];
 const BASKETS = ['18g', '9g'];
 const TASTES = ['čokoláda', 'karamel', 'ořechy', 'ovoce', 'citrus', 'kyselá', 'sladká', 'hořká', 'plná', 'med'];
 const FLAG: Record<string, string> = {
-  'Brazílie': '🇧🇷', 'Guatemala': '🇬🇹', 'Kolumbie': '🇨🇴', 'Etiopie': '🇪🇹',
-  'Kenya': '🇰🇪', 'Mexiko': '🇲🇽', 'Indonésie': '🇮🇩', 'Costa Rica': '🇨🇷', 'Jiný': '🫘',
+  'Brazílie': '🇧🇷', 'Kolumbie': '🇨🇴', 'Etiopie': '🇪🇹', 'Kenya': '🇰🇪',
+  'Guatemala': '🇬🇹', 'Mexiko': '🇲🇽', 'Honduras': '🇭🇳', 'El Salvador': '🇸🇻',
+  'Nicaragua': '🇳🇮', 'Costa Rica': '🇨🇷', 'Peru': '🇵🇪', 'Jemen': '🇾🇪',
+  'Indonésie': '🇮🇩', 'Papua Nová Guinea': '🇵🇬', 'Tanzania': '🇹🇿', 'Rwanda': '🇷🇼',
+  'Uganda': '🇺🇬', 'Burundi': '🇧🇮', 'Jiný': '🫘',
 };
 const RLABEL = ['', 'Špatná', 'Ujde', 'Dobrá', 'Výborná', 'Perfektní'];
 const STORAGE_KEY = 'cyclofuel_coffee_journal';
@@ -230,10 +233,9 @@ export default function CoffeeJournal() {
               <L t="Hrubost mletí" />
               <input
                 style={s.inp}
-                type="number"
+                type="text"
                 inputMode="decimal"
-                step="0.1"
-                placeholder="2.5"
+                placeholder="4.6"
                 value={form.grind}
                 onChange={e => setForm(f => ({ ...f, grind: e.target.value }))}
               />
