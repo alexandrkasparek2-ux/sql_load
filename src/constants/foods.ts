@@ -3943,11 +3943,27 @@ export const FOODS: Food[] = [
     micros: { na: 220, k: 230, mg: 16, ca: 12, fe: 0.8, vit_c: 4, vit_d: 0.0, b12: 0.0, omega3: 10, zn: 0.3 },
   },
   {
-    id: 'peceny_gulas',
+    id: 'pulled_pork_cider',
     cat: '🍛 Hlavní jídla',
-    name: 'Pečený guláš',
-    // hovězí plec/kližka dušená s cibulí, paprikou a kořením — bez přílohy
-    kcal: 158, carbs: 6.5, protein: 15.0, fat: 7.5, fiber: 0.8, per: 300,
-    micros: { na: 480, k: 340, mg: 22, ca: 18, fe: 2.8, vit_c: 6, vit_d: 0.1, b12: 1.8, omega3: 50, zn: 4.2 },
+    name: 'Trhané vepřové na cideru (kýta)',
+    // vepřová kýta 70 %, cider 15 %, cibule, česnek, worcester, uzená paprika
+    kcal: 172, carbs: 4.5, protein: 22.0, fat: 6.5, fiber: 0.2, per: 200,
+    micros: { na: 420, k: 380, mg: 28, ca: 20, fe: 1.8, vit_c: 2, vit_d: 0, b12: 0.9, omega3: 60, zn: 3.5 },
+  },
+  {
+    id: 'vietnamese_shrimp_coconut_soup',
+    cat: '🍛 Hlavní jídla',
+    name: 'Vietnamská krevetová polévka s kokosovým mlékem',
+    // krevety, kokosové mléko, vývar, citronová tráva, galangal, limetové listy, rybí omáčka, houby, zelenina
+    kcal: 72, carbs: 4.0, protein: 5.5, fat: 3.8, fiber: 0.5, per: 400,
+    micros: { na: 620, k: 280, mg: 32, ca: 28, fe: 1.2, vit_c: 8, vit_d: 0.2, b12: 1.1, omega3: 180, zn: 1.4 },
+  },
+  {
+    id: 'billa_protein_bread',
+    cat: '🥖 Pečivo & cereálie',
+    name: 'Billa proteinové pečivo',
+    // Billa vlastní značka — proteinový rohlík/chléb; hodnoty dle etikety (na 100 g)
+    kcal: 228, carbs: 19.0, protein: 22.0, fat: 7.0, fiber: 6.0, per: 60,
+    micros: { na: 380, k: 180, mg: 38, ca: 55, fe: 2.1, vit_c: 0, vit_d: 0, b12: 0.1, omega3: 40, zn: 1.2 },
   },
 ];

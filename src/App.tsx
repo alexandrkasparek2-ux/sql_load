@@ -35,6 +35,7 @@ import Plan            from './pages/Plan';
 import Profile         from './pages/Profile';
 import Supplements     from './pages/Supplements';
 import Chat            from './pages/Chat';
+import CoffeeJournal  from './pages/CoffeeJournal';
 import WhoopCallback   from './pages/WhoopCallback';
 import StravaCallback  from './pages/StravaCallback';
 
@@ -582,6 +583,12 @@ const NavIcons: Record<string, React.ReactNode> = {
       <path d="M8.5 9.5h.01M12 9.5h.01M15.5 9.5h.01" strokeWidth="2.5" strokeLinecap="round"/>
     </svg>
   ),
+  '/coffee': (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+      <line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/>
+    </svg>
+  ),
   '/profile': (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
@@ -666,6 +673,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
       <Route path="/supplements"     element={<Supplements />}   />
       <Route path="/micros"          element={<Micros />}        />
       <Route path="/profile"         element={<Profile />}       />
+      <Route path="/coffee"           element={<CoffeeJournal />} />
       <Route path="/whoop/callback"  element={<WhoopCallback />}  />
       <Route path="/strava/callback" element={<StravaCallback />} />
       <Route path="*"                element={<Navigate to="/" replace />} />
