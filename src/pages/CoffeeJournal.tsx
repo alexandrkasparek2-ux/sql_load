@@ -44,7 +44,7 @@ const TASTES = ['čokoláda', 'karamel', 'ořechy', 'ovoce', 'citrus', 'kyselá'
 const FLAG: Record<string, string> = {
   'Brazílie': '🇧🇷', 'Kolumbie': '🇨🇴', 'Etiopie': '🇪🇹', 'Kenya': '🇰🇪',
   'Guatemala': '🇬🇹', 'Mexiko': '🇲🇽', 'Honduras': '🇭🇳', 'El Salvador': '🇸🇻',
-  'Nicaragua': '🇳🇮', 'Costa Rica': '🇨🇷', 'Peru': '🇵🇪', 'Jemen': '🇾🇪',
+  'Nicaragua': '🇳🇮', 'Costa Rica': '🇨🇷', 'Panama': '🇵🇦', 'Peru': '🇵🇪', 'Jemen': '🇾🇪',
   'Indonésie': '🇮🇩', 'Papua Nová Guinea': '🇵🇬', 'Tanzania': '🇹🇿', 'Rwanda': '🇷🇼',
   'Uganda': '🇺🇬', 'Burundi': '🇧🇮', 'Jiný': '🫘',
 };
