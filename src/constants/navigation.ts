@@ -1,4 +1,4 @@
-export type AppNavId = 'dnes' | 'plan' | 'jidlo' | 'suplem' | 'coach';
+export type AppNavId = 'dnes' | 'plan' | 'jidlo' | 'suplem' | 'coach' | 'kavicka';
 
 export interface AppNavItem {
   id: AppNavId;
@@ -10,11 +10,12 @@ export interface AppNavItem {
 }
 
 export const APP_NAV_ITEMS = [
-  { id: 'dnes',   to: '/',            label: 'Dnes',    shortLabel: 'DNES',    title: 'Dnes',   subtitle: 'CycloFuel' },
-  { id: 'plan',   to: '/plan',        label: 'Plán',    shortLabel: 'PLÁN',    title: 'Plán',   subtitle: 'Trénink'   },
-  { id: 'jidlo',  to: '/foods',       label: 'Jídlo',   shortLabel: 'JÍDLO',   title: 'Jídla',  subtitle: 'Deník'     },
-  { id: 'suplem', to: '/supplements', label: 'Suplem.', shortLabel: 'SUPLEM.', title: 'Stack',  subtitle: 'Doplňky'   },
-  { id: 'coach',  to: '/chat',        label: 'Coach',   shortLabel: 'COACH',   title: 'Coach',  subtitle: 'AI Coach'  },
+  { id: 'dnes',    to: '/',            label: 'Dnes',    shortLabel: 'DNES',    title: 'Dnes',   subtitle: 'CycloFuel'    },
+  { id: 'plan',    to: '/plan',        label: 'Plán',    shortLabel: 'PLÁN',    title: 'Plán',   subtitle: 'Trénink'      },
+  { id: 'jidlo',   to: '/foods',       label: 'Jídlo',   shortLabel: 'JÍDLO',   title: 'Jídla',  subtitle: 'Deník'        },
+  { id: 'suplem',  to: '/supplements', label: 'Suplem.', shortLabel: 'SUPLEM.', title: 'Stack',  subtitle: 'Doplňky'      },
+  { id: 'coach',   to: '/chat',        label: 'Coach',   shortLabel: 'COACH',   title: 'Coach',  subtitle: 'AI Coach'     },
+  { id: 'kavicka', to: '/coffee',      label: 'Káva',    shortLabel: 'KÁVA',    title: 'Káva',   subtitle: 'Kávový deník' },
 ] as const satisfies readonly AppNavItem[];
 
 export function getActiveNavItem(pathname: string): AppNavItem {
