@@ -3966,4 +3966,20 @@ export const FOODS: Food[] = [
     kcal: 228, carbs: 19.0, protein: 22.0, fat: 7.0, fiber: 6.0, per: 60,
     micros: { na: 380, k: 180, mg: 38, ca: 55, fe: 2.1, vit_c: 0, vit_d: 0, b12: 0.1, omega3: 40, zn: 1.2 },
   },
+  {
+    id: 'ikea_meatballs_homemade',
+    cat: '🥩 Maso & ryby',
+    name: 'Domácí IKEA kuličky (köttbullar)',
+    // mleté hovězí+vepřové, strouhanka, vejce, cibule, mléko — recept dle IKEA
+    kcal: 235, carbs: 9.0, protein: 14.0, fat: 15.5, fiber: 0.5, per: 200,
+    micros: { na: 560, k: 290, mg: 22, ca: 35, fe: 2.0, vit_c: 1, vit_d: 0.3, b12: 1.4, omega3: 80, zn: 3.2 },
+  },
+  {
+    id: 'ikea_brown_sauce',
+    cat: '🍛 Hlavní jídla',
+    name: 'IKEA hnědá omáčka (gräddsås)',
+    // smetanová hnědá omáčka dle IKEA receptu — máslo, vývar, smetana, worcester, sójová omáčka
+    kcal: 95, carbs: 7.0, protein: 2.5, fat: 6.5, fiber: 0.2, per: 75,
+    micros: { na: 480, k: 95, mg: 6, ca: 28, fe: 0.3, vit_c: 0, vit_d: 0.1, b12: 0.1, omega3: 20, zn: 0.2 },
+  },
 ];
