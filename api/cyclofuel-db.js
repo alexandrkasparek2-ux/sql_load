@@ -22,6 +22,8 @@ const TABLES = {
   nutrition_targets: ['id', 'user_id', 'date', 'phase', 'target_kcal', 'target_carbs_g', 'target_protein_g', 'target_fat_g', 'actual_kcal', 'actual_carbs_g', 'actual_protein_g', 'actual_fat_g', 'compliance_score', 'created_at', 'updated_at'],
   training_load_daily: ['id', 'user_id', 'date', 'tss', 'ctl', 'atl', 'tsb', 'training_kj', 'source', 'created_at', 'updated_at'],
   on_bike_nutrition_log: ['id', 'user_id', 'race_event_id', 'timestamp', 'item_name', 'carbs_g', 'kcal', 'notes', 'created_at'],
+  garmin_wellness: ['id', 'user_id', 'date', 'resting_hr', 'hrv_overnight', 'sleep_seconds', 'sleep_score', 'body_battery_low', 'body_battery_high', 'stress_avg', 'steps', 'training_readiness', 'created_at', 'updated_at'],
+  garmin_activities: ['id', 'user_id', 'garmin_id', 'name', 'type', 'start_time', 'duration_s', 'distance_m', 'calories', 'avg_hr', 'max_hr', 'elevation_m', 'avg_power', 'norm_power', 'training_effect_aerobic', 'training_effect_anaerobic', 'vo2max', 'created_at', 'updated_at'],
 };
 
 const CONFLICTS = {
@@ -36,6 +38,8 @@ const CONFLICTS = {
   nutrition_targets: ['user_id', 'date'],
   training_load_daily: ['user_id', 'date'],
   on_bike_nutrition_log: ['id'],
+  garmin_wellness: ['user_id', 'date'],
+  garmin_activities: ['user_id', 'garmin_id'],
 };
 
 let client;

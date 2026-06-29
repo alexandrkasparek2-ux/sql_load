@@ -5,3 +5,5 @@ dist/
 *.local
 migration-export/
 .vercel
+garmin/output/
+.garmin_tokens/
