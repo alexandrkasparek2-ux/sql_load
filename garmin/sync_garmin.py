@@ -34,7 +34,7 @@ TOKEN_FILE = TOKEN_DIR / "tokens.json"
 
 def save_tokens_local(garmin):
     TOKEN_DIR.mkdir(parents=True, exist_ok=True)
-    token_data = garmin.garth.dumps()
+    token_data = garmin.client.dumps()
     TOKEN_FILE.write_text(token_data)
     return token_data
 
@@ -44,15 +44,13 @@ def load_client():
     if token_b64:
         token_data = base64.b64decode(token_b64).decode("utf-8")
         garmin = Garmin()
-        garmin.garth.loads(token_data)
-        garmin.login()
+        garmin.login(tokenstore=token_data)
         return garmin
 
     if TOKEN_FILE.exists():
         token_data = TOKEN_FILE.read_text()
         garmin = Garmin()
-        garmin.garth.loads(token_data)
-        garmin.login()
+        garmin.login(tokenstore=token_data)
         save_tokens_local(garmin)
         return garmin
 
