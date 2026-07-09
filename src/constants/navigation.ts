@@ -1,4 +1,4 @@
-export type AppNavId = 'dnes' | 'plan' | 'jidlo' | 'suplem' | 'coach' | 'kavicka';
+export type AppNavId = 'dnes' | 'plan' | 'jidlo' | 'suplem' | 'coach' | 'kavicka' | 'prehled';
 
 export interface AppNavItem {
   id: AppNavId;
@@ -16,6 +16,7 @@ export const APP_NAV_ITEMS = [
   { id: 'suplem',  to: '/supplements', label: 'Suplem.', shortLabel: 'SUPLEM.', title: 'Stack',  subtitle: 'Doplňky'      },
   { id: 'coach',   to: '/chat',        label: 'Coach',   shortLabel: 'COACH',   title: 'Coach',  subtitle: 'AI Coach'     },
   { id: 'kavicka', to: '/coffee',      label: 'Káva',    shortLabel: 'KÁVA',    title: 'Káva',   subtitle: 'Kávový deník' },
+  { id: 'prehled', to: '/trenink',     label: 'Přehled', shortLabel: 'PŘEHLED', title: 'Přehled', subtitle: 'Týdenní přehled' },
 ] as const satisfies readonly AppNavItem[];
 
 export function getActiveNavItem(pathname: string): AppNavItem {

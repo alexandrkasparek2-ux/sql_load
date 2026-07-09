@@ -36,6 +36,7 @@ import Profile         from './pages/Profile';
 import Supplements     from './pages/Supplements';
 import Chat            from './pages/Chat';
 import CoffeeJournal  from './pages/CoffeeJournal';
+import TrainingDashboard from './pages/TrainingDashboard';
 import WhoopCallback   from './pages/WhoopCallback';
 import StravaCallback  from './pages/StravaCallback';
 
@@ -674,6 +675,7 @@ function AppLayout({ today, setToday }: AppLayoutProps) {
       <Route path="/micros"          element={<Micros />}        />
       <Route path="/profile"         element={<Profile />}       />
       <Route path="/coffee"           element={<CoffeeJournal />} />
+      <Route path="/trenink"         element={<TrainingDashboard />} />
       <Route path="/whoop/callback"  element={<WhoopCallback />}  />
       <Route path="/strava/callback" element={<StravaCallback />} />
       <Route path="*"                element={<Navigate to="/" replace />} />
