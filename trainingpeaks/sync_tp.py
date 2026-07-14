@@ -51,13 +51,23 @@ def load_cookie():
 def exchange_token(cookie):
     r = requests.post(
         f"{TP_API_BASE}/users/v3/token",
-        headers={"Cookie": f"Production_tpAuth={cookie}"},
+        headers={
+            "Cookie": f"Production_tpAuth={cookie}",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "Origin": "https://app.trainingpeaks.com",
+            "Referer": "https://app.trainingpeaks.com/",
+        },
+        json={},
         timeout=30,
     )
     if not r.ok:
-        raise SystemExit(f"Token exchange failed ({r.status_code}). Cookie may be expired — log in to trainingpeaks.com and re-export.")
+        raise SystemExit(f"Token exchange failed ({r.status_code}): {r.text[:200]}\nCookie may be expired — log in to trainingpeaks.com and re-export.")
     data = r.json()
-    return data["access_token"]
+    token = data.get("access_token") or data.get("token")
+    if not token:
+        raise SystemExit(f"No access_token in response: {list(data.keys())}")
+    return token
 
 
 def tp_get(token, path):
