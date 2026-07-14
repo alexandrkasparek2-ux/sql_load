@@ -1,0 +1,42 @@
+name: TrainingPeaks daily sync
+
+on:
+  schedule:
+    - cron: "45 5 * * *"   # 05:45 UTC every morning (15 min after Garmin)
+  workflow_dispatch:        # manual trigger from Actions tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r trainingpeaks/requirements.txt
+
+      - name: Run TrainingPeaks sync
+        env:
+          TP_AUTH_COOKIE: ${{ secrets.TP_AUTH_COOKIE }}
+          TP_INGEST_URL: ${{ secrets.TP_INGEST_URL }}
+          TP_INGEST_SECRET: ${{ secrets.TP_INGEST_SECRET }}
+        run: |
+          if [ -n "$TP_INGEST_URL" ]; then
+            python trainingpeaks/sync_tp.py --days 14 --sink supabase
+          else
+            python trainingpeaks/sync_tp.py --days 14 --sink files --out ./trainingpeaks/output
+          fi
+
+      - name: Commit file changes (files mode only)
+        if: ${{ !env.TP_INGEST_URL }}
+        env:
+          TP_INGEST_URL: ${{ secrets.TP_INGEST_URL }}
+        run: |
+          git config user.name "tp-sync[bot]"
+          git config user.email "tp-sync[bot]@users.noreply.github.com"
+          git add trainingpeaks/output/
+          git diff --cached --quiet || git commit -m "chore: trainingpeaks data $(date -u +%F)"
+          git push

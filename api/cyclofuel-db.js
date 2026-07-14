@@ -25,6 +25,7 @@ const TABLES = {
   on_bike_nutrition_log: ['id', 'user_id', 'race_event_id', 'timestamp', 'item_name', 'carbs_g', 'kcal', 'notes', 'created_at'],
   garmin_wellness: ['id', 'user_id', 'date', 'resting_hr', 'hrv_overnight', 'sleep_seconds', 'sleep_score', 'body_battery_low', 'body_battery_high', 'stress_avg', 'steps', 'training_readiness', 'created_at', 'updated_at'],
   garmin_activities: ['id', 'user_id', 'garmin_id', 'name', 'type', 'start_time', 'duration_s', 'distance_m', 'calories', 'avg_hr', 'max_hr', 'elevation_m', 'avg_power', 'norm_power', 'training_effect_aerobic', 'training_effect_anaerobic', 'vo2max', 'created_at', 'updated_at'],
+  tp_workouts: ['id', 'user_id', 'tp_id', 'date', 'title', 'workout_type', 'duration_planned_s', 'duration_actual_s', 'distance_planned_m', 'distance_actual_m', 'tss_planned', 'tss_actual', 'if_planned', 'if_actual', 'avg_power', 'norm_power', 'avg_hr', 'calories', 'elevation_m', 'completed', 'description', 'created_at', 'updated_at'],
 };
 
 const CONFLICTS = {
@@ -41,6 +42,7 @@ const CONFLICTS = {
   on_bike_nutrition_log: ['id'],
   garmin_wellness: ['user_id', 'date'],
   garmin_activities: ['user_id', 'garmin_id'],
+  tp_workouts: ['user_id', 'tp_id'],
 };
 
 let client;
@@ -148,8 +150,8 @@ function scopeRequest(table, body, userId) {
   return body;
 }
 
-function verifyIngestSecret(req) {
-  const expected = process.env.GARMIN_INGEST_SECRET;
+function verifyIngestSecret(req, envKey = 'GARMIN_INGEST_SECRET') {
+  const expected = process.env[envKey];
   if (!expected) return false;
   const auth = req.headers.authorization;
   if (!auth?.startsWith('Bearer ')) return false;
@@ -215,6 +217,60 @@ async function handleGarminIngest(req, res) {
   return json(res, 200, { ok: true, wellness_count: wellness.length, activities_count: activities.length });
 }
 
+async function handleTPIngest(req, res) {
+  if (!verifyIngestSecret(req, 'TP_INGEST_SECRET')) return json(res, 401, { error: 'Invalid or missing secret' });
+
+  const userId = process.env.CYCLOFUEL_USER_ID || 'cyclofuel-main-user';
+  const { pmc = [], workouts = [] } = req.body || {};
+  const db = getClient();
+  const ops = [];
+
+  for (const d of pmc) {
+    ops.push(db.execute({
+      sql: `insert into training_load_daily
+            (id, user_id, date, tss, ctl, atl, tsb, source)
+            values (lower(hex(randomblob(16))), ?, ?, ?, ?, ?, ?, 'trainingpeaks')
+            on conflict (user_id, date) do update set
+              tss=excluded.tss, ctl=excluded.ctl, atl=excluded.atl, tsb=excluded.tsb,
+              source=excluded.source, updated_at=datetime('now')`,
+      args: [userId, d.date, d.tss??null, d.ctl??null, d.atl??null, d.tsb??null],
+    }));
+  }
+
+  for (const w of workouts) {
+    ops.push(db.execute({
+      sql: `insert into tp_workouts
+            (id, user_id, tp_id, date, title, workout_type,
+             duration_planned_s, duration_actual_s, distance_planned_m, distance_actual_m,
+             tss_planned, tss_actual, if_planned, if_actual,
+             avg_power, norm_power, avg_hr, calories, elevation_m, completed, description)
+            values (lower(hex(randomblob(16))), ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?, ?, ?)
+            on conflict (user_id, tp_id) do update set
+              date=excluded.date, title=excluded.title, workout_type=excluded.workout_type,
+              duration_planned_s=excluded.duration_planned_s, duration_actual_s=excluded.duration_actual_s,
+              distance_planned_m=excluded.distance_planned_m, distance_actual_m=excluded.distance_actual_m,
+              tss_planned=excluded.tss_planned, tss_actual=excluded.tss_actual,
+              if_planned=excluded.if_planned, if_actual=excluded.if_actual,
+              avg_power=excluded.avg_power, norm_power=excluded.norm_power,
+              avg_hr=excluded.avg_hr, calories=excluded.calories, elevation_m=excluded.elevation_m,
+              completed=excluded.completed, description=excluded.description,
+              updated_at=datetime('now')`,
+      args: [userId, String(w.tp_id??''), w.date??'', w.title??'', w.workout_type??null,
+             w.duration_planned_s??null, w.duration_actual_s??null,
+             w.distance_planned_m??null, w.distance_actual_m??null,
+             w.tss_planned??null, w.tss_actual??null, w.if_planned??null, w.if_actual??null,
+             w.avg_power??null, w.norm_power??null, w.avg_hr??null, w.calories??null,
+             w.elevation_m??null, w.completed ? 1 : 0, w.description??''],
+    }));
+  }
+
+  await Promise.all(ops);
+  return json(res, 200, { ok: true, pmc_count: pmc.length, workouts_count: workouts.length });
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     json(res, 405, { error: 'Method not allowed' });
@@ -223,6 +279,11 @@ export default async function handler(req, res) {
 
   if (req.query.garmin_ingest === '1') {
     try { return await handleGarminIngest(req, res); }
+    catch (err) { return json(res, 500, { error: err instanceof Error ? err.message : 'Ingest failed' }); }
+  }
+
+  if (req.query.tp_ingest === '1') {
+    try { return await handleTPIngest(req, res); }
     catch (err) { return json(res, 500, { error: err instanceof Error ? err.message : 'Ingest failed' }); }
   }
 

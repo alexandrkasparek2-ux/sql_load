@@ -7,3 +7,5 @@ migration-export/
 .vercel
 garmin/output/
 .garmin_tokens/
+trainingpeaks/output/
+.tp_tokens/
