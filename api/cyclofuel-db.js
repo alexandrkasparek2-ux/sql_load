@@ -60,6 +60,11 @@ function getClient() {
   return client;
 }
 
+function sanitizeText(s) {
+  if (typeof s !== 'string') return s;
+  return s.normalize('NFKD').replace(/[^\x00-\xFF]/g, '');
+}
+
 function assertTable(table) {
   if (!TABLES[table]) throw new Error(`Table is not allowed: ${table}`);
 }
@@ -258,12 +263,12 @@ async function handleTPIngest(req, res) {
               avg_hr=excluded.avg_hr, calories=excluded.calories, elevation_m=excluded.elevation_m,
               completed=excluded.completed, description=excluded.description,
               updated_at=datetime('now')`,
-      args: [userId, String(w.tp_id??''), w.date??'', w.title??'', w.workout_type??null,
+      args: [userId, String(w.tp_id??''), w.date??'', sanitizeText(w.title??''), w.workout_type??null,
              w.duration_planned_s??null, w.duration_actual_s??null,
              w.distance_planned_m??null, w.distance_actual_m??null,
              w.tss_planned??null, w.tss_actual??null, w.if_planned??null, w.if_actual??null,
              w.avg_power??null, w.norm_power??null, w.avg_hr??null, w.calories??null,
-             w.elevation_m??null, w.completed ? 1 : 0, w.description??''],
+             w.elevation_m??null, w.completed ? 1 : 0, sanitizeText(w.description??'')],
     }));
   }
 
