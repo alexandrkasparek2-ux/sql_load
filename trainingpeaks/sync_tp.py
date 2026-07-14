@@ -104,10 +104,19 @@ def get_athlete_id(token):
     data = tp_get(token, "/users/v3/user")
     if not data:
         raise SystemExit("Could not fetch user profile from TrainingPeaks.")
-    athletes = data.get("athletes", [])
-    if not athletes:
-        raise SystemExit("No athletes found in your TP account.")
-    return athletes[0]["athleteId"]
+    if data.get("athletes"):
+        return data["athletes"][0]["athleteId"]
+    if data.get("userId"):
+        return data["userId"]
+    if data.get("athleteId"):
+        return data["athleteId"]
+    for key in ("user", "profile", "account"):
+        nested = data.get(key)
+        if isinstance(nested, dict):
+            for field in ("athleteId", "userId", "id"):
+                if nested.get(field):
+                    return nested[field]
+    raise SystemExit(f"Cannot find athlete ID. Response keys: {list(data.keys())}\nFull response: {json.dumps(data, indent=2, default=str)[:800]}")
 
 
 def fetch_pmc(token, athlete_id, start, end):
