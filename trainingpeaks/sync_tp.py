@@ -61,9 +61,13 @@ def exchange_token(cookie):
     if not r.ok:
         raise SystemExit(f"Token exchange failed ({r.status_code}): {r.text[:200]}\nCookie may be expired — log in to trainingpeaks.com and re-export.")
     data = r.json()
-    token = data.get("access_token") or data.get("token")
-    if not token:
-        raise SystemExit(f"No access_token in response: {list(data.keys())}")
+    token_obj = data.get("token")
+    if isinstance(token_obj, dict):
+        token = token_obj.get("access_token")
+    else:
+        token = data.get("access_token") or token_obj
+    if not token or not isinstance(token, str):
+        raise SystemExit(f"No access_token in response: {json.dumps(data, indent=2)[:500]}")
     return token
 
 
