@@ -49,16 +49,13 @@ def load_cookie():
 
 
 def exchange_token(cookie):
-    r = requests.post(
+    r = requests.get(
         f"{TP_API_BASE}/users/v3/token",
         headers={
             "Cookie": f"Production_tpAuth={cookie}",
             "Accept": "application/json",
-            "Content-Type": "application/json",
-            "Origin": "https://app.trainingpeaks.com",
             "Referer": "https://app.trainingpeaks.com/",
         },
-        json={},
         timeout=30,
     )
     if not r.ok:
