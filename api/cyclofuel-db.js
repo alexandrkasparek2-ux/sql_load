@@ -276,6 +276,59 @@ async function handleTPIngest(req, res) {
   return json(res, 200, { ok: true, pmc_count: pmc.length, workouts_count: workouts.length });
 }
 
+const TP_API_BASE = 'https://tpapi.trainingpeaks.com';
+const ALLOWED_TP_PATHS = [
+  /^\/fitness\/v6\/athletes\/\d+\/workouts/,
+  /^\/fitness\/v6\/workouttypes$/,
+  /^\/fitness\/v2\/athletes\/\d+\/workouts\/\d+\/comments$/,
+  /^\/fitness\/v6\/workouts\/\d+\/privateWorkoutNote$/,
+  /^\/fitness\/v1\/athletes\/\d+\/reporting\/performancedata\//,
+  /^\/users\/v3\/user$/,
+  /^\/users\/v3\/token$/,
+];
+
+let tpTokenCache = { token: null, expiresAt: 0 };
+
+async function getTPToken() {
+  if (tpTokenCache.token && Date.now() < tpTokenCache.expiresAt) return tpTokenCache.token;
+  const cookie = process.env.TP_AUTH_COOKIE;
+  if (!cookie) throw new Error('TP_AUTH_COOKIE not configured');
+  const r = await fetch(`${TP_API_BASE}/users/v3/token`, {
+    headers: { 'Cookie': `Production_tpAuth=${cookie}`, 'Accept': 'application/json', 'Referer': 'https://app.trainingpeaks.com/' },
+  });
+  if (!r.ok) throw new Error(`TP token exchange failed: ${r.status}`);
+  const data = await r.json();
+  const tokenObj = data.token;
+  const token = typeof tokenObj === 'object' ? tokenObj?.access_token : (data.access_token || tokenObj);
+  if (!token || typeof token !== 'string') throw new Error('No access_token in TP response');
+  tpTokenCache = { token, expiresAt: Date.now() + 50 * 60 * 1000 };
+  return token;
+}
+
+async function handleTPProxy(req, res) {
+  if (!verifyIngestSecret(req, 'TP_INGEST_SECRET')) return json(res, 401, { error: 'Invalid or missing secret' });
+
+  const { method = 'GET', path, body } = req.body || {};
+  if (!path || typeof path !== 'string') return json(res, 400, { error: 'Missing path' });
+  if (!ALLOWED_TP_PATHS.some(re => re.test(path))) return json(res, 403, { error: 'Path not allowed' });
+  if (!['GET', 'POST', 'PUT', 'DELETE'].includes(method)) return json(res, 400, { error: 'Invalid method' });
+
+  const token = await getTPToken();
+  const opts = {
+    method,
+    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+  };
+  if (body && method !== 'GET' && method !== 'DELETE') opts.body = JSON.stringify(body);
+
+  const r = await fetch(`${TP_API_BASE}${path}`, opts);
+  const text = await r.text();
+  let data;
+  try { data = JSON.parse(text); } catch { data = text; }
+
+  if (!r.ok) return json(res, r.status, { error: data || `TP API error ${r.status}` });
+  return json(res, 200, { data });
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     json(res, 405, { error: 'Method not allowed' });
@@ -290,6 +343,11 @@ export default async function handler(req, res) {
   if (req.query.tp_ingest === '1') {
     try { return await handleTPIngest(req, res); }
     catch (err) { return json(res, 500, { error: err instanceof Error ? err.message : 'Ingest failed' }); }
+  }
+
+  if (req.query.tp_proxy === '1') {
+    try { return await handleTPProxy(req, res); }
+    catch (err) { return json(res, 500, { error: err instanceof Error ? err.message : 'TP proxy failed' }); }
   }
 
   const session = requireSession(req, res);
