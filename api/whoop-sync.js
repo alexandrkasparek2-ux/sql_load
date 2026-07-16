@@ -1,6 +1,28 @@
 // GET /api/whoop-sync
 // Header: Authorization: Bearer <access_token>
-// Returns: { recovery, sleep, cycle }
+// Default:        Returns: { recovery, sleep, cycle }               (latest record of each)
+// ?days=N:        Returns: { recoveries, sleeps, cycles, fetchedAt } (history for trend charts)
+
+const BASE = 'https://api.prod.whoop.com/developer/v1';
+
+class WhoopAuthError extends Error {}
+
+async function fetchAllPages(url, headers, start, maxPages = 4) {
+  const all = [];
+  let nextToken;
+  for (let page = 0; page < maxPages; page++) {
+    const params = new URLSearchParams({ limit: '25', start });
+    if (nextToken) params.set('nextToken', nextToken);
+    const r = await fetch(`${url}?${params}`, { headers });
+    if (r.status === 401) throw new WhoopAuthError('token_expired');
+    if (!r.ok) break;
+    const data = await r.json();
+    all.push(...(data.records ?? []));
+    nextToken = data.next_token;
+    if (!nextToken) break;
+  }
+  return all;
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -16,14 +38,23 @@ export default async function handler(req, res) {
 
   const token   = auth.slice(7);
   const headers = { Authorization: `Bearer ${token}` };
-
-  const BASE = 'https://api.prod.whoop.com/developer/v1';
+  const days    = Number(req.query.days);
 
   try {
+    if (days > 0) {
+      const start = new Date(Date.now() - days * 86_400_000).toISOString();
+      const [recoveries, sleeps, cycles] = await Promise.all([
+        fetchAllPages(`${BASE}/recovery`,       headers, start),
+        fetchAllPages(`${BASE}/activity/sleep`, headers, start),
+        fetchAllPages(`${BASE}/cycle`,          headers, start),
+      ]);
+      return res.json({ recoveries, sleeps, cycles, fetchedAt: new Date().toISOString() });
+    }
+
     const [recRes, sleepRes, cycleRes] = await Promise.all([
-      fetch(`${BASE}/recovery?limit=1`, { headers }),
-      fetch(`${BASE}/sleep?limit=1`,    { headers }),
-      fetch(`${BASE}/cycle?limit=1`,    { headers }),
+      fetch(`${BASE}/recovery?limit=1`,       { headers }),
+      fetch(`${BASE}/activity/sleep?limit=1`, { headers }),
+      fetch(`${BASE}/cycle?limit=1`,          { headers }),
     ]);
 
     // 401 = token expired
@@ -42,6 +73,7 @@ export default async function handler(req, res) {
       fetchedAt: new Date().toISOString(),
     });
   } catch (err) {
+    if (err instanceof WhoopAuthError) return res.status(401).json({ error: 'token_expired' });
     return res.status(502).json({ error: 'Whoop API unreachable', detail: String(err) });
   }
 }

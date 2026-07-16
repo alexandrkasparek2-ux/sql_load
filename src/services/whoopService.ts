@@ -202,6 +202,33 @@ export async function fetchWhoopData(): Promise<WhoopData> {
   return res.json();
 }
 
+// ── Historical fetch (for weekly trend charts) ─────────────────
+export interface WhoopHistory {
+  recoveries: WhoopRecovery[];
+  sleeps:     WhoopSleep[];
+  cycles:     WhoopCycle[];
+  fetchedAt:  string;
+}
+
+export async function fetchWhoopHistory(days: number): Promise<WhoopHistory> {
+  let tokens = loadTokens();
+  if (!tokens) throw new Error('Not connected to Whoop');
+  if (isExpired(tokens)) tokens = await refreshTokens(tokens);
+
+  const url = `/api/whoop-sync?days=${days}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${tokens.access_token}` } });
+
+  if (res.status === 401) {
+    tokens = await refreshTokens(tokens);
+    const res2 = await fetch(url, { headers: { Authorization: `Bearer ${tokens.access_token}` } });
+    if (!res2.ok) throw new Error('Whoop history sync failed after token refresh');
+    return res2.json();
+  }
+
+  if (!res.ok) throw new Error(`Whoop history error: ${res.status}`);
+  return res.json();
+}
+
 // ── Nutrition adjustments based on recovery ───────────────────
 export interface WhoopAdjustment {
   kcalMultiplier: number;
