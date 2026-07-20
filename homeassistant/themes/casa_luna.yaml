@@ -1,0 +1,85 @@
+# =============================================================
+# CASA LUNA THEME
+# Place in:  config/themes/casa_luna.yaml
+# Activate:  Settings > Dashboards > Edit > Theme > casa_luna
+# =============================================================
+
+casa_luna:
+  modes:
+    dark:
+      # --- Backgrounds ---
+      primary-background-color: "#050d1e"
+      secondary-background-color: "#091525"
+      card-background-color: "rgba(6, 14, 30, 0.92)"
+
+      # --- Text ---
+      primary-text-color: "#ccd8f0"
+      secondary-text-color: "#5a7090"
+      disabled-text-color: "#2a3a52"
+      text-primary-color: "#ccd8f0"
+
+      # --- Primary / Accent ---
+      primary-color: "#00c8f0"
+      accent-color: "#00c8f0"
+
+      # --- State icons ---
+      state-icon-active-color: "#00c8f0"
+      state-icon-color: "#3a5070"
+
+      # --- Cards ---
+      ha-card-background: "rgba(6, 14, 30, 0.90)"
+      ha-card-border-color: "rgba(0, 180, 220, 0.14)"
+      ha-card-border-radius: "14px"
+      ha-card-box-shadow: "0 4px 24px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,180,220,0.07)"
+      ha-card-border-width: "1px"
+
+      # --- Dividers ---
+      divider-color: "rgba(0, 180, 220, 0.10)"
+
+      # --- Sidebar (native HA) ---
+      sidebar-background-color: "#040c1b"
+      sidebar-icon-color: "#3a5070"
+      sidebar-text-color: "#4a6080"
+      sidebar-selected-icon-color: "#00c8f0"
+      sidebar-selected-text-color: "#00c8f0"
+      sidebar-selected-background-color: "rgba(0, 200, 240, 0.08)"
+
+      # --- Header ---
+      app-header-background-color: "#040c1b"
+      app-header-text-color: "#ccd8f0"
+      app-header-selection-bar-color: "#00c8f0"
+
+      # --- Switches ---
+      switch-checked-color: "#00c8f0"
+      switch-checked-button-color: "#ffffff"
+      switch-checked-track-color: "rgba(0,200,240,0.35)"
+      switch-unchecked-button-color: "#304060"
+      switch-unchecked-track-color: "rgba(48,64,96,0.4)"
+
+      # --- Sliders ---
+      paper-slider-active-color: "#00c8f0"
+      paper-slider-knob-color: "#00c8f0"
+
+      # --- Energy dashboard colours ---
+      energy-grid-consumption-color: "#ff6b35"
+      energy-grid-return-color: "#00c8f0"
+      energy-battery-out-color: "#ffc107"
+      energy-battery-in-color: "#4caf50"
+      energy-solar-color: "#ffd700"
+      energy-home-color: "#82c4e0"
+
+      # --- Status colours ---
+      success-color: "#4caf50"
+      warning-color: "#ffc107"
+      error-color: "#f44336"
+      info-color: "#00c8f0"
+
+      # --- Custom Casa Luna variables ---
+      casa-bg-panel: "rgba(4, 10, 24, 0.88)"
+      casa-border-glow: "rgba(0, 200, 240, 0.25)"
+      casa-cyan: "#00c8f0"
+      casa-amber: "#ffc107"
+      casa-green: "#4caf50"
+      casa-red: "#f44336"
+      casa-gold: "#ffd700"
+      casa-dim: "#3a5070"

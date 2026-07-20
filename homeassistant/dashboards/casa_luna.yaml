@@ -1,0 +1,1285 @@
+# =============================================================
+# CASA LUNA DASHBOARD
+# =============================================================
+# Required HACS integrations (install via HACS > Frontend):
+#   - button-card        (thomasloven/lovelace-button-card)
+#   - apexcharts-card    (RomRider/lovelace-apexcharts-card)
+#   - layout-card        (thomasloven/lovelace-layout-card)
+#   - card-mod           (thomasloven/lovelace-card-mod)
+#
+# Entity mapping – replace with YOUR entity IDs:
+#   GoodWe inverter:   sensor.goodwe_*
+#   Weather:           weather.forecast_home
+#   Cameras:           camera.cam_*
+#   Switches:          switch.relay_*, switch.heat_pump, etc.
+#
+# How to add:
+#   1. Copy to config/dashboards/casa_luna.yaml
+#   2. In configuration.yaml add:
+#        lovelace:
+#          mode: storage
+#          dashboards:
+#            casa-luna:
+#              mode: yaml
+#              title: Casa Luna
+#              icon: mdi:home-lightning-bolt
+#              show_in_sidebar: true
+#              filename: dashboards/casa_luna.yaml
+# =============================================================
+
+title: Casa Luna
+background: var(--primary-background-color)
+
+# -------------------------------------------------------
+# BUTTON-CARD TEMPLATES (reusable styles)
+# -------------------------------------------------------
+button_card_templates:
+
+  # Navigation sidebar button (inactive)
+  nav_btn:
+    show_label: true
+    styles:
+      card:
+        - background: "rgba(6, 14, 30, 0.75)"
+        - border: "1px solid rgba(0, 180, 220, 0.10)"
+        - border-radius: "12px"
+        - margin-bottom: "6px"
+        - padding: "12px 8px"
+        - cursor: pointer
+      icon:
+        - width: "24px"
+        - color: "#5a7090"
+      name:
+        - color: "#ccd8f0"
+        - font-size: "11px"
+        - font-weight: "700"
+        - letter-spacing: "1px"
+      label:
+        - color: "#5a7090"
+        - font-size: "9px"
+        - margin-top: "2px"
+
+  # Navigation sidebar button (active / selected)
+  nav_btn_active:
+    template: nav_btn
+    styles:
+      card:
+        - background: "rgba(0, 200, 240, 0.08)"
+        - border: "1px solid rgba(0, 200, 240, 0.30)"
+        - border-radius: "12px"
+        - margin-bottom: "6px"
+        - padding: "12px 8px"
+        - box-shadow: "0 0 12px rgba(0,200,240,0.15)"
+      icon:
+        - color: "#00c8f0"
+      name:
+        - color: "#00c8f0"
+
+  # Energy metric card (Load / Grid / Battery)
+  energy_metric:
+    show_state: true
+    styles:
+      card:
+        - background: "rgba(6, 14, 30, 0.90)"
+        - border: "1px solid rgba(0, 180, 220, 0.14)"
+        - border-radius: "12px"
+        - padding: "14px 10px"
+      name:
+        - color: "#5a7090"
+        - font-size: "9px"
+        - letter-spacing: "1.5px"
+        - font-weight: "600"
+      state:
+        - color: "#ccd8f0"
+        - font-size: "20px"
+        - font-weight: "700"
+      icon:
+        - width: "26px"
+
+  # Device control button
+  device_btn:
+    show_state: true
+    tap_action:
+      action: toggle
+    styles:
+      card:
+        - background: "rgba(6, 14, 30, 0.90)"
+        - border: "1px solid rgba(0, 180, 220, 0.12)"
+        - border-radius: "12px"
+        - padding: "12px 6px"
+      icon:
+        - width: "22px"
+        - color: "#5a7090"
+      name:
+        - color: "#5a7090"
+        - font-size: "9px"
+        - letter-spacing: "1px"
+      state:
+        - color: "#5a7090"
+        - font-size: "11px"
+
+# -------------------------------------------------------
+# VIEWS
+# -------------------------------------------------------
+views:
+
+  # =====================================================
+  # VIEW 1 – MAIN DASHBOARD
+  # =====================================================
+  - title: Dashboard
+    path: dashboard
+    icon: mdi:view-dashboard
+    type: panel
+    cards:
+      - type: custom:layout-card
+        layout_type: custom:grid-layout
+        layout:
+          grid-template-columns: 196px 1fr 356px
+          grid-template-rows: 64px 1fr
+          grid-column-gap: 8px
+          grid-row-gap: 8px
+          padding: "8px"
+          min-height: "100vh"
+        cards:
+
+          # ===================================================
+          # [1,1] HEADER LEFT – Clock & Date
+          # ===================================================
+          - type: custom:button-card
+            view_layout:
+              grid-column: 1
+              grid-row: 1
+            entity: sensor.date_time
+            show_name: false
+            show_icon: false
+            show_state: false
+            custom_fields:
+              time: >
+                [[[
+                  const t = new Date();
+                  return t.toLocaleTimeString('cs-CZ', {hour:'2-digit', minute:'2-digit', hour12:false});
+                ]]]
+              date_line: >
+                [[[
+                  const d = new Date();
+                  const days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+                  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+                  return `${days[d.getDay()]}`;
+                ]]]
+              date_num: >
+                [[[
+                  const d = new Date();
+                  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+                  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+                ]]]
+            styles:
+              card:
+                - background: "transparent"
+                - border: "none"
+                - box-shadow: "none"
+                - padding: "4px 10px"
+                - align-items: "flex-start"
+                - justify-content: "flex-start"
+                - flex-direction: "column"
+              custom_fields:
+                time:
+                  - font-size: "38px"
+                  - font-weight: "800"
+                  - color: "#e0eaff"
+                  - letter-spacing: "2px"
+                  - display: "block"
+                  - line-height: "1"
+                date_line:
+                  - font-size: "10px"
+                  - color: "#4a6080"
+                  - letter-spacing: "3px"
+                  - display: "block"
+                  - margin-top: "2px"
+                date_num:
+                  - font-size: "10px"
+                  - color: "#4a6080"
+                  - letter-spacing: "1px"
+                  - display: "block"
+
+          # ===================================================
+          # [1,2] HEADER CENTER – CASA LUNA Title + Weather
+          # ===================================================
+          - type: custom:button-card
+            view_layout:
+              grid-column: 2
+              grid-row: 1
+            entity: weather.forecast_home
+            show_name: false
+            show_icon: false
+            show_state: false
+            custom_fields:
+              title: "CASA LUNA"
+              subtitle: "ENERGY · AUTOMATION · SECURITY · COMFORT"
+              weather_info: >
+                [[[
+                  const w = states['weather.forecast_home'];
+                  if (!w) return '';
+                  const temp = w.attributes.temperature;
+                  const cond = w.state;
+                  const wind = w.attributes.wind_speed;
+                  return `${temp}°C · ${cond.toUpperCase()} · ${wind} km/h`;
+                ]]]
+            styles:
+              card:
+                - background: "transparent"
+                - border: "none"
+                - box-shadow: "none"
+                - text-align: "center"
+                - display: "flex"
+                - flex-direction: "column"
+                - align-items: "center"
+                - justify-content: "center"
+              custom_fields:
+                title:
+                  - font-size: "30px"
+                  - font-weight: "900"
+                  - letter-spacing: "10px"
+                  - color: "#ffffff"
+                  - text-shadow: "0 0 20px rgba(0,200,240,0.9), 0 0 50px rgba(0,200,240,0.4)"
+                  - display: "block"
+                subtitle:
+                  - font-size: "9px"
+                  - letter-spacing: "4px"
+                  - color: "#4a6080"
+                  - display: "block"
+                  - margin-top: "2px"
+                weather_info:
+                  - font-size: "11px"
+                  - color: "#7090b0"
+                  - display: "block"
+                  - margin-top: "4px"
+
+          # ===================================================
+          # [1,3] HEADER RIGHT – Status icons + Battery mini
+          # ===================================================
+          - type: custom:button-card
+            view_layout:
+              grid-column: 3
+              grid-row: 1
+            entity: sensor.goodwe_battery_soc
+            show_name: false
+            show_icon: false
+            show_state: false
+            custom_fields:
+              status_icons: >
+                [[[ return `
+                  <ha-icon icon="mdi:wifi" style="color:#5a7090;--mdc-icon-size:18px"></ha-icon>
+                  <ha-icon icon="mdi:power-plug" style="color:#5a7090;--mdc-icon-size:18px"></ha-icon>
+                  <ha-icon icon="mdi:bluetooth" style="color:#5a7090;--mdc-icon-size:18px"></ha-icon>
+                  <ha-icon icon="mdi:cctv" style="color:#5a7090;--mdc-icon-size:18px"></ha-icon>
+                `; ]]]
+              batt_pct: >
+                [[[
+                  const soc = parseInt(states['sensor.goodwe_battery_soc']?.state || 0);
+                  const col = soc > 50 ? '#4caf50' : soc > 20 ? '#ffc107' : '#f44336';
+                  return `<span style="color:${col};font-size:22px;font-weight:700">${soc}%</span>`;
+                ]]]
+              mode_badge: >
+                [[[
+                  const mode = states['sensor.goodwe_work_mode_label']?.state || 'DISCHARGING';
+                  return `<span style="font-size:10px;letter-spacing:2px;color:#ffc107">${mode.toUpperCase()}</span>`;
+                ]]]
+            styles:
+              card:
+                - background: "transparent"
+                - border: "none"
+                - box-shadow: "none"
+                - display: "flex"
+                - justify-content: "flex-end"
+                - align-items: "center"
+                - gap: "10px"
+                - padding: "4px 8px"
+              custom_fields:
+                status_icons:
+                  - display: "flex"
+                  - gap: "6px"
+                  - align-items: "center"
+                batt_pct:
+                  - display: "block"
+                mode_badge:
+                  - display: "block"
+
+          # ===================================================
+          # [2,1] LEFT SIDEBAR – Navigation
+          # ===================================================
+          - type: vertical-stack
+            view_layout:
+              grid-column: 1
+              grid-row: 2
+            cards:
+              - type: custom:button-card
+                template: nav_btn_active
+                icon: mdi:home
+                name: DASHBOARD
+                label: Home
+
+              - type: custom:button-card
+                template: nav_btn
+                icon: mdi:lightning-bolt
+                name: ENERGY
+                label: Production & Flow
+                tap_action:
+                  action: navigate
+                  navigation_path: /casa-luna/energy
+                styles:
+                  icon:
+                    - color: "#ffc107"
+
+              - type: custom:button-card
+                template: nav_btn
+                icon: mdi:battery-charging-high
+                name: BATTERY
+                label: Status & Settings
+                tap_action:
+                  action: navigate
+                  navigation_path: /casa-luna/battery
+                styles:
+                  icon:
+                    - color: "#4caf50"
+
+              - type: custom:button-card
+                template: nav_btn
+                icon: mdi:thermometer
+                name: CLIMATE
+                label: Temperature & Humidity
+                tap_action:
+                  action: navigate
+                  navigation_path: /casa-luna/climate
+                styles:
+                  icon:
+                    - color: "#ff9800"
+
+              - type: custom:button-card
+                template: nav_btn
+                icon: mdi:shield-check
+                name: SECURITY
+                label: Alarms & Cameras
+                tap_action:
+                  action: navigate
+                  navigation_path: /casa-luna/security
+                styles:
+                  icon:
+                    - color: "#00c8f0"
+
+              - type: custom:button-card
+                template: nav_btn
+                icon: mdi:cog-outline
+                name: AUTOMATION
+                label: Scenes & Routines
+                tap_action:
+                  action: navigate
+                  navigation_path: /casa-luna/automation
+                styles:
+                  icon:
+                    - color: "#8090b0"
+
+              - type: custom:button-card
+                template: nav_btn
+                icon: mdi:lightbulb-outline
+                name: LIGHTING
+                label: Lights & Ambience
+                tap_action:
+                  action: navigate
+                  navigation_path: /casa-luna/lighting
+                styles:
+                  icon:
+                    - color: "#ffd700"
+
+              - type: custom:button-card
+                template: nav_btn
+                icon: mdi:tune-vertical
+                name: SYSTEM
+                label: System & Preferences
+                tap_action:
+                  action: navigate
+                  navigation_path: /casa-luna/system
+                styles:
+                  icon:
+                    - color: "#5a7090"
+
+          # ===================================================
+          # [2,2] CENTER – House image + Energy + Devices
+          # ===================================================
+          - type: vertical-stack
+            view_layout:
+              grid-column: 2
+              grid-row: 2
+            cards:
+
+              # --- House image with energy overlay ---
+              - type: picture-elements
+                image: /local/casa_luna/house_night.jpg
+                style: >
+                  ha-card {
+                    border-radius: 16px;
+                    overflow: hidden;
+                    min-height: 220px;
+                  }
+                elements:
+                  # Gradient overlay bottom
+                  - type: custom:button-card
+                    show_name: false
+                    show_icon: false
+                    show_state: false
+                    style:
+                      bottom: "0%"
+                      left: "0%"
+                      width: "100%"
+                      height: "50%"
+                      transform: "none"
+                    styles:
+                      card:
+                        - background: "linear-gradient(to top, rgba(5,13,30,0.95) 0%, transparent 100%)"
+                        - border: "none"
+                        - box-shadow: "none"
+                        - border-radius: "0"
+                        - pointer-events: "none"
+
+              # --- Energy stats row ---
+              - type: horizontal-stack
+                cards:
+                  - type: custom:button-card
+                    template: energy_metric
+                    entity: sensor.goodwe_house_consumption
+                    icon: mdi:home-lightning-bolt
+                    name: LOAD
+                    styles:
+                      icon:
+                        - color: "#ccd8f0"
+
+                  - type: custom:button-card
+                    template: energy_metric
+                    entity: sensor.goodwe_e_day_buy
+                    icon: mdi:transmission-tower-import
+                    name: GRID IMPORT
+                    styles:
+                      icon:
+                        - color: "#ffc107"
+                      state:
+                        - color: "#ccd8f0"
+
+                  - type: custom:button-card
+                    template: energy_metric
+                    entity: sensor.goodwe_e_day_sell
+                    icon: mdi:transmission-tower-export
+                    name: GRID EXPORT
+                    styles:
+                      icon:
+                        - color: "#00c8f0"
+                      state:
+                        - color: "#00c8f0"
+
+                  - type: custom:button-card
+                    template: energy_metric
+                    entity: sensor.goodwe_battery_power
+                    icon: mdi:battery-charging-outline
+                    name: CHG / DIS
+                    styles:
+                      icon:
+                        - color: "#4caf50"
+                      state:
+                        - color: "#4caf50"
+
+              # --- Grid Phases + GoodWe totals ---
+              - type: horizontal-stack
+                cards:
+                  # Grid phases panel
+                  - type: custom:button-card
+                    show_name: false
+                    show_icon: false
+                    show_state: false
+                    custom_fields:
+                      title: "GRID PHASES"
+                      phase_table: >
+                        [[[
+                          const v = (id) => {
+                            const s = states[id];
+                            return s ? parseFloat(s.state).toFixed(1) : '--';
+                          };
+                          return `
+                          <table style="width:100%;font-size:10px;color:#5a7090;border-collapse:collapse;margin-top:6px">
+                            <tr>
+                              <th style="text-align:left;padding:2px 4px;color:#3a5070"></th>
+                              <th style="padding:2px 4px;color:#3a5070">PWR</th>
+                              <th style="padding:2px 4px;color:#3a5070">I</th>
+                              <th style="padding:2px 4px;color:#3a5070">V</th>
+                            </tr>
+                            <tr>
+                              <td style="color:#00c8f0;padding:2px 4px">L1</td>
+                              <td style="padding:2px 4px">${v('sensor.goodwe_l1_power')} W</td>
+                              <td style="padding:2px 4px">${v('sensor.goodwe_l1_current')} A</td>
+                              <td style="padding:2px 4px">${v('sensor.goodwe_l1_voltage')} V</td>
+                            </tr>
+                            <tr>
+                              <td style="color:#00c8f0;padding:2px 4px">L2</td>
+                              <td style="padding:2px 4px">${v('sensor.goodwe_l2_power')} W</td>
+                              <td style="padding:2px 4px">${v('sensor.goodwe_l2_current')} A</td>
+                              <td style="padding:2px 4px">${v('sensor.goodwe_l2_voltage')} V</td>
+                            </tr>
+                            <tr>
+                              <td style="color:#00c8f0;padding:2px 4px">L3</td>
+                              <td style="padding:2px 4px">${v('sensor.goodwe_l3_power')} W</td>
+                              <td style="padding:2px 4px">${v('sensor.goodwe_l3_current')} A</td>
+                              <td style="padding:2px 4px">${v('sensor.goodwe_l3_voltage')} V</td>
+                            </tr>
+                          </table>`;
+                        ]]]
+                    styles:
+                      card:
+                        - background: "rgba(6,14,30,0.90)"
+                        - border: "1px solid rgba(0,180,220,0.14)"
+                        - border-radius: "12px"
+                        - padding: "12px"
+                        - flex: "1"
+                      custom_fields:
+                        title:
+                          - color: "#ccd8f0"
+                          - font-size: "10px"
+                          - font-weight: "700"
+                          - letter-spacing: "2px"
+                          - display: "block"
+                        phase_table:
+                          - display: "block"
+                          - width: "100%"
+
+                  # GoodWe inverter totals panel
+                  - type: custom:button-card
+                    show_name: false
+                    show_icon: false
+                    show_state: false
+                    custom_fields:
+                      goodwe_logo: "GoodWe"
+                      inv_load_label: "INV LOAD"
+                      inv_load_value: >
+                        [[[
+                          return `${states['sensor.goodwe_inverter_load_percentage']?.state || '13'}%`;
+                        ]]]
+                      total_imp: >
+                        [[[ return `${states['sensor.goodwe_e_day_buy']?.state || '0.00'} kWh`; ]]]
+                      total_exp: >
+                        [[[ return `${states['sensor.goodwe_e_day_sell']?.state || '0.00'} kWh`; ]]]
+                      total_pv: >
+                        [[[ return `${states['sensor.goodwe_e_day_pv']?.state || '0.00'} kWh`; ]]]
+                      no_errors: "✓ No Errors"
+                    styles:
+                      card:
+                        - background: "rgba(6,14,30,0.90)"
+                        - border: "1px solid rgba(0,180,220,0.14)"
+                        - border-radius: "12px"
+                        - padding: "12px"
+                        - flex: "1"
+                      custom_fields:
+                        goodwe_logo:
+                          - color: "#5a7090"
+                          - font-size: "11px"
+                          - font-weight: "700"
+                          - letter-spacing: "3px"
+                          - display: "block"
+                          - text-align: "right"
+                        inv_load_label:
+                          - color: "#5a7090"
+                          - font-size: "9px"
+                          - letter-spacing: "1px"
+                          - display: "block"
+                          - margin-top: "6px"
+                        inv_load_value:
+                          - color: "#ccd8f0"
+                          - font-size: "28px"
+                          - font-weight: "800"
+                          - display: "block"
+                          - text-align: "center"
+                        total_imp:
+                          - color: "#5a7090"
+                          - font-size: "10px"
+                          - display: "block"
+                        total_exp:
+                          - color: "#5a7090"
+                          - font-size: "10px"
+                          - display: "block"
+                        total_pv:
+                          - color: "#ffd700"
+                          - font-size: "10px"
+                          - display: "block"
+                        no_errors:
+                          - color: "#4caf50"
+                          - font-size: "9px"
+                          - display: "block"
+                          - margin-top: "4px"
+
+              # --- Device controls row ---
+              - type: horizontal-stack
+                cards:
+                  - type: custom:button-card
+                    template: device_btn
+                    entity: switch.heat_pump
+                    icon: mdi:heat-pump-outline
+                    name: HEAT PUMP
+
+                  - type: custom:button-card
+                    template: device_btn
+                    entity: switch.irrigation
+                    icon: mdi:water-outline
+                    name: IRRIGATION
+                    styles:
+                      icon:
+                        - color: "#00c8f0"
+
+                  - type: custom:button-card
+                    template: device_btn
+                    entity: switch.gas_flame
+                    icon: mdi:fire
+                    name: GAS / FLAME
+                    styles:
+                      icon:
+                        - color: "#ff9800"
+                      state:
+                        - color: "#ccd8f0"
+                        - font-weight: "700"
+
+                  - type: custom:button-card
+                    template: device_btn
+                    entity: climate.ac
+                    icon: mdi:snowflake
+                    name: AC
+                    tap_action:
+                      action: more-info
+                    styles:
+                      icon:
+                        - color: "#00c8f0"
+
+                  - type: custom:button-card
+                    template: device_btn
+                    entity: light.outdoor_lights
+                    icon: mdi:lightbulb-outline
+                    name: LIGHTS
+                    styles:
+                      icon:
+                        - color: "#ffd700"
+
+                  - type: custom:button-card
+                    template: device_btn
+                    entity: switch.main_breaker
+                    icon: mdi:electric-switch
+                    name: BREAKER
+                    tap_action:
+                      action: more-info
+                    styles:
+                      state:
+                        - color: "#f44336"
+
+          # ===================================================
+          # [2,3] RIGHT PANEL – Battery + Charts + Events
+          # ===================================================
+          - type: vertical-stack
+            view_layout:
+              grid-column: 3
+              grid-row: 2
+            cards:
+
+              # --- Battery widget ---
+              - type: custom:button-card
+                entity: sensor.goodwe_battery_soc
+                show_name: false
+                show_icon: false
+                show_state: false
+                custom_fields:
+                  mode_row: >
+                    [[[
+                      const mode = states['sensor.goodwe_work_mode_label']?.state || 'DISCHARGING';
+                      const invState = states['sensor.goodwe_inverter_status']?.state || 'Normal (Off-Grid)';
+                      return `
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                          <span style="font-size:9px;color:#5a7090;letter-spacing:1px">MODE</span>
+                          <span style="font-size:11px;font-weight:700;color:#ffc107;letter-spacing:2px">${mode.toUpperCase()}</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px">
+                          <span style="font-size:9px;color:#5a7090">INV STATE</span>
+                          <span style="font-size:9px;color:#4caf50">${invState}</span>
+                        </div>`;
+                    ]]]
+                  battery_bar: >
+                    [[[
+                      const soc = parseInt(states['sensor.goodwe_battery_soc']?.state || 0);
+                      const col = soc > 50 ? '#4caf50' : soc > 20 ? '#ffc107' : '#f44336';
+                      return `
+                        <div style="position:relative;width:72px;height:120px;border:2px solid #2a3a52;border-radius:8px;background:rgba(4,10,24,0.8);overflow:hidden;margin:12px auto;display:flex;flex-direction:column;justify-content:flex-end">
+                          <div style="height:${soc}%;background:linear-gradient(to top,${col},${col}66);transition:height 0.8s ease;position:relative">
+                          </div>
+                          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:22px;font-weight:800;color:#fff;text-shadow:0 0 10px ${col}">${soc}%</div>
+                        </div>`;
+                    ]]]
+                  cell_temp: >
+                    [[[ const v = states['sensor.goodwe_battery_temperature']?.state; return `CELL TEMP: ${v ? parseFloat(v).toFixed(1) : '--'} °C`; ]]]
+                  bms_temp: >
+                    [[[ const v = states['sensor.goodwe_bms_temperature']?.state; return `BMS TEMP: ${v ? parseFloat(v).toFixed(1) : '--'} °C`; ]]]
+                  cell_volt: >
+                    [[[ const v = states['sensor.goodwe_battery_voltage']?.state; return `CELL VOLT: ${v || '--'} V`; ]]]
+                  batt_current: >
+                    [[[ const v = states['sensor.goodwe_battery_current']?.state; return `BATT CURRENT: ${v || '--'} A`; ]]]
+                  capacity: >
+                    [[[ const v = states['sensor.goodwe_battery_capacity']?.state; return `CAPACITY: ${v || '3.04'} kWh`; ]]]
+                  endurance: >
+                    [[[
+                      const cap = parseFloat(states['sensor.goodwe_battery_capacity']?.state || 3.04);
+                      const power = parseFloat(states['sensor.goodwe_house_consumption']?.state || 0);
+                      if (power > 0.01) {
+                        const hrs = Math.floor(cap / power);
+                        const mins = Math.round((cap / power - hrs) * 60);
+                        return `ENDURANCE: ${hrs}h ${mins}m`;
+                      }
+                      return 'ENDURANCE: --';
+                    ]]]
+                  pv_row: >
+                    [[[
+                      const pvPwr = states['sensor.goodwe_total_pv_power']?.state || '0';
+                      const pvVolt = states['sensor.goodwe_pv_voltage_1']?.state || '0';
+                      return `
+                        <div style="display:flex;justify-content:space-between;margin-top:8px">
+                          <div style="text-align:center">
+                            <div style="font-size:9px;color:#5a7090">PV PWR</div>
+                            <div style="font-size:13px;color:#ffd700;font-weight:700">${pvPwr} W</div>
+                          </div>
+                          <div style="width:1px;background:rgba(0,180,220,0.15)"></div>
+                          <div style="text-align:center">
+                            <div style="font-size:9px;color:#5a7090">PV VOLT</div>
+                            <div style="font-size:13px;color:#ffd700;font-weight:700">${pvVolt} V</div>
+                          </div>
+                        </div>`;
+                    ]]]
+                styles:
+                  card:
+                    - background: "rgba(6,14,30,0.92)"
+                    - border: "1px solid rgba(0,180,220,0.15)"
+                    - border-radius: "14px"
+                    - padding: "12px 14px"
+                  custom_fields:
+                    mode_row:
+                      - display: "block"
+                      - width: "100%"
+                    battery_bar:
+                      - display: "block"
+                    cell_temp:
+                      - color: "#7090b0"
+                      - font-size: "10px"
+                      - display: "flex"
+                      - justify-content: "space-between"
+                      - padding: "2px 0"
+                    bms_temp:
+                      - color: "#ffc107"
+                      - font-size: "10px"
+                      - display: "flex"
+                      - justify-content: "space-between"
+                      - padding: "2px 0"
+                    cell_volt:
+                      - color: "#7090b0"
+                      - font-size: "10px"
+                      - display: "flex"
+                      - justify-content: "space-between"
+                      - padding: "2px 0"
+                    batt_current:
+                      - color: "#ccd8f0"
+                      - font-size: "10px"
+                      - display: "flex"
+                      - justify-content: "space-between"
+                      - padding: "2px 0"
+                    capacity:
+                      - color: "#7090b0"
+                      - font-size: "10px"
+                      - display: "flex"
+                      - justify-content: "space-between"
+                      - padding: "2px 0"
+                    endurance:
+                      - color: "#ccd8f0"
+                      - font-size: "10px"
+                      - display: "flex"
+                      - justify-content: "space-between"
+                      - padding: "2px 0"
+                    pv_row:
+                      - display: "block"
+                      - width: "100%"
+
+              # --- Today's Consumption chart ---
+              - type: custom:apexcharts-card
+                header:
+                  show: true
+                  title: "TODAY'S CONSUMPTION"
+                  show_states: true
+                  colorize_states: true
+                graph_span: 24h
+                span:
+                  start: day
+                update_interval: 5min
+                all_series_config:
+                  fill_raw: "zero"
+                apex_config:
+                  chart:
+                    type: area
+                    height: 100
+                    background: "transparent"
+                    foreColor: "#5a7090"
+                    toolbar:
+                      show: false
+                  grid:
+                    borderColor: "rgba(0,180,220,0.07)"
+                    strokeDashArray: 3
+                  xaxis:
+                    labels:
+                      style:
+                        colors: "#3a5070"
+                      datetimeFormatter:
+                        hour: "HH:mm"
+                  yaxis:
+                    labels:
+                      style:
+                        colors: "#3a5070"
+                  tooltip:
+                    theme: dark
+                  fill:
+                    type: gradient
+                    gradient:
+                      shadeIntensity: 1
+                      opacityFrom: 0.5
+                      opacityTo: 0.05
+                      stops: [0, 100]
+                  stroke:
+                    width: 2
+                    curve: smooth
+                series:
+                  - entity: sensor.goodwe_house_consumption
+                    name: Consumption
+                    color: "#00c8f0"
+                    type: area
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(6,14,30,0.92) !important;
+                      border: 1px solid rgba(0,180,220,0.12) !important;
+                      border-radius: 14px !important;
+                    }
+
+              # --- Today's Production chart ---
+              - type: custom:apexcharts-card
+                header:
+                  show: true
+                  title: "TODAY'S PRODUCTION"
+                  show_states: true
+                  colorize_states: true
+                graph_span: 24h
+                span:
+                  start: day
+                update_interval: 5min
+                all_series_config:
+                  fill_raw: "zero"
+                apex_config:
+                  chart:
+                    type: area
+                    height: 100
+                    background: "transparent"
+                    foreColor: "#5a7090"
+                    toolbar:
+                      show: false
+                  grid:
+                    borderColor: "rgba(0,180,220,0.07)"
+                    strokeDashArray: 3
+                  xaxis:
+                    labels:
+                      style:
+                        colors: "#3a5070"
+                      datetimeFormatter:
+                        hour: "HH:mm"
+                  yaxis:
+                    labels:
+                      style:
+                        colors: "#3a5070"
+                  tooltip:
+                    theme: dark
+                  fill:
+                    type: gradient
+                    gradient:
+                      shadeIntensity: 1
+                      opacityFrom: 0.5
+                      opacityTo: 0.05
+                      stops: [0, 100]
+                  stroke:
+                    width: 2
+                    curve: smooth
+                series:
+                  - entity: sensor.goodwe_total_pv_power
+                    name: Solar
+                    color: "#4caf50"
+                    type: area
+                card_mod:
+                  style: |
+                    ha-card {
+                      background: rgba(6,14,30,0.92) !important;
+                      border: 1px solid rgba(0,180,220,0.12) !important;
+                      border-radius: 14px !important;
+                    }
+
+              # --- Recent Events ---
+              - type: custom:button-card
+                show_name: false
+                show_icon: false
+                show_state: false
+                custom_fields:
+                  events_title: "RECENT EVENTS"
+                  events_list: >
+                    [[[
+                      const cam = (id) => {
+                        const s = states[id];
+                        return s?.attributes?.last_triggered
+                          ? new Date(s.attributes.last_triggered).toLocaleString('cs-CZ', {
+                              day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'
+                            })
+                          : '--';
+                      };
+                      const rows = [
+                        ['mdi:motion-sensor', 'Cam2 Motion', cam('binary_sensor.cam2_motion')],
+                        ['mdi:account-multiple', 'Cam1 All occupancy', cam('binary_sensor.cam1_occupancy')],
+                        ['mdi:car', 'Cam1 Car occupancy', cam('binary_sensor.cam1_car_occupancy')],
+                        ['mdi:motion-sensor', 'Cam1 Motion', cam('binary_sensor.cam1_motion')],
+                      ];
+                      return rows.map(([icon, label, time]) => `
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(0,180,220,0.07)">
+                          <span style="color:#5a7090;font-size:10px;display:flex;align-items:center;gap:4px">
+                            <ha-icon icon="${icon}" style="--mdc-icon-size:12px;color:#3a5070"></ha-icon>
+                            ${label}
+                          </span>
+                          <div style="display:flex;gap:6px;align-items:center">
+                            <span style="color:#3a5070;font-size:9px">${time}</span>
+                            <span style="color:#00c8f0;font-size:9px;cursor:pointer">Clear</span>
+                          </div>
+                        </div>`
+                      ).join('');
+                    ]]]
+                styles:
+                  card:
+                    - background: "rgba(6,14,30,0.92)"
+                    - border: "1px solid rgba(0,180,220,0.12)"
+                    - border-radius: "14px"
+                    - padding: "12px 14px"
+                  custom_fields:
+                    events_title:
+                      - color: "#ccd8f0"
+                      - font-size: "10px"
+                      - font-weight: "700"
+                      - letter-spacing: "2px"
+                      - display: "block"
+                      - margin-bottom: "6px"
+                    events_list:
+                      - display: "block"
+                      - width: "100%"
+
+  # =====================================================
+  # VIEW 2 – ENERGY
+  # =====================================================
+  - title: Energy
+    path: energy
+    icon: mdi:lightning-bolt
+    cards:
+      - type: vertical-stack
+        cards:
+          # Energy flow overview
+          - type: horizontal-stack
+            cards:
+              - type: custom:button-card
+                template: energy_metric
+                entity: sensor.goodwe_total_pv_power
+                icon: mdi:solar-panel-large
+                name: SOLAR NOW
+                styles:
+                  icon: [{color: "#ffd700"}]
+                  state: [{color: "#ffd700"}]
+
+              - type: custom:button-card
+                template: energy_metric
+                entity: sensor.goodwe_e_day_pv
+                icon: mdi:solar-power-variant
+                name: SOLAR TODAY
+                styles:
+                  icon: [{color: "#ffd700"}]
+                  state: [{color: "#ffd700"}]
+
+              - type: custom:button-card
+                template: energy_metric
+                entity: sensor.goodwe_house_consumption
+                icon: mdi:home-lightning-bolt
+                name: CONSUMPTION
+                styles:
+                  icon: [{color: "#00c8f0"}]
+
+              - type: custom:button-card
+                template: energy_metric
+                entity: sensor.goodwe_battery_soc
+                icon: mdi:battery-charging
+                name: BATTERY SOC
+                styles:
+                  icon: [{color: "#4caf50"}]
+                  state: [{color: "#4caf50"}]
+
+          # Full-day energy chart
+          - type: custom:apexcharts-card
+            header:
+              show: true
+              title: "ENERGY FLOW – LAST 24H"
+              show_states: true
+              colorize_states: true
+            graph_span: 24h
+            span:
+              start: day
+            update_interval: 5min
+            all_series_config:
+              fill_raw: "zero"
+            apex_config:
+              chart:
+                type: line
+                height: 300
+                background: "transparent"
+                foreColor: "#5a7090"
+                toolbar:
+                  show: true
+              grid:
+                borderColor: "rgba(0,180,220,0.07)"
+              tooltip:
+                theme: dark
+              stroke:
+                width: 2
+                curve: smooth
+            series:
+              - entity: sensor.goodwe_total_pv_power
+                name: Solar
+                color: "#ffd700"
+              - entity: sensor.goodwe_house_consumption
+                name: Load
+                color: "#00c8f0"
+              - entity: sensor.goodwe_battery_power
+                name: Battery
+                color: "#4caf50"
+              - entity: sensor.goodwe_grid_power
+                name: Grid
+                color: "#ff6b35"
+            card_mod:
+              style: |
+                ha-card {
+                  background: rgba(6,14,30,0.92) !important;
+                  border: 1px solid rgba(0,180,220,0.12) !important;
+                  border-radius: 14px !important;
+                }
+
+  # =====================================================
+  # VIEW 3 – AUTOMATION (Scenes & Relays)
+  # =====================================================
+  - title: Automation
+    path: automation
+    icon: mdi:cog-outline
+    cards:
+      - type: vertical-stack
+        cards:
+          # Scenes
+          - type: custom:button-card
+            show_name: false
+            show_icon: false
+            show_state: false
+            custom_fields:
+              section_title: "AUTOMATION"
+              sub_title: "Scenes & Routines"
+            styles:
+              card:
+                - background: "transparent"
+                - border: "none"
+                - box-shadow: "none"
+                - padding: "12px 4px 4px"
+              custom_fields:
+                section_title:
+                  - font-size: "22px"
+                  - font-weight: "700"
+                  - color: "#ccd8f0"
+                  - display: "block"
+                sub_title:
+                  - font-size: "11px"
+                  - color: "#5a7090"
+                  - display: "block"
+
+          - type: custom:button-card
+            show_name: false
+            show_icon: false
+            show_state: false
+            custom_fields:
+              scenes_label: "SCENES"
+            styles:
+              card: [{background: "transparent"}, {border: "none"}, {box-shadow: "none"}, {padding: "4px"}]
+              custom_fields:
+                scenes_label: [{color: "#5a7090"}, {font-size: "10px"}, {letter-spacing: "2px"}, {display: "block"}]
+
+          - type: horizontal-stack
+            cards:
+              - type: custom:button-card
+                icon: mdi:weather-night
+                name: Good Night
+                tap_action:
+                  action: call-service
+                  service: scene.turn_on
+                  service_data:
+                    entity_id: scene.good_night
+                styles:
+                  card: [{background: "rgba(6,14,30,0.90)"}, {border: "1px solid rgba(0,180,220,0.14)"}, {border-radius: "14px"}, {padding: "20px 12px"}]
+                  icon: [{color: "#7090b0"}, {width: "36px"}]
+                  name: [{color: "#9090b0"}, {font-size: "11px"}]
+
+              - type: custom:button-card
+                icon: mdi:weather-sunny
+                name: Morning
+                tap_action:
+                  action: call-service
+                  service: scene.turn_on
+                  service_data:
+                    entity_id: scene.morning
+                styles:
+                  card: [{background: "rgba(6,14,30,0.90)"}, {border: "1px solid rgba(0,180,220,0.14)"}, {border-radius: "14px"}, {padding: "20px 12px"}]
+                  icon: [{color: "#ffd700"}, {width: "36px"}]
+                  name: [{color: "#9090b0"}, {font-size: "11px"}]
+
+              - type: custom:button-card
+                icon: mdi:home-export-outline
+                name: Away
+                tap_action:
+                  action: call-service
+                  service: scene.turn_on
+                  service_data:
+                    entity_id: scene.away
+                styles:
+                  card: [{background: "rgba(6,14,30,0.90)"}, {border: "1px solid rgba(0,180,220,0.14)"}, {border-radius: "14px"}, {padding: "20px 12px"}]
+                  icon: [{color: "#8090b0"}, {width: "36px"}]
+                  name: [{color: "#9090b0"}, {font-size: "11px"}]
+
+          - type: horizontal-stack
+            cards:
+              - type: custom:button-card
+                icon: mdi:movie-open
+                name: Movie
+                tap_action:
+                  action: call-service
+                  service: scene.turn_on
+                  service_data:
+                    entity_id: scene.movie
+                styles:
+                  card: [{background: "rgba(6,14,30,0.90)"}, {border: "1px solid rgba(0,180,220,0.14)"}, {border-radius: "14px"}, {padding: "20px 12px"}]
+                  icon: [{color: "#8090b0"}, {width: "36px"}]
+                  name: [{color: "#9090b0"}, {font-size: "11px"}]
+
+              - type: custom:button-card
+                icon: mdi:party-popper
+                name: Party
+                tap_action:
+                  action: call-service
+                  service: scene.turn_on
+                  service_data:
+                    entity_id: scene.party
+                styles:
+                  card: [{background: "rgba(6,14,30,0.90)"}, {border: "1px solid rgba(0,180,220,0.14)"}, {border-radius: "14px"}, {padding: "20px 12px"}]
+                  icon: [{color: "#ff9800"}, {width: "36px"}]
+                  name: [{color: "#9090b0"}, {font-size: "11px"}]
+
+              - type: custom:button-card
+                icon: mdi:home
+                name: Home
+                tap_action:
+                  action: call-service
+                  service: scene.turn_on
+                  service_data:
+                    entity_id: scene.home
+                styles:
+                  card: [{background: "rgba(6,14,30,0.90)"}, {border: "1px solid rgba(0,180,220,0.14)"}, {border-radius: "14px"}, {padding: "20px 12px"}]
+                  icon: [{color: "#00c8f0"}, {width: "36px"}]
+                  name: [{color: "#9090b0"}, {font-size: "11px"}]
+
+          # Relays
+          - type: custom:button-card
+            show_name: false
+            show_icon: false
+            show_state: false
+            custom_fields:
+              relays_label: "RELAYS"
+            styles:
+              card: [{background: "transparent"}, {border: "none"}, {box-shadow: "none"}, {padding: "12px 4px 4px"}]
+              custom_fields:
+                relays_label: [{color: "#5a7090"}, {font-size: "10px"}, {letter-spacing: "2px"}, {display: "block"}]
+
+          - type: horizontal-stack
+            cards:
+              - type: custom:button-card
+                entity: switch.relay_1
+                icon: mdi:toggle-switch-variant-off
+                name: Relay 1
+                show_state: true
+                tap_action:
+                  action: toggle
+                state:
+                  - value: "on"
+                    styles:
+                      icon: [{color: "#00c8f0"}]
+                      card: [{border: "1px solid rgba(0,200,240,0.3)"}]
+                styles:
+                  card: [{background: "rgba(6,14,30,0.90)"}, {border: "1px solid rgba(0,180,220,0.14)"}, {border-radius: "14px"}, {padding: "16px 12px"}]
+                  icon: [{color: "#3a5070"}, {width: "32px"}]
+                  name: [{color: "#9090b0"}, {font-size: "11px"}]
+                  state: [{color: "#5a7090"}, {font-size: "10px"}]
+
+              - type: custom:button-card
+                entity: switch.relay_2
+                icon: mdi:toggle-switch-variant-off
+                name: Relay 2
+                show_state: true
+                tap_action:
+                  action: toggle
+                state:
+                  - value: "on"
+                    styles:
+                      icon: [{color: "#00c8f0"}]
+                      card: [{border: "1px solid rgba(0,200,240,0.3)"}]
+                styles:
+                  card: [{background: "rgba(6,14,30,0.90)"}, {border: "1px solid rgba(0,180,220,0.14)"}, {border-radius: "14px"}, {padding: "16px 12px"}]
+                  icon: [{color: "#3a5070"}, {width: "32px"}]
+                  name: [{color: "#9090b0"}, {font-size: "11px"}]
+                  state: [{color: "#5a7090"}, {font-size: "10px"}]
+
+              - type: custom:button-card
+                entity: switch.relay_3
+                icon: mdi:toggle-switch-variant-off
+                name: Relay 3
+                show_state: true
+                tap_action:
+                  action: toggle
+                state:
+                  - value: "on"
+                    styles:
+                      icon: [{color: "#00c8f0"}]
+                      card: [{border: "1px solid rgba(0,200,240,0.3)"}]
+                styles:
+                  card: [{background: "rgba(6,14,30,0.90)"}, {border: "1px solid rgba(0,180,220,0.14)"}, {border-radius: "14px"}, {padding: "16px 12px"}]
+                  icon: [{color: "#3a5070"}, {width: "32px"}]
+                  name: [{color: "#9090b0"}, {font-size: "11px"}]
+                  state: [{color: "#5a7090"}, {font-size: "10px"}]
+
+              - type: custom:button-card
+                entity: switch.relay_4
+                icon: mdi:toggle-switch-variant-off
+                name: Relay 4
+                show_state: true
+                tap_action:
+                  action: toggle
+                state:
+                  - value: "on"
+                    styles:
+                      icon: [{color: "#00c8f0"}]
+                      card: [{border: "1px solid rgba(0,200,240,0.3)"}]
+                styles:
+                  card: [{background: "rgba(6,14,30,0.90)"}, {border: "1px solid rgba(0,180,220,0.14)"}, {border-radius: "14px"}, {padding: "16px 12px"}]
+                  icon: [{color: "#3a5070"}, {width: "32px"}]
+                  name: [{color: "#9090b0"}, {font-size: "11px"}]
+                  state: [{color: "#5a7090"}, {font-size: "10px"}]
